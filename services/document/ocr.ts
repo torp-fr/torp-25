@@ -34,7 +34,7 @@ export class OCRService {
   /**
    * Extract text from PDF
    */
-  async extractTextFromPDF(pdfUrl: string): Promise<OCRResult> {
+  async extractTextFromPDF(_pdfUrl: string): Promise<OCRResult> {
     // For PDFs, we would typically use pdf-parse or AWS Textract
     // This is a placeholder implementation
     try {
