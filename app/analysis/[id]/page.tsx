@@ -22,6 +22,7 @@ import {
   CheckCircle2,
   XCircle,
 } from 'lucide-react'
+import { AppHeader } from '@/components/app-header'
 
 interface TORPScore {
   id: string
@@ -251,35 +252,7 @@ export default function AnalysisPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="border-b bg-white">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <Link href="/" className="text-2xl font-bold text-primary">
-                TORP
-              </Link>
-              <Link
-                href="/dashboard"
-                className="flex items-center gap-2 text-muted-foreground hover:text-primary"
-              >
-                <ArrowLeft className="h-4 w-4" />
-                Retour
-              </Link>
-            </div>
-            <div className="flex gap-2">
-              <Button variant="outline" size="sm">
-                <Share2 className="mr-2 h-4 w-4" />
-                Partager
-              </Button>
-              <Button variant="outline" size="sm">
-                <Download className="mr-2 h-4 w-4" />
-                Exporter
-              </Button>
-            </div>
-          </div>
-        </div>
-      </header>
+      <AppHeader />
 
       <main className="container mx-auto px-4 py-8">
         {/* Page Title */}

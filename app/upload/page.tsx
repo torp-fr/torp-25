@@ -20,6 +20,7 @@ import {
   AlertCircle,
   Loader2,
 } from 'lucide-react'
+import { AppHeader } from '@/components/app-header'
 
 type UploadStatus = 'idle' | 'uploading' | 'processing' | 'success' | 'error'
 
@@ -212,35 +213,7 @@ export default function UploadPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="border-b bg-white">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <Link href="/" className="text-2xl font-bold text-primary">
-                TORP
-              </Link>
-              <nav className="hidden gap-6 md:flex">
-                <Link
-                  href="/dashboard"
-                  className="text-muted-foreground hover:text-primary"
-                >
-                  Dashboard
-                </Link>
-                <Link
-                  href="/upload"
-                  className="font-medium text-primary"
-                >
-                  Uploader
-                </Link>
-              </nav>
-            </div>
-            <Link href="/dashboard">
-              <Button variant="outline">Retour</Button>
-            </Link>
-          </div>
-        </div>
-      </header>
+      <AppHeader />
 
       <main className="container mx-auto px-4 py-8">
         {/* Page Title */}
