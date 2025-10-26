@@ -33,6 +33,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Calculate score
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const score = await torpScoringEngine.calculateScore(devis as any, {
       region,
       projectType: devis.projectType || 'renovation',
@@ -46,10 +47,10 @@ export async function POST(request: NextRequest) {
         scoreValue: score.scoreValue,
         scoreGrade: score.scoreGrade,
         confidenceLevel: score.confidenceLevel,
-        breakdown: score.breakdown as any,
-        alerts: score.alerts as any,
-        recommendations: score.recommendations as any,
-        regionalBenchmark: score.regionalBenchmark as any,
+        breakdown: JSON.parse(JSON.stringify(score.breakdown)),
+        alerts: JSON.parse(JSON.stringify(score.alerts)),
+        recommendations: JSON.parse(JSON.stringify(score.recommendations)),
+        regionalBenchmark: score.regionalBenchmark ? JSON.parse(JSON.stringify(score.regionalBenchmark)) : null,
         algorithmVersion: score.algorithmVersion,
       },
     })
