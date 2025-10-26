@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
-import { Home, Upload, BarChart3 } from 'lucide-react'
+import { Home, Upload } from 'lucide-react'
 
 export function AppHeader() {
   return (

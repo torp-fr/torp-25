@@ -12,9 +12,6 @@ import {
   CardTitle,
 } from '@/components/ui/card'
 import {
-  ArrowLeft,
-  Download,
-  Share2,
   AlertTriangle,
   Lightbulb,
   TrendingUp,
