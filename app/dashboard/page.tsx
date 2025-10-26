@@ -85,7 +85,7 @@ export default function DashboardPage() {
 
       const avgScore =
         scoresWithValues.length > 0
-          ? scoresWithValues.reduce((a, b) => a + Number(b), 0) /
+          ? scoresWithValues.reduce((a: number, b: number) => a + b, 0) /
             scoresWithValues.length
           : 0
 
