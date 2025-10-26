@@ -15,16 +15,12 @@ const nextConfig: NextConfig = {
     ],
   },
 
-  // Experimental features
+  // Experimental features (Next.js 15 compatible)
   experimental: {
-    // Enable Server Actions
     serverActions: {
       bodySizeLimit: '10mb',
     },
   },
-
-  // Disable telemetry
-  telemetry: false,
 
   // Production source maps (disable for better performance)
   productionBrowserSourceMaps: false,
