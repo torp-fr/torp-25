@@ -418,7 +418,7 @@ export class TORPScoringEngine {
    */
   private generateRecommendations(
     breakdown: ScoreBreakdown,
-    devis: Devis
+    _devis: Devis
   ): Recommendation[] {
     const recommendations: Recommendation[] = []
 
