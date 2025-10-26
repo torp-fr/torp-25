@@ -11,7 +11,6 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card'
-import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import {
   Upload,
@@ -31,7 +30,7 @@ export default function UploadPage() {
   const [status, setStatus] = useState<UploadStatus>('idle')
   const [progress, setProgress] = useState(0)
   const [error, setError] = useState<string | null>(null)
-  const [devisId, setDevisId] = useState<string | null>(null)
+  const [_devisId, setDevisId] = useState<string | null>(null)
 
   // Form data
   const [projectType, setProjectType] = useState('renovation')
@@ -250,7 +249,7 @@ export default function UploadPage() {
         <div className="mb-8">
           <h1 className="text-3xl font-bold">Uploader un Devis</h1>
           <p className="text-muted-foreground">
-            Analysez automatiquement votre devis BTP avec l'algorithme TORP
+            Analysez automatiquement votre devis BTP avec l&apos;algorithme TORP
           </p>
         </div>
 
@@ -406,7 +405,7 @@ export default function UploadPage() {
                     onChange={(e) => setTradeType(e.target.value)}
                     disabled={status !== 'idle'}
                   >
-                    <option value="general">Tous Corps d'État</option>
+                    <option value="general">Tous Corps d&apos;État</option>
                     <option value="plomberie">Plomberie</option>
                     <option value="électricité">Électricité</option>
                     <option value="maçonnerie">Maçonnerie</option>

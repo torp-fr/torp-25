@@ -1,7 +1,7 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { useParams, useRouter } from 'next/navigation'
+import { useState, useEffect, useCallback } from 'react'
+import { useParams } from 'next/navigation'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import {
@@ -18,7 +18,6 @@ import {
   AlertTriangle,
   Lightbulb,
   TrendingUp,
-  TrendingDown,
   Minus,
   CheckCircle2,
   XCircle,
@@ -92,11 +91,7 @@ export default function AnalysisPage() {
   const [error, setError] = useState<string | null>(null)
   const [calculatingScore, setCalculatingScore] = useState(false)
 
-  useEffect(() => {
-    fetchData()
-  }, [devisId])
-
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     try {
       setLoading(true)
 
@@ -130,7 +125,11 @@ export default function AnalysisPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [devisId])
+
+  useEffect(() => {
+    fetchData()
+  }, [fetchData])
 
   const calculateScore = async () => {
     try {
@@ -371,7 +370,7 @@ export default function AnalysisPage() {
                       Score non calculé
                     </h3>
                     <p className="mb-4 text-muted-foreground">
-                      Lancez l'analyse TORP pour évaluer ce devis
+                      Lancez l&apos;analyse TORP pour évaluer ce devis
                     </p>
                     <Button
                       onClick={calculateScore}
@@ -393,7 +392,7 @@ export default function AnalysisPage() {
                     Alertes ({score.alerts.length})
                   </CardTitle>
                   <CardDescription>
-                    Points d'attention identifiés
+                    Points d&apos;attention identifiés
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -428,7 +427,7 @@ export default function AnalysisPage() {
                       Recommandations ({score.recommendations.length})
                     </CardTitle>
                     <CardDescription>
-                      Suggestions d'amélioration
+                      Suggestions d&apos;amélioration
                     </CardDescription>
                   </CardHeader>
                   <CardContent>

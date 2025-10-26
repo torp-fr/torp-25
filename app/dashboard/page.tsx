@@ -292,7 +292,7 @@ export default function DashboardPage() {
           <CardHeader>
             <CardTitle>Liste des Devis</CardTitle>
             <CardDescription>
-              Consultez l'historique complet de vos devis analysés
+              Consultez l&apos;historique complet de vos devis analysés
             </CardDescription>
           </CardHeader>
           <CardContent>
