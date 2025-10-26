@@ -494,7 +494,7 @@ export class TORPScoringEngine {
 
   private calculatePercentile(
     value: number,
-    average: number,
+    _average: number,
     range: { min: number; max: number }
   ): number {
     if (value <= range.min) return 0
@@ -516,8 +516,8 @@ export class TORPScoringEngine {
   }
 
   private scoreItemPrices(
-    items: any[],
-    benchmarkPrices: Record<string, number>
+    _items: any[],
+    _benchmarkPrices: Record<string, number>
   ): number {
     // Compare each item to benchmark if available
     return 0.7 // Placeholder
@@ -558,7 +558,7 @@ export class TORPScoringEngine {
     return 0.7 // Placeholder
   }
 
-  private compareToMarket(devis: Devis, benchmark?: BenchmarkData): number {
+  private compareToMarket(_devis: Devis, _benchmark?: BenchmarkData): number {
     return 0.7 // Placeholder
   }
 
