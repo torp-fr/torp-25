@@ -92,7 +92,7 @@ export class OCRService {
   /**
    * Extract client information
    */
-  private extractClientInfo(text: string): any {
+  private extractClientInfo(_text: string): any {
     // Similar extraction logic for client
     return {
       name: '',
@@ -105,7 +105,7 @@ export class OCRService {
   /**
    * Extract project information
    */
-  private extractProjectInfo(text: string): any {
+  private extractProjectInfo(_text: string): any {
     return {
       title: '',
       description: '',
@@ -116,7 +116,7 @@ export class OCRService {
   /**
    * Extract line items
    */
-  private extractItems(text: string): any[] {
+  private extractItems(_text: string): any[] {
     // Parse line items with quantities, prices, etc.
     // This would use table detection and parsing
     return []
