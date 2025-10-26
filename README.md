@@ -25,7 +25,7 @@ TORP est une plateforme SaaS qui analyse et score automatiquement les devis de c
 ## 💻 Stack Technologique
 
 ### Frontend
-- **Framework**: Next.js 16 (App Router)
+- **Framework**: Next.js 15.2.3 (App Router)
 - **Language**: TypeScript (strict mode)
 - **Styling**: TailwindCSS 4 + Shadcn/ui
 - **State**: Zustand + React Query
