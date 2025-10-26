@@ -5,7 +5,7 @@
 
 import { S3 } from 'aws-sdk'
 import { config } from '@/config'
-import type { Document, FileType } from '@/types'
+import type { FileType } from '@/types'
 
 const s3 = new S3({
   region: config.aws.region,
