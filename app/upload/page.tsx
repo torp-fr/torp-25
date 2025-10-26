@@ -30,7 +30,6 @@ export default function UploadPage() {
   const [status, setStatus] = useState<UploadStatus>('idle')
   const [progress, setProgress] = useState(0)
   const [error, setError] = useState<string | null>(null)
-  const [_devisId, setDevisId] = useState<string | null>(null)
 
   // Form data
   const [projectType, setProjectType] = useState('renovation')
@@ -187,7 +186,6 @@ export default function UploadPage() {
       }
 
       const devisData = await devisResponse.json()
-      setDevisId(devisData.data.id)
 
       setProgress(100)
       setStatus('success')
@@ -349,7 +347,7 @@ export default function UploadPage() {
                         <div>
                           <p className="font-medium">Upload réussi !</p>
                           <p className="text-sm">
-                            Redirection vers l'analyse...
+                            Redirection vers l&apos;analyse...
                           </p>
                         </div>
                       </div>

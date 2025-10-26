@@ -303,7 +303,7 @@ export default function DashboardPage() {
                   Aucun devis pour le moment
                 </h3>
                 <p className="mb-4 text-muted-foreground">
-                  Uploadez votre premier devis pour commencer l'analyse
+                  Uploadez votre premier devis pour commencer l&apos;analyse
                 </p>
                 <Link href="/upload">
                   <Button>

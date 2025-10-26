@@ -82,7 +82,6 @@ interface Devis {
 
 export default function AnalysisPage() {
   const params = useParams()
-  const router = useRouter()
   const devisId = params.id as string
 
   const [devis, setDevis] = useState<Devis | null>(null)
@@ -497,7 +496,7 @@ export default function AnalysisPage() {
                   </p>
                 </div>
                 <div>
-                  <p className="text-muted-foreground">Date d'Analyse</p>
+                  <p className="text-muted-foreground">Date d&apos;Analyse</p>
                   <p className="font-medium">{formatDate(devis.createdAt)}</p>
                 </div>
               </CardContent>
