@@ -1,7 +1,71 @@
-import type { NextConfig } from "next";
+import type { NextConfig } from 'next'
 
 const nextConfig: NextConfig = {
-  /* config options here */
-};
+  // Optimize images
+  images: {
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: '**.amazonaws.com',
+      },
+      {
+        protocol: 'https',
+        hostname: '**.vercel.app',
+      },
+    ],
+  },
 
-export default nextConfig;
+  // Experimental features
+  experimental: {
+    // Enable Server Actions
+    serverActions: {
+      bodySizeLimit: '10mb',
+    },
+  },
+
+  // Disable telemetry
+  telemetry: false,
+
+  // Production source maps (disable for better performance)
+  productionBrowserSourceMaps: false,
+
+  // Webpack configuration
+  webpack: (config, { isServer }) => {
+    // Fix for Prisma in serverless
+    if (isServer) {
+      config.externals.push({
+        '@prisma/client': 'commonjs @prisma/client',
+      })
+    }
+    return config
+  },
+
+  // Headers for security
+  async headers() {
+    return [
+      {
+        source: '/:path*',
+        headers: [
+          {
+            key: 'X-DNS-Prefetch-Control',
+            value: 'on',
+          },
+          {
+            key: 'X-Frame-Options',
+            value: 'SAMEORIGIN',
+          },
+          {
+            key: 'X-Content-Type-Options',
+            value: 'nosniff',
+          },
+          {
+            key: 'Referrer-Policy',
+            value: 'origin-when-cross-origin',
+          },
+        ],
+      },
+    ]
+  },
+}
+
+export default nextConfig
