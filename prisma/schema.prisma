@@ -1,0 +1,293 @@
+// TORP Platform Database Schema
+// PostgreSQL database using Prisma ORM
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================================================
+// User Models
+// ============================================================================
+
+model User {
+  id           String    @id @default(uuid())
+  email        String    @unique
+  passwordHash String?   @map("password_hash")
+  authProvider String?   @map("auth_provider") // 'local', 'google', 'auth0'
+  role         UserRole  @default(CONSUMER)
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+  deletedAt    DateTime? @map("deleted_at")
+
+  // Relations
+  profile        UserProfile?
+  companyProfile CompanyProfile?
+  documents      Document[]
+  devis          Devis[]
+  torpScores     TORPScore[]
+  comparisons    Comparison[]
+  subscriptions  Subscription[]
+  payments       Payment[]
+  analyticsEvents AnalyticsEvent[]
+
+  @@index([email])
+  @@map("users")
+}
+
+enum UserRole {
+  CONSUMER
+  PROFESSIONAL
+  ADMIN
+
+  @@map("user_role")
+}
+
+model UserProfile {
+  id          String   @id @default(uuid())
+  userId      String   @unique @map("user_id")
+  firstName   String?  @map("first_name")
+  lastName    String?  @map("last_name")
+  phone       String?
+  address     Json?
+  preferences Json?
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_profiles")
+}
+
+model CompanyProfile {
+  id                      String   @id @default(uuid())
+  userId                  String   @unique @map("user_id")
+  companyName             String   @map("company_name")
+  siret                   String?  @unique
+  activitySectors         String[] @map("activity_sectors")
+  certifications          String[]
+  torpCertificationLevel  String?  @map("torp_certification_level")
+  insurancePolicy         Json?    @map("insurance_policy")
+  createdAt               DateTime @default(now()) @map("created_at")
+  updatedAt               DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("company_profiles")
+}
+
+// ============================================================================
+// Document Models
+// ============================================================================
+
+model Document {
+  id           String         @id @default(uuid())
+  userId       String         @map("user_id")
+  fileName     String         @map("file_name")
+  fileType     String         @map("file_type")
+  fileSize     Int            @map("file_size")
+  fileUrl      String         @map("file_url")
+  uploadStatus DocumentStatus @default(PENDING) @map("upload_status")
+  ocrStatus    DocumentStatus @default(PENDING) @map("ocr_status")
+  createdAt    DateTime       @default(now()) @map("created_at")
+  updatedAt    DateTime       @updatedAt @map("updated_at")
+
+  // Relations
+  user  User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  devis Devis[]
+
+  @@index([userId])
+  @@map("documents")
+}
+
+enum DocumentStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+
+  @@map("document_status")
+}
+
+// ============================================================================
+// Devis (Quote) Models
+// ============================================================================
+
+model Devis {
+  id               String         @id @default(uuid())
+  documentId       String         @map("document_id")
+  userId           String         @map("user_id")
+  extractedData    Json           @map("extracted_data")
+  parsedData       Json?          @map("parsed_data")
+  validationStatus DocumentStatus @default(PENDING) @map("validation_status")
+  validationErrors Json?          @map("validation_errors")
+  projectType      String?        @map("project_type")
+  tradeType        String?        @map("trade_type")
+  totalAmount      Decimal        @map("total_amount") @db.Decimal(12, 2)
+  createdAt        DateTime       @default(now()) @map("created_at")
+  updatedAt        DateTime       @updatedAt @map("updated_at")
+
+  // Relations
+  document   Document    @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  user       User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  torpScores TORPScore[]
+
+  @@index([userId])
+  @@index([documentId])
+  @@map("devis")
+}
+
+// ============================================================================
+// TORP Score Models
+// ============================================================================
+
+model TORPScore {
+  id                String   @id @default(uuid())
+  devisId           String   @map("devis_id")
+  scoreValue        Decimal  @map("score_value") @db.Decimal(5, 2)
+  scoreGrade        String   @map("score_grade")
+  confidenceLevel   Decimal  @map("confidence_level") @db.Decimal(5, 2)
+  breakdown         Json
+  alerts            Json
+  recommendations   Json
+  regionalBenchmark Json?    @map("regional_benchmark")
+  algorithmVersion  String   @map("algorithm_version")
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  devis Devis @relation(fields: [devisId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String @map("user_id")
+
+  @@index([devisId])
+  @@map("torp_scores")
+}
+
+// ============================================================================
+// Comparison Models
+// ============================================================================
+
+model Comparison {
+  id               String   @id @default(uuid())
+  userId           String   @map("user_id")
+  devisIds         String[] @map("devis_ids")
+  comparisonData   Json     @map("comparison_data")
+  aiRecommendation Json?    @map("ai_recommendation")
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("comparisons")
+}
+
+// ============================================================================
+// Subscription & Payment Models
+// ============================================================================
+
+model Subscription {
+  id                   String             @id @default(uuid())
+  userId               String             @map("user_id")
+  planType             PlanType           @map("plan_type")
+  status               SubscriptionStatus
+  currentPeriodStart   DateTime           @map("current_period_start")
+  currentPeriodEnd     DateTime           @map("current_period_end")
+  cancelAtPeriodEnd    Boolean            @default(false) @map("cancel_at_period_end")
+  stripeSubscriptionId String?            @unique @map("stripe_subscription_id")
+  stripeCustomerId     String?            @map("stripe_customer_id")
+  createdAt            DateTime           @default(now()) @map("created_at")
+  updatedAt            DateTime           @updatedAt @map("updated_at")
+
+  // Relations
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  payments Payment[]
+
+  @@index([userId])
+  @@map("subscriptions")
+}
+
+enum PlanType {
+  FREE
+  PREMIUM_CONSUMER
+  PRO
+  ENTERPRISE
+
+  @@map("plan_type")
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  CANCELED
+  PAST_DUE
+  TRIALING
+
+  @@map("subscription_status")
+}
+
+model Payment {
+  id                    String        @id @default(uuid())
+  userId                String        @map("user_id")
+  subscriptionId        String?       @map("subscription_id")
+  amount                Decimal       @db.Decimal(10, 2)
+  currency              String        @default("EUR")
+  status                PaymentStatus
+  stripePaymentIntentId String?       @unique @map("stripe_payment_intent_id")
+  paymentMethod         String?       @map("payment_method")
+  metadata              Json?
+  createdAt             DateTime      @default(now()) @map("created_at")
+  updatedAt             DateTime      @updatedAt @map("updated_at")
+
+  // Relations
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subscription Subscription? @relation(fields: [subscriptionId], references: [id])
+
+  @@index([userId])
+  @@map("payments")
+}
+
+enum PaymentStatus {
+  PENDING
+  SUCCEEDED
+  FAILED
+  REFUNDED
+
+  @@map("payment_status")
+}
+
+// ============================================================================
+// Analytics Models
+// ============================================================================
+
+model AnalyticsEvent {
+  id            String        @id @default(uuid())
+  userId        String?       @map("user_id")
+  eventType     String        @map("event_type")
+  eventCategory EventCategory @map("event_category")
+  properties    Json
+  sessionId     String?       @map("session_id")
+  createdAt     DateTime      @default(now()) @map("created_at")
+
+  // Relations
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([createdAt])
+  @@map("analytics_events")
+}
+
+enum EventCategory {
+  ENGAGEMENT
+  CONVERSION
+  FEATURE_USAGE
+
+  @@map("event_category")
+}
