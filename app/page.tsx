@@ -52,9 +52,11 @@ export default function HomePage() {
           </nav>
           <div className="flex items-center gap-4">
             <Button variant="ghost" asChild>
+              {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
               <a href="/api/auth/login">Connexion</a>
             </Button>
             <Button asChild>
+              {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
               <a href="/api/auth/login">Commencer</a>
             </Button>
           </div>
