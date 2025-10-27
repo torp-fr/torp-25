@@ -8,6 +8,7 @@ import { NextResponse } from 'next/server'
 export const dynamic = 'force-dynamic'
 
 export async function GET() {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const debug: Record<string, any> = {}
 
   // Vérifier les variables d'environnement
@@ -28,9 +29,11 @@ export async function GET() {
     try {
       const session = await getSession()
       debug.session = session ? 'User logged in' : 'No session'
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (sessionError: any) {
       debug.sessionError = sessionError.message || 'Unknown error'
     }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } catch (importError: any) {
     debug.sdkImportError = importError.message || 'Failed to import SDK'
   }
@@ -40,6 +43,7 @@ export async function GET() {
     const { handleAuth } = await import('@auth0/nextjs-auth0')
     debug.handleAuthImport = 'SUCCESS'
     debug.handleAuthType = typeof handleAuth
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } catch (handleAuthError: any) {
     debug.handleAuthError = handleAuthError.message || 'Failed to import handleAuth'
   }
