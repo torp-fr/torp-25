@@ -7,31 +7,12 @@
  * - /api/auth/me
  */
 
-import { handleAuth, handleLogin } from '@auth0/nextjs-auth0'
+import { handleAuth } from '@auth0/nextjs-auth0'
 
 // Force dynamic rendering to ensure environment variables are available
 export const dynamic = 'force-dynamic'
 
-// Check if Auth0 is properly configured
-const requiredVars = [
-  'AUTH0_SECRET',
-  'AUTH0_BASE_URL',
-  'AUTH0_ISSUER_BASE_URL',
-  'AUTH0_CLIENT_ID',
-  'AUTH0_CLIENT_SECRET',
-]
-
-const missingVars = requiredVars.filter(varName => !process.env[varName])
-
-if (missingVars.length > 0) {
-  console.error('[Auth0] Missing configuration:', missingVars)
-  console.error('[Auth0] Please configure these environment variables on Vercel')
-}
-
-// Configure Auth0 handlers and export them directly
-// handleAuth returns an object with GET and POST handlers
-export const { GET, POST } = handleAuth({
-  login: handleLogin({
-    returnTo: '/dashboard',
-  }),
-})
+// handleAuth() returns a single handler that handles all auth routes
+// For Next.js App Router, we need to export it for both GET and POST
+export const GET = handleAuth()
+export const POST = handleAuth()
