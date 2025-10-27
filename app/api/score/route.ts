@@ -7,6 +7,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { torpScoringEngine } from '@/services/scoring/torp-score'
 
+export const dynamic = 'force-dynamic'
+
 // POST calculate new score
 export async function POST(request: NextRequest) {
   try {
