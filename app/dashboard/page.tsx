@@ -201,11 +201,19 @@ export default function DashboardPage() {
 
       <main className="container mx-auto px-4 py-8">
         {/* Page Title */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold">Mes Devis BTP</h1>
-          <p className="text-muted-foreground">
-            Gérez et analysez tous vos devis de construction
-          </p>
+        <div className="mb-8 flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold">Mes Devis BTP</h1>
+            <p className="text-muted-foreground">
+              Gérez et analysez tous vos devis de construction
+            </p>
+          </div>
+          <Link href="/diagnostic">
+            <Button variant="outline" size="sm">
+              <AlertCircle className="mr-2 h-4 w-4" />
+              Diagnostic
+            </Button>
+          </Link>
         </div>
 
         {/* Stats Cards */}
