@@ -13,6 +13,21 @@ export async function POST(request: NextRequest) {
     const { searchParams } = new URL(request.url)
     const userId = searchParams.get('userId') || 'demo-user-id'
 
+    // Create or get user first (required for foreign key constraint)
+    let user = await prisma.user.findUnique({
+      where: { id: userId },
+    })
+
+    if (!user) {
+      user = await prisma.user.create({
+        data: {
+          id: userId,
+          email: 'demo@torp.fr',
+          role: 'CONSUMER',
+        },
+      })
+    }
+
     // Create sample document
     const document = await prisma.document.create({
       data: {
