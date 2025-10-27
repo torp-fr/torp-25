@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import {
   Card,
@@ -245,16 +246,16 @@ export default function DiagnosticPage() {
           <CardContent className="space-y-2">
             <div className="flex flex-wrap gap-2">
               <Button asChild variant="outline" size="sm">
-                <a href="/">Accueil</a>
+                <Link href="/">Accueil</Link>
               </Button>
               <Button asChild variant="outline" size="sm">
-                <a href="/dashboard">Dashboard</a>
+                <Link href="/dashboard">Dashboard</Link>
               </Button>
               <Button asChild variant="outline" size="sm">
-                <a href="/upload">Upload</a>
+                <Link href="/upload">Upload</Link>
               </Button>
               <Button asChild variant="outline" size="sm">
-                <a href="/api/health" target="_blank">
+                <a href="/api/health" target="_blank" rel="noopener noreferrer">
                   API Health (JSON)
                 </a>
               </Button>
