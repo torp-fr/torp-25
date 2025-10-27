@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { Inter, Poppins } from 'next/font/google'
 import './globals.css'
 import { Toaster } from '@/components/ui/toaster'
+import { AuthProvider } from '@/components/auth-provider'
 
 const inter = Inter({
   variable: '--font-inter',
@@ -38,8 +39,10 @@ export default function RootLayout({
   return (
     <html lang="fr" className={`${inter.variable} ${poppins.variable}`}>
       <body className="min-h-screen bg-background font-sans antialiased">
-        {children}
-        <Toaster />
+        <AuthProvider>
+          {children}
+          <Toaster />
+        </AuthProvider>
       </body>
     </html>
   )

@@ -1,17 +1,20 @@
 /**
  * Document Upload Service
- * Handles file uploads to AWS S3
+ * Handles file uploads to AWS S3 (or local storage in development)
  */
 
 import { S3 } from 'aws-sdk'
 import { config } from '@/config'
-import type { Document, FileType } from '@/types'
+import type { FileType } from '@/types'
 
-const s3 = new S3({
-  region: config.aws.region,
-  accessKeyId: config.aws.accessKeyId,
-  secretAccessKey: config.aws.secretAccessKey,
-})
+// Only initialize S3 if AWS credentials are available
+const s3 = process.env.AWS_ACCESS_KEY_ID && process.env.AWS_SECRET_ACCESS_KEY
+  ? new S3({
+      region: config.aws.region,
+      accessKeyId: config.aws.accessKeyId,
+      secretAccessKey: config.aws.secretAccessKey,
+    })
+  : null
 
 interface UploadOptions {
   userId: string
@@ -31,7 +34,7 @@ export class DocumentUploadService {
   private readonly maxFileSize = config.limits.maxFileSize
 
   /**
-   * Upload a document to S3
+   * Upload a document to S3 (or mock upload in development without S3)
    */
   async upload({ userId, file, folder = 'documents' }: UploadOptions): Promise<UploadResult> {
     // Validate file
@@ -41,33 +44,46 @@ export class DocumentUploadService {
     const fileName = this.generateFileName(file.name)
     const key = `${folder}/${userId}/${fileName}`
 
-    // Convert File to Buffer for Node.js
-    const buffer = await file.arrayBuffer()
-    const fileBuffer = Buffer.from(buffer)
+    // If S3 is configured, upload to S3
+    if (s3) {
+      // Convert File to Buffer for Node.js
+      const buffer = await file.arrayBuffer()
+      const fileBuffer = Buffer.from(buffer)
 
-    // Upload to S3
-    const uploadParams: S3.PutObjectRequest = {
-      Bucket: this.bucketName,
-      Key: key,
-      Body: fileBuffer,
-      ContentType: file.type,
-      Metadata: {
-        userId,
-        originalName: file.name,
-        uploadedAt: new Date().toISOString(),
-      },
-    }
+      // Upload to S3
+      const uploadParams: S3.PutObjectRequest = {
+        Bucket: this.bucketName,
+        Key: key,
+        Body: fileBuffer,
+        ContentType: file.type,
+        Metadata: {
+          userId,
+          originalName: file.name,
+          uploadedAt: new Date().toISOString(),
+        },
+      }
 
-    await s3.upload(uploadParams).promise()
+      await s3.upload(uploadParams).promise()
 
-    // Generate public URL
-    const fileUrl = `https://${this.bucketName}.s3.${config.aws.region}.amazonaws.com/${key}`
+      // Generate public URL
+      const fileUrl = `https://${this.bucketName}.s3.${config.aws.region}.amazonaws.com/${key}`
 
-    return {
-      fileUrl,
-      fileName: file.name,
-      fileSize: file.size,
-      fileType: this.getFileType(file.name),
+      return {
+        fileUrl,
+        fileName: file.name,
+        fileSize: file.size,
+        fileType: this.getFileType(file.name),
+      }
+    } else {
+      // Development mode: return mock URL without actual upload
+      const mockUrl = `${config.app.url}/uploads/${key}`
+
+      return {
+        fileUrl: mockUrl,
+        fileName: file.name,
+        fileSize: file.size,
+        fileType: this.getFileType(file.name),
+      }
     }
   }
 
@@ -75,6 +91,11 @@ export class DocumentUploadService {
    * Delete a document from S3
    */
   async delete(fileUrl: string): Promise<void> {
+    if (!s3) {
+      // Development mode: no-op
+      return
+    }
+
     const key = this.extractKeyFromUrl(fileUrl)
 
     await s3
@@ -89,6 +110,11 @@ export class DocumentUploadService {
    * Get signed URL for temporary access
    */
   async getSignedUrl(fileUrl: string, expiresIn: number = 3600): Promise<string> {
+    if (!s3) {
+      // Development mode: return original URL
+      return fileUrl
+    }
+
     const key = this.extractKeyFromUrl(fileUrl)
 
     return s3.getSignedUrlPromise('getObject', {

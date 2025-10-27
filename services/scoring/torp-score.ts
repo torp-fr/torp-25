@@ -418,7 +418,7 @@ export class TORPScoringEngine {
    */
   private generateRecommendations(
     breakdown: ScoreBreakdown,
-    devis: Devis
+    _devis: Devis
   ): Recommendation[] {
     const recommendations: Recommendation[] = []
 
@@ -494,7 +494,7 @@ export class TORPScoringEngine {
 
   private calculatePercentile(
     value: number,
-    average: number,
+    _average: number,
     range: { min: number; max: number }
   ): number {
     if (value <= range.min) return 0
@@ -516,8 +516,8 @@ export class TORPScoringEngine {
   }
 
   private scoreItemPrices(
-    items: any[],
-    benchmarkPrices: Record<string, number>
+    _items: any[],
+    _benchmarkPrices: Record<string, number>
   ): number {
     // Compare each item to benchmark if available
     return 0.7 // Placeholder
@@ -546,19 +546,19 @@ export class TORPScoringEngine {
     return deviation > 0.3 ? 0.2 : 1.0
   }
 
-  private scoreLaborCosts(devis: Devis): number {
+  private scoreLaborCosts(_devis: Devis): number {
     return 0.7 // Placeholder - analyze labor vs materials ratio
   }
 
-  private estimateMargin(devis: Devis): number {
+  private estimateMargin(_devis: Devis): number {
     return 0.7 // Placeholder - estimate contractor margin
   }
 
-  private scoreMaterialsLaborRatio(devis: Devis): number {
+  private scoreMaterialsLaborRatio(_devis: Devis): number {
     return 0.7 // Placeholder
   }
 
-  private compareToMarket(devis: Devis, benchmark?: BenchmarkData): number {
+  private compareToMarket(_devis: Devis, _benchmark?: BenchmarkData): number {
     return 0.7 // Placeholder
   }
 
@@ -570,11 +570,11 @@ export class TORPScoringEngine {
     return deviation < -0.2 ? 0.3 : 1.0 // Under-pricing is also suspicious
   }
 
-  private scoreOptionsVariants(devis: Devis): number {
+  private scoreOptionsVariants(_devis: Devis): number {
     return 0.7 // Placeholder
   }
 
-  private scoreDiscounts(devis: Devis): number {
+  private scoreDiscounts(_devis: Devis): number {
     return 0.7 // Placeholder
   }
 
@@ -593,102 +593,102 @@ export class TORPScoringEngine {
   }
 
   // Quality criteria methods (Q001-Q020)
-  private scoreDTUCompliance(devis: Devis): number {
+  private scoreDTUCompliance(_devis: Devis): number {
     return 0.7
   }
-  private scoreMaterialsBrands(devis: Devis): number {
+  private scoreMaterialsBrands(_devis: Devis): number {
     return 0.7
   }
-  private scoreProductCertifications(devis: Devis): number {
+  private scoreProductCertifications(_devis: Devis): number {
     return 0.7
   }
-  private scoreMaterialsRange(devis: Devis): number {
+  private scoreMaterialsRange(_devis: Devis): number {
     return 0.7
   }
-  private scoreTechnicalDetails(devis: Devis): number {
+  private scoreTechnicalDetails(_devis: Devis): number {
     return 0.7
   }
-  private scoreQuantitiesAccuracy(devis: Devis): number {
+  private scoreQuantitiesAccuracy(_devis: Devis): number {
     return 0.7
   }
-  private scoreConstructionStandards(devis: Devis): number {
+  private scoreConstructionStandards(_devis: Devis): number {
     return 0.7
   }
-  private scoreDescriptionQuality(devis: Devis): number {
+  private scoreDescriptionQuality(_devis: Devis): number {
     return 0.7
   }
-  private scoreAlternatives(devis: Devis): number {
+  private scoreAlternatives(_devis: Devis): number {
     return 0.7
   }
-  private scoreConstructionTechniques(devis: Devis): number {
+  private scoreConstructionTechniques(_devis: Devis): number {
     return 0.7
   }
-  private scoreThermalRegulation(devis: Devis): number {
+  private scoreThermalRegulation(_devis: Devis): number {
     return 0.7
   }
-  private scoreAccessibility(devis: Devis): number {
+  private scoreAccessibility(_devis: Devis): number {
     return 0.7
   }
-  private scoreMaterialsWarranties(devis: Devis): number {
+  private scoreMaterialsWarranties(_devis: Devis): number {
     return 0.7
   }
-  private scoreAfterSalesService(devis: Devis): number {
+  private scoreAfterSalesService(_devis: Devis): number {
     return 0.7
   }
-  private scoreMaterialsOrigin(devis: Devis): number {
+  private scoreMaterialsOrigin(_devis: Devis): number {
     return 0.7
   }
-  private scoreEnergyPerformance(devis: Devis): number {
+  private scoreEnergyPerformance(_devis: Devis): number {
     return 0.7
   }
-  private scoreMaterialsDurability(devis: Devis): number {
+  private scoreMaterialsDurability(_devis: Devis): number {
     return 0.7
   }
-  private scoreFinishesCoherence(devis: Devis): number {
+  private scoreFinishesCoherence(_devis: Devis): number {
     return 0.7
   }
-  private scoreTechnicalPlans(devis: Devis): number {
+  private scoreTechnicalPlans(_devis: Devis): number {
     return 0.7
   }
-  private scoreClientRequirements(devis: Devis): number {
+  private scoreClientRequirements(_devis: Devis): number {
     return 0.7
   }
 
   // Timeline criteria methods (D001-D012)
-  private scoreTimelineRealism(devis: Devis, projectType: string): number {
+  private scoreTimelineRealism(_devis: Devis, _projectType: string): number {
     return 0.7
   }
-  private scorePhasingCoherence(devis: Devis): number {
+  private scorePhasingCoherence(_devis: Devis): number {
     return 0.7
   }
-  private scoreBufferMargin(devis: Devis): number {
+  private scoreBufferMargin(_devis: Devis): number {
     return 0.7
   }
-  private scoreScheduleClarity(devis: Devis): number {
+  private scoreScheduleClarity(_devis: Devis): number {
     return 0.7
   }
-  private scoreSeasonalConstraints(devis: Devis): number {
+  private scoreSeasonalConstraints(_devis: Devis): number {
     return 0.7
   }
-  private scoreMaterialsLeadTime(devis: Devis): number {
+  private scoreMaterialsLeadTime(_devis: Devis): number {
     return 0.7
   }
-  private scoreTradesCoordination(devis: Devis): number {
+  private scoreTradesCoordination(_devis: Devis): number {
     return 0.7
   }
-  private scoreInterferenceManagement(devis: Devis): number {
+  private scoreInterferenceManagement(_devis: Devis): number {
     return 0.7
   }
-  private scoreMilestones(devis: Devis): number {
+  private scoreMilestones(_devis: Devis): number {
     return 0.7
   }
-  private scoreScheduleFlexibility(devis: Devis): number {
+  private scoreScheduleFlexibility(_devis: Devis): number {
     return 0.7
   }
-  private scoreDelayPenalties(devis: Devis): number {
+  private scoreDelayPenalties(_devis: Devis): number {
     return 0.7
   }
-  private scoreTimelineGuarantee(devis: Devis): number {
+  private scoreTimelineGuarantee(_devis: Devis): number {
     return 0.7
   }
 
@@ -704,25 +704,25 @@ export class TORPScoringEngine {
   private scoreSIRETInsurance(devis: Devis): number {
     return devis.extractedData.company.siret ? 1.0 : 0.0
   }
-  private scoreDecennaleInsurance(devis: Devis): number {
+  private scoreDecennaleInsurance(_devis: Devis): number {
     return 0.7
   }
-  private scorePerfectCompletionWarranty(devis: Devis): number {
+  private scorePerfectCompletionWarranty(_devis: Devis): number {
     return 0.7
   }
-  private scoreProperFunctioningWarranty(devis: Devis): number {
+  private scoreProperFunctioningWarranty(_devis: Devis): number {
     return 0.7
   }
-  private scorePaymentTerms(devis: Devis): number {
+  private scorePaymentTerms(_devis: Devis): number {
     return 0.7
   }
-  private scoreWithdrawalPeriod(devis: Devis): number {
+  private scoreWithdrawalPeriod(_devis: Devis): number {
     return 0.7
   }
-  private scoreTermsAndConditions(devis: Devis): number {
+  private scoreTermsAndConditions(_devis: Devis): number {
     return 0.7
   }
-  private scoreAbusiveClauses(devis: Devis): number {
+  private scoreAbusiveClauses(_devis: Devis): number {
     return 0.7
   }
   private scoreVATCompliance(devis: Devis): number {
@@ -732,82 +732,82 @@ export class TORPScoringEngine {
       ? 1.0
       : 0.5
   }
-  private scoreEcoContribution(devis: Devis): number {
+  private scoreEcoContribution(_devis: Devis): number {
     return 0.7
   }
-  private scoreConsumerCode(devis: Devis): number {
+  private scoreConsumerCode(_devis: Devis): number {
     return 0.7
   }
-  private scoreLegalProtection(devis: Devis): number {
+  private scoreLegalProtection(_devis: Devis): number {
     return 0.7
   }
-  private scoreMediationArbitration(devis: Devis): number {
+  private scoreMediationArbitration(_devis: Devis): number {
     return 0.7
   }
-  private scoreComplaintRights(devis: Devis): number {
+  private scoreComplaintRights(_devis: Devis): number {
     return 0.7
   }
   private scoreQuoteValidity(devis: Devis): number {
     return devis.extractedData.dates.validUntil ? 1.0 : 0.5
   }
-  private scoreContractTermination(devis: Devis): number {
+  private scoreContractTermination(_devis: Devis): number {
     return 0.7
   }
-  private scorePartiesResponsibilities(devis: Devis): number {
+  private scorePartiesResponsibilities(_devis: Devis): number {
     return 0.7
   }
-  private scoreDamagesInsurance(devis: Devis): number {
+  private scoreDamagesInsurance(_devis: Devis): number {
     return 0.7
   }
-  private scoreUrbanismCompliance(devis: Devis): number {
+  private scoreUrbanismCompliance(_devis: Devis): number {
     return 0.7
   }
-  private scoreAdministrativePermits(devis: Devis): number {
+  private scoreAdministrativePermits(_devis: Devis): number {
     return 0.7
   }
-  private scoreEnvironmentalCompliance(devis: Devis): number {
+  private scoreEnvironmentalCompliance(_devis: Devis): number {
     return 0.7
   }
-  private scoreWasteManagement(devis: Devis): number {
+  private scoreWasteManagement(_devis: Devis): number {
     return 0.7
   }
-  private scoreSiteSafety(devis: Devis): number {
+  private scoreSiteSafety(_devis: Devis): number {
     return 0.7
   }
-  private scoreAccessibilityCompliance(devis: Devis): number {
+  private scoreAccessibilityCompliance(_devis: Devis): number {
     return 0.7
   }
-  private scoreEnergyPerformanceRE2020(devis: Devis): number {
+  private scoreEnergyPerformanceRE2020(_devis: Devis): number {
     return 0.7
   }
-  private scoreMaterialsCertifications(devis: Devis): number {
+  private scoreMaterialsCertifications(_devis: Devis): number {
     return 0.7
   }
-  private scoreSubcontractorsTracking(devis: Devis): number {
+  private scoreSubcontractorsTracking(_devis: Devis): number {
     return 0.7
   }
-  private scoreSPSCoordinator(devis: Devis): number {
+  private scoreSPSCoordinator(_devis: Devis): number {
     return 0.7
   }
-  private scoreRiskPreventionPlan(devis: Devis): number {
+  private scoreRiskPreventionPlan(_devis: Devis): number {
     return 0.7
   }
-  private scoreMandatoryTechnicalChecks(devis: Devis): number {
+  private scoreMandatoryTechnicalChecks(_devis: Devis): number {
     return 0.7
   }
-  private scoreGasElectricityCompliance(devis: Devis): number {
+  private scoreGasElectricityCompliance(_devis: Devis): number {
     return 0.7
   }
-  private scoreTechnicalInspection(devis: Devis): number {
+  private scoreTechnicalInspection(_devis: Devis): number {
     return 0.7
   }
-  private scoreBuildingDiagnostics(devis: Devis): number {
+  private scoreBuildingDiagnostics(_devis: Devis): number {
     return 0.7
   }
-  private scoreNeighborProtection(devis: Devis): number {
+  private scoreNeighborProtection(_devis: Devis): number {
     return 0.7
   }
-  private scoreForceMAjeureClauses(devis: Devis): number {
+  private scoreForceMAjeureClauses(_devis: Devis): number {
     return 0.7
   }
 }
