@@ -7,8 +7,11 @@ import { S3 } from 'aws-sdk'
 import { config } from '@/config'
 import type { FileType } from '@/types'
 
-// Only initialize S3 if AWS credentials are available
-const s3 = process.env.AWS_ACCESS_KEY_ID && process.env.AWS_SECRET_ACCESS_KEY
+// Only initialize S3 if AWS credentials are available AND not empty
+const s3 = process.env.AWS_ACCESS_KEY_ID &&
+           process.env.AWS_SECRET_ACCESS_KEY &&
+           process.env.AWS_ACCESS_KEY_ID.trim() !== '' &&
+           process.env.AWS_SECRET_ACCESS_KEY.trim() !== ''
   ? new S3({
       region: config.aws.region,
       accessKeyId: config.aws.accessKeyId,
