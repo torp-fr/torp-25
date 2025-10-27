@@ -52,10 +52,10 @@ export default function HomePage() {
           </nav>
           <div className="flex items-center gap-4">
             <Button variant="ghost" asChild>
-              <Link href="/login">Connexion</Link>
+              <a href="/api/auth/login">Connexion</a>
             </Button>
             <Button asChild>
-              <Link href="/register">Commencer</Link>
+              <a href="/api/auth/login">Commencer</a>
             </Button>
           </div>
         </div>
