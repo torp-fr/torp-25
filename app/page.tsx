@@ -51,20 +51,18 @@ export default function HomePage() {
             </Link>
           </nav>
           <div className="flex items-center gap-4">
-            {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
-            <a
-              href="/api/auth/login"
+            <Link
+              href="/dashboard"
               className="inline-flex h-10 items-center justify-center rounded-md px-4 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
             >
               Connexion
-            </a>
-            {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
-            <a
-              href="/api/auth/login"
+            </Link>
+            <Link
+              href="/dashboard"
               className="inline-flex h-10 items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
             >
               Commencer
-            </a>
+            </Link>
           </div>
         </div>
       </header>
