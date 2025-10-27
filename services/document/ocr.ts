@@ -48,7 +48,8 @@ export class OCRService {
       const buffer = Buffer.from(pdfBuffer)
 
       // Extract text using pdf-parse
-      const data = await pdfParse(buffer)
+      // @ts-ignore - pdf-parse types are not perfect
+      const data = await pdfParse.default(buffer)
 
       // pdf-parse doesn't provide confidence, so we estimate based on text length
       const confidence = data.text.length > 100 ? 95 : data.text.length > 10 ? 70 : 30
