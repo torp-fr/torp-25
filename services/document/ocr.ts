@@ -1,9 +1,10 @@
 /**
  * OCR Service
- * Extract text from documents using Tesseract.js and AWS Rekognition
+ * Extract text from documents using Tesseract.js and pdf-parse
  */
 
 import Tesseract from 'tesseract.js'
+import pdfParse from 'pdf-parse'
 import type { ExtractedData } from '@/types'
 
 interface OCRResult {
@@ -34,17 +35,27 @@ export class OCRService {
   /**
    * Extract text from PDF
    */
-  async extractTextFromPDF(_pdfUrl: string): Promise<OCRResult> {
-    // For PDFs, we would typically use pdf-parse or AWS Textract
-    // This is a placeholder implementation
+  async extractTextFromPDF(pdfUrl: string): Promise<OCRResult> {
     try {
-      // TODO: Implement PDF text extraction
-      // const pdfData = await fetch(pdfUrl).then(res => res.arrayBuffer())
-      // const pdf = await pdfParse(pdfData)
+      // Fetch PDF file
+      const response = await fetch(pdfUrl)
+      if (!response.ok) {
+        throw new Error(`Failed to fetch PDF: ${response.statusText}`)
+      }
+
+      // Get PDF as ArrayBuffer
+      const pdfBuffer = await response.arrayBuffer()
+      const buffer = Buffer.from(pdfBuffer)
+
+      // Extract text using pdf-parse
+      const data = await pdfParse(buffer)
+
+      // pdf-parse doesn't provide confidence, so we estimate based on text length
+      const confidence = data.text.length > 100 ? 95 : data.text.length > 10 ? 70 : 30
 
       return {
-        text: '', // Placeholder
-        confidence: 0,
+        text: data.text,
+        confidence,
       }
     } catch (error) {
       console.error('PDF extraction failed:', error)

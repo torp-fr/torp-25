@@ -2,6 +2,7 @@
 
 import { useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
+import { useAuth } from '@/hooks/use-auth'
 import { Button } from '@/components/ui/button'
 import {
   Card,
@@ -25,6 +26,7 @@ type UploadStatus = 'idle' | 'uploading' | 'processing' | 'success' | 'error'
 
 export default function UploadPage() {
   const router = useRouter()
+  const { userId } = useAuth()
   const [file, setFile] = useState<File | null>(null)
   const [dragActive, setDragActive] = useState(false)
   const [status, setStatus] = useState<UploadStatus>('idle')
@@ -34,9 +36,6 @@ export default function UploadPage() {
   // Form data
   const [projectType, setProjectType] = useState('renovation')
   const [tradeType, setTradeType] = useState('general')
-
-  // TODO: Remplacer par un vrai userId (Auth0)
-  const userId = 'demo-user-id'
 
   const handleDrag = useCallback((e: React.DragEvent) => {
     e.preventDefault()
@@ -124,12 +123,28 @@ export default function UploadPage() {
       const uploadData = await uploadResponse.json()
       const documentId = uploadData.data.documentId
 
-      setProgress(50)
+      setProgress(30)
       setStatus('processing')
 
-      // Create devis
-      // Note: In production, OCR would extract data automatically
-      // For now, we'll create a placeholder devis
+      // Process OCR to extract data from the document
+      const ocrResponse = await fetch('/api/ocr/process', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ documentId }),
+      })
+
+      if (!ocrResponse.ok) {
+        throw new Error('Erreur lors de l\'extraction des données')
+      }
+
+      const ocrData = await ocrResponse.json()
+      const extractedData = ocrData.data.extractedData
+
+      setProgress(70)
+
+      // Create devis with extracted data
       const devisResponse = await fetch('/api/devis', {
         method: 'POST',
         headers: {
@@ -140,44 +155,7 @@ export default function UploadPage() {
           userId,
           projectType,
           tradeType,
-          extractedData: {
-            company: {
-              name: 'Entreprise Demo',
-              siret: '',
-              email: '',
-              phone: '',
-              address: '',
-            },
-            client: {
-              name: 'Client Demo',
-              email: '',
-              phone: '',
-              address: '',
-            },
-            project: {
-              title: 'Projet Demo',
-              description: '',
-              location: '',
-            },
-            items: [
-              {
-                description: 'Prestation 1',
-                quantity: 1,
-                unit: 'forfait',
-                unitPrice: 1000,
-                totalPrice: 1000,
-              },
-            ],
-            totals: {
-              subtotal: 1000,
-              tva: 200,
-              tvaRate: 0.2,
-              total: 1200,
-            },
-            dates: {
-              issueDate: new Date().toISOString(),
-            },
-          },
+          extractedData,
         }),
       })
 
