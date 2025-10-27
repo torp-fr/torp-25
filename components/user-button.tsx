@@ -3,7 +3,6 @@
 import { useUser } from '@auth0/nextjs-auth0/client'
 import { Button } from '@/components/ui/button'
 import { LogIn, LogOut, User } from 'lucide-react'
-import Link from 'next/link'
 
 export function UserButton() {
   const { user, isLoading } = useUser()
@@ -19,6 +18,7 @@ export function UserButton() {
   if (!user) {
     return (
       <Button size="sm" asChild>
+        {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
         <a href="/api/auth/login">
           <LogIn className="mr-2 h-4 w-4" />
           Connexion
@@ -34,6 +34,7 @@ export function UserButton() {
         <span>{user.name || user.email}</span>
       </div>
       <Button variant="outline" size="sm" asChild>
+        {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
         <a href="/api/auth/logout">
           <LogOut className="mr-2 h-4 w-4" />
           Déconnexion
