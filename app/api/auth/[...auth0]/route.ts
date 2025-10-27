@@ -28,13 +28,10 @@ if (missingVars.length > 0) {
   console.error('[Auth0] Please configure these environment variables on Vercel')
 }
 
-// Configure Auth0 handlers
-// handleAuth returns the actual route handlers, not a wrapper
-const handlers = handleAuth({
+// Configure Auth0 handlers and export them directly
+// handleAuth returns an object with GET and POST handlers
+export const { GET, POST } = handleAuth({
   login: handleLogin({
     returnTo: '/dashboard',
   }),
 })
-
-export const GET = handlers
-export const POST = handlers
