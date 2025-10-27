@@ -12,6 +12,7 @@ export async function POST(request: NextRequest) {
     const formData = await request.formData()
     const file = formData.get('file') as File
     const userId = formData.get('userId') as string
+    const userEmail = formData.get('userEmail') as string
 
     if (!file) {
       return NextResponse.json(
@@ -27,7 +28,18 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Upload to S3
+    // Ensure user exists in database (create if first time)
+    await prisma.user.upsert({
+      where: { id: userId },
+      update: {},
+      create: {
+        id: userId,
+        email: userEmail || `user-${userId}@torp.fr`,
+        authProvider: 'auth0',
+      },
+    })
+
+    // Upload to S3 (or local mock)
     const uploadResult = await documentUploadService.upload({
       userId,
       file,
@@ -57,7 +69,11 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('Upload error:', error)
     return NextResponse.json(
-      { error: 'Failed to upload file' },
+      {
+        error: 'Failed to upload file',
+        message: error instanceof Error ? error.message : 'Unknown error',
+        details: process.env.NODE_ENV === 'development' ? error : undefined,
+      },
       { status: 500 }
     )
   }

@@ -26,7 +26,7 @@ type UploadStatus = 'idle' | 'uploading' | 'processing' | 'success' | 'error'
 
 export default function UploadPage() {
   const router = useRouter()
-  const { userId } = useAuth()
+  const { userId, user } = useAuth()
   const [file, setFile] = useState<File | null>(null)
   const [dragActive, setDragActive] = useState(false)
   const [status, setStatus] = useState<UploadStatus>('idle')
@@ -109,6 +109,7 @@ export default function UploadPage() {
       const formData = new FormData()
       formData.append('file', file)
       formData.append('userId', userId)
+      formData.append('userEmail', user?.email || '')
 
       // Upload file
       const uploadResponse = await fetch('/api/upload', {
