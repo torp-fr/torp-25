@@ -165,13 +165,32 @@ export default function UploadPage() {
       }
 
       const devisData = await devisResponse.json()
+      const devisId = devisData.data.id
+
+      setProgress(85)
+
+      // Calculate TORP Score
+      const scoreResponse = await fetch('/api/score', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          devisId,
+          region: 'ILE_DE_FRANCE', // TODO: Géolocalisation ou choix utilisateur
+        }),
+      })
+
+      if (!scoreResponse.ok) {
+        console.warn('Erreur lors du calcul du score, mais on continue')
+      }
 
       setProgress(100)
       setStatus('success')
 
       // Redirect after 2 seconds
       setTimeout(() => {
-        router.push(`/analysis/${devisData.data.id}`)
+        router.push(`/analysis/${devisId}`)
       }, 2000)
     } catch (err) {
       setStatus('error')
