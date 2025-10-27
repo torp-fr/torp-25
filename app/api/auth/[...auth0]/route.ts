@@ -9,6 +9,9 @@
 
 import { handleAuth, handleLogin } from '@auth0/nextjs-auth0'
 
+// Force dynamic rendering to ensure environment variables are available
+export const dynamic = 'force-dynamic'
+
 // Configure Auth0 handlers with explicit options for Next.js 15
 export const GET = handleAuth({
   login: handleLogin({
