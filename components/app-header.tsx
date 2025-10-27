@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Home, Upload } from 'lucide-react'
+import { UserButton } from '@/components/user-button'
 
 export function AppHeader() {
   return (
@@ -35,15 +36,10 @@ export function AppHeader() {
         </div>
 
         <div className="flex items-center gap-4">
-          <Button variant="ghost" size="sm" asChild>
+          <Button variant="ghost" size="sm" asChild className="hidden sm:inline-flex">
             <Link href="/">Accueil</Link>
           </Button>
-          <Button size="sm" asChild>
-            <Link href="/upload">
-              <Upload className="mr-2 h-4 w-4" />
-              Nouveau Devis
-            </Link>
-          </Button>
+          <UserButton />
         </div>
       </div>
     </header>
