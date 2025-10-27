@@ -7,10 +7,13 @@
  * - /api/auth/me
  */
 
-import { handleAuth } from '@auth0/nextjs-auth0'
+import { handleAuth, handleLogin } from '@auth0/nextjs-auth0'
 
-// Export GET and POST handlers for Auth0
-const handler = handleAuth()
+// Configure Auth0 handlers with explicit options for Next.js 15
+export const GET = handleAuth({
+  login: handleLogin({
+    returnTo: '/dashboard',
+  }),
+})
 
-export const GET = handler
-export const POST = handler
+export const POST = GET
