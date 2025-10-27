@@ -9,4 +9,8 @@
 
 import { handleAuth } from '@auth0/nextjs-auth0'
 
-export const GET = handleAuth()
+// Export GET and POST handlers for Auth0
+const handler = handleAuth()
+
+export const GET = handler
+export const POST = handler
