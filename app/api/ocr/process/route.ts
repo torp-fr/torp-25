@@ -44,12 +44,11 @@ export async function POST(request: NextRequest) {
       document.fileType
     )
 
-    // Update document with OCR status and extracted text
+    // Update document with OCR status
     await prisma.document.update({
       where: { id: documentId },
       data: {
         ocrStatus: 'COMPLETED',
-        extractedText: JSON.stringify(extractedData),
       },
     })
 

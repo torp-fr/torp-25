@@ -4,7 +4,7 @@
  */
 
 import Tesseract from 'tesseract.js'
-import pdfParse from 'pdf-parse'
+import * as pdfParse from 'pdf-parse'
 import type { ExtractedData } from '@/types'
 
 interface OCRResult {
