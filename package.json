@@ -21,6 +21,7 @@
     "postinstall": "prisma generate"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.67.0",
     "@auth0/nextjs-auth0": "^3.8.0",
     "@hookform/resolvers": "^3.9.0",
     "@prisma/client": "^5.20.0",

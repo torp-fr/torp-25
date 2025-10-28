@@ -26,7 +26,7 @@ type UploadStatus = 'idle' | 'uploading' | 'processing' | 'success' | 'error'
 
 export default function UploadPage() {
   const router = useRouter()
-  const { userId, user } = useAuth()
+  const { userId } = useAuth()
   const [file, setFile] = useState<File | null>(null)
   const [dragActive, setDragActive] = useState(false)
   const [status, setStatus] = useState<UploadStatus>('idle')
@@ -109,89 +109,35 @@ export default function UploadPage() {
       const formData = new FormData()
       formData.append('file', file)
       formData.append('userId', userId)
-      formData.append('userEmail', user?.email || '')
 
-      // Upload file
-      const uploadResponse = await fetch('/api/upload', {
+      // Simuler une progression pour l'UX
+      setProgress(10)
+
+      setStatus('processing')
+      setProgress(20)
+
+      // NOUVEAU: Une seule API call qui fait tout avec Claude !
+      // Upload + OCR + Extraction + Scoring = Tout en un !
+      const response = await fetch('/api/llm/analyze', {
         method: 'POST',
         body: formData,
       })
 
-      if (!uploadResponse.ok) {
-        throw new Error('Erreur lors de l\'upload du fichier')
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.details || 'Erreur lors de l\'analyse du document')
       }
 
-      const uploadData = await uploadResponse.json()
-      const documentId = uploadData.data.documentId
-
-      setProgress(30)
-      setStatus('processing')
-
-      // Process OCR to extract data from the document
-      const ocrResponse = await fetch('/api/ocr/process', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ documentId }),
-      })
-
-      if (!ocrResponse.ok) {
-        throw new Error('Erreur lors de l\'extraction des données')
-      }
-
-      const ocrData = await ocrResponse.json()
-      const extractedData = ocrData.data.extractedData
-
-      setProgress(70)
-
-      // Create devis with extracted data
-      const devisResponse = await fetch('/api/devis', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          documentId,
-          userId,
-          projectType,
-          tradeType,
-          extractedData,
-        }),
-      })
-
-      if (!devisResponse.ok) {
-        throw new Error('Erreur lors de la création du devis')
-      }
-
-      const devisData = await devisResponse.json()
-      const devisId = devisData.data.id
-
-      setProgress(85)
-
-      // Calculate TORP Score
-      const scoreResponse = await fetch('/api/score', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          devisId,
-          region: 'ILE_DE_FRANCE', // TODO: Géolocalisation ou choix utilisateur
-        }),
-      })
-
-      if (!scoreResponse.ok) {
-        console.warn('Erreur lors du calcul du score, mais on continue')
-      }
+      const data = await response.json()
+      const devisId = data.data.devisId
 
       setProgress(100)
       setStatus('success')
 
-      // Redirect after 2 seconds
+      // Redirect after 1.5 seconds
       setTimeout(() => {
         router.push(`/analysis/${devisId}`)
-      }, 2000)
+      }, 1500)
     } catch (err) {
       setStatus('error')
       setError(
@@ -420,14 +366,14 @@ export default function UploadPage() {
                   <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
                     2
                   </span>
-                  <p>Notre IA extrait automatiquement les données</p>
+                  <p>Claude AI analyse votre document instantanément</p>
                 </div>
                 <div className="flex gap-2">
                   <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
                     3
                   </span>
                   <p>
-                    Le TORP-Score est calculé sur 80 critères
+                    Score TORP calculé sur 80 critères intelligents
                   </p>
                 </div>
                 <div className="flex gap-2">
@@ -435,7 +381,7 @@ export default function UploadPage() {
                     4
                   </span>
                   <p>
-                    Recevez des recommandations personnalisées
+                    Recommandations d&apos;expert générées automatiquement
                   </p>
                 </div>
               </CardContent>
