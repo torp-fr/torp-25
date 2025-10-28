@@ -217,7 +217,7 @@ IMPORTANT: Retourne UNIQUEMENT le JSON, pas de texte explicatif avant ou après.
 
       // Appel à Claude
       const message = await this.client.messages.create({
-        model: 'claude-3-5-sonnet-20241022',
+        model: 'claude-3-5-sonnet-20240620',
         max_tokens: 16000,
         messages: [
           {
@@ -297,7 +297,7 @@ IMPORTANT: Retourne UNIQUEMENT le JSON, pas de texte explicatif avant ou après.
       }
 
       const message = await this.client.messages.create({
-        model: 'claude-3-5-sonnet-20241022',
+        model: 'claude-3-5-sonnet-20240620',
         max_tokens: 500,
         messages: [
           {
