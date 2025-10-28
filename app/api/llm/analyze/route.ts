@@ -80,17 +80,31 @@ export async function POST(request: NextRequest) {
     const analyzer = new DocumentAnalyzer()
     const analysis = await analyzer.analyzeDevis(tempFilePath)
 
-    console.log('[LLM Analyze] Analyse terminée, création du devis en DB...')
+    console.log('[LLM Analyze] Analyse terminée, création en DB...')
 
-    // Créer le devis en base de données
-    const devis = await prisma.devis.create({
+    // 1. Créer le Document d'abord
+    const document = await prisma.document.create({
       data: {
         userId,
-        documentUrl: `/uploads/temp/${tempFileName}`, // URL temporaire
-        ocrStatus: 'completed',
-        ocrConfidence: new Decimal(analysis.torpscore.confidenceLevel),
+        fileName: file.name,
+        fileType: file.type,
+        fileSize: file.size,
+        fileUrl: `/uploads/temp/${tempFileName}`,
+        uploadStatus: 'COMPLETED',
+        ocrStatus: 'COMPLETED',
+      },
+    })
+
+    console.log(`[LLM Analyze] Document créé: ${document.id}`)
+
+    // 2. Créer le Devis avec le documentId
+    const devis = await prisma.devis.create({
+      data: {
+        documentId: document.id,
+        userId,
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         extractedData: analysis.extractedData as any,
+        validationStatus: 'COMPLETED',
         totalAmount: new Decimal(analysis.extractedData.totals.total),
         projectType: analysis.extractedData.project.title || 'Non spécifié',
         tradeType: inferTradeType(analysis.rawText),
@@ -99,10 +113,11 @@ export async function POST(request: NextRequest) {
 
     console.log(`[LLM Analyze] Devis créé: ${devis.id}`)
 
-    // Créer le score TORP
+    // 3. Créer le score TORP
     const torpScore = await prisma.tORPScore.create({
       data: {
         devisId: devis.id,
+        userId,
         scoreValue: new Decimal(analysis.torpscore.scoreValue),
         scoreGrade: analysis.torpscore.scoreGrade,
         confidenceLevel: new Decimal(analysis.torpscore.confidenceLevel),
@@ -112,6 +127,7 @@ export async function POST(request: NextRequest) {
         alerts: analysis.torpscore.alerts as any,
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         recommendations: analysis.torpscore.recommendations as any,
+        algorithmVersion: 'claude-llm-v1.0',
         // Benchmark régional par défaut (peut être amélioré plus tard)
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         regionalBenchmark: {
@@ -126,7 +142,6 @@ export async function POST(request: NextRequest) {
               max: analysis.extractedData.totals.total * 1.2,
             },
           },
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } as any,
       },
     })
