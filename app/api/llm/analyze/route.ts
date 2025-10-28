@@ -129,7 +129,6 @@ export async function POST(request: NextRequest) {
         recommendations: analysis.torpscore.recommendations as any,
         algorithmVersion: 'claude-llm-v1.0',
         // Benchmark régional par défaut (peut être amélioré plus tard)
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         regionalBenchmark: {
           region: 'ILE_DE_FRANCE',
           averagePriceSqm: 1500,
@@ -142,6 +141,7 @@ export async function POST(request: NextRequest) {
               max: analysis.extractedData.totals.total * 1.2,
             },
           },
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } as any,
       },
     })
