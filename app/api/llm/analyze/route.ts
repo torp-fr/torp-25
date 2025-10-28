@@ -58,11 +58,9 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Créer un fichier temporaire
-    const uploadsDir = path.join(process.cwd(), 'uploads', 'temp')
-    if (!fs.existsSync(uploadsDir)) {
-      fs.mkdirSync(uploadsDir, { recursive: true })
-    }
+    // Créer un fichier temporaire dans /tmp (Vercel-compatible)
+    const uploadsDir = '/tmp'
+    // Pas besoin de créer /tmp, il existe toujours sur Vercel
 
     const timestamp = Date.now()
     const fileExt = path.extname(file.name)
@@ -89,7 +87,7 @@ export async function POST(request: NextRequest) {
         fileName: file.name,
         fileType: file.type,
         fileSize: file.size,
-        fileUrl: `/uploads/temp/${tempFileName}`,
+        fileUrl: `temp://${tempFileName}`, // Fichier temporaire, supprimé après analyse
         uploadStatus: 'COMPLETED',
         ocrStatus: 'COMPLETED',
       },
