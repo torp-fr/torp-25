@@ -3,7 +3,8 @@
  * Handles file uploads to AWS S3 (or local storage in development)
  */
 
-import { S3 } from 'aws-sdk'
+import { S3Client, PutObjectCommand, DeleteObjectCommand, GetObjectCommand } from '@aws-sdk/client-s3'
+import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
 import { config } from '@/config'
 import type { FileType } from '@/types'
 
@@ -12,10 +13,12 @@ const s3 = process.env.AWS_ACCESS_KEY_ID &&
            process.env.AWS_SECRET_ACCESS_KEY &&
            process.env.AWS_ACCESS_KEY_ID.trim() !== '' &&
            process.env.AWS_SECRET_ACCESS_KEY.trim() !== ''
-  ? new S3({
+  ? new S3Client({
       region: config.aws.region,
-      accessKeyId: config.aws.accessKeyId,
-      secretAccessKey: config.aws.secretAccessKey,
+      credentials: {
+        accessKeyId: config.aws.accessKeyId,
+        secretAccessKey: config.aws.secretAccessKey,
+      },
     })
   : null
 
@@ -54,19 +57,19 @@ export class DocumentUploadService {
       const fileBuffer = Buffer.from(buffer)
 
       // Upload to S3
-      const uploadParams: S3.PutObjectRequest = {
-        Bucket: this.bucketName,
-        Key: key,
-        Body: fileBuffer,
-        ContentType: file.type,
-        Metadata: {
-          userId,
-          originalName: file.name,
-          uploadedAt: new Date().toISOString(),
-        },
-      }
-
-      await s3.upload(uploadParams).promise()
+      await s3.send(
+        new PutObjectCommand({
+          Bucket: this.bucketName,
+          Key: key,
+          Body: fileBuffer,
+          ContentType: file.type,
+          Metadata: {
+            userId,
+            originalName: file.name,
+            uploadedAt: new Date().toISOString(),
+          },
+        })
+      )
 
       // Generate public URL
       const fileUrl = `https://${this.bucketName}.s3.${config.aws.region}.amazonaws.com/${key}`
@@ -101,12 +104,12 @@ export class DocumentUploadService {
 
     const key = this.extractKeyFromUrl(fileUrl)
 
-    await s3
-      .deleteObject({
+    await s3.send(
+      new DeleteObjectCommand({
         Bucket: this.bucketName,
         Key: key,
       })
-      .promise()
+    )
   }
 
   /**
@@ -120,11 +123,14 @@ export class DocumentUploadService {
 
     const key = this.extractKeyFromUrl(fileUrl)
 
-    return s3.getSignedUrlPromise('getObject', {
-      Bucket: this.bucketName,
-      Key: key,
-      Expires: expiresIn,
-    })
+    return await getSignedUrl(
+      s3,
+      new GetObjectCommand({
+        Bucket: this.bucketName,
+        Key: key,
+      }),
+      { expiresIn }
+    )
   }
 
   /**
