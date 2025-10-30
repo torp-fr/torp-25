@@ -23,6 +23,8 @@ import { AppHeader } from '@/components/app-header'
 
 type UploadStatus = 'idle' | 'uploading' | 'processing' | 'success' | 'error'
 
+export const dynamic = 'force-dynamic'
+
 export default function UploadPage() {
   const router = useRouter()
   const [file, setFile] = useState<File | null>(null)
