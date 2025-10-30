@@ -6,12 +6,35 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { torpScoringEngine } from '@/services/scoring/torp-score'
+import { getSession } from '@auth0/nextjs-auth0'
+import { z } from 'zod'
+import { ensureUserExistsFromAuth0 } from '@/lib/onboarding'
+
+export const dynamic = 'force-dynamic'
 
 // POST calculate new score
 export async function POST(request: NextRequest) {
   try {
+    const session = await getSession()
+    if (!session?.user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+    const userId = session.user.sub
+    await ensureUserExistsFromAuth0(session.user as any)
+
     const body = await request.json()
-    const { devisId, region = 'ILE_DE_FRANCE' } = body
+    const scoreRequestSchema = z.object({
+      devisId: z.string().min(1),
+      region: z.string().default('ILE_DE_FRANCE').optional(),
+    })
+    const parsed = scoreRequestSchema.safeParse(body)
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: 'Validation failed', details: parsed.error.flatten() },
+        { status: 422 }
+      )
+    }
+    const { devisId, region = 'ILE_DE_FRANCE' } = parsed.data
 
     if (!devisId) {
       return NextResponse.json(
@@ -30,6 +53,10 @@ export async function POST(request: NextRequest) {
         { error: 'Devis not found' },
         { status: 404 }
       )
+    }
+
+    if (devis.userId !== userId) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
     // Calculate score

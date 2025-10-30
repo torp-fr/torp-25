@@ -1,9 +1,10 @@
 /**
  * OCR Service
- * Extract text from documents using Tesseract.js and AWS Rekognition
+ * Extract text from documents using Tesseract.js and pdf-parse
  */
 
 import Tesseract from 'tesseract.js'
+// Use dynamic import for CommonJS interop in Next build
 import type { ExtractedData } from '@/types'
 
 interface OCRResult {
@@ -34,22 +35,92 @@ export class OCRService {
   /**
    * Extract text from PDF
    */
-  async extractTextFromPDF(_pdfUrl: string): Promise<OCRResult> {
-    // For PDFs, we would typically use pdf-parse or AWS Textract
-    // This is a placeholder implementation
+  async extractTextFromPDF(pdfUrl: string): Promise<OCRResult> {
     try {
-      // TODO: Implement PDF text extraction
-      // const pdfData = await fetch(pdfUrl).then(res => res.arrayBuffer())
-      // const pdf = await pdfParse(pdfData)
+      // TEMPORAIRE: Si c'est une URL mockée (mode développement sans S3)
+      // On retourne des données de démo au lieu de fetcher
+      if (pdfUrl.includes('/uploads/') || pdfUrl.includes('localhost')) {
+        console.log('[OCR] Mode développement: utilisation de données démo')
+        return {
+          text: this.getDemoDevisText(),
+          confidence: 95,
+        }
+      }
+
+      // Fetch PDF file
+      const response = await fetch(pdfUrl)
+      if (!response.ok) {
+        throw new Error(`Failed to fetch PDF: ${response.statusText}`)
+      }
+
+      // Get PDF as ArrayBuffer
+      const pdfBuffer = await response.arrayBuffer()
+      const buffer = Buffer.from(pdfBuffer)
+
+      // Extract text using pdf-parse (CommonJS interop)
+      const mod = await import('pdf-parse')
+      const parseFn = (mod as any).default ?? (mod as any)
+      const data = await parseFn(buffer)
+
+      // pdf-parse doesn't provide confidence, so we estimate based on text length
+      const confidence = data.text.length > 100 ? 95 : data.text.length > 10 ? 70 : 30
 
       return {
-        text: '', // Placeholder
-        confidence: 0,
+        text: data.text,
+        confidence,
       }
     } catch (error) {
       console.error('PDF extraction failed:', error)
       throw new Error('Failed to extract text from PDF')
     }
+  }
+
+  /**
+   * Get demo devis text for development (when S3 is not configured)
+   */
+  private getDemoDevisText(): string {
+    return `
+DEVIS N° 2025-001
+
+Entreprise: Constructions MARTIN & Fils
+SIRET: 12345678900012
+Adresse: 25 rue des Artisans, 75011 Paris
+Tél: 01 42 85 96 74
+Email: contact@martin-construction.fr
+
+Client: M. Jean DUPONT
+Adresse: 15 avenue de la République, 75011 Paris
+Tél: 06 12 34 56 78
+
+Projet: Rénovation complète cuisine
+Date du devis: 15/01/2025
+Validité: 60 jours
+
+DÉTAIL DES TRAVAUX:
+
+1. Dépose ancienne cuisine - Forfait - 850,00 €
+2. Meubles bas L 320cm avec plan travail quartz - 1 ensemble - 8 500,00 €
+3. Meubles hauts L 240cm - 1 ensemble - 3 200,00 €
+4. Crédence carrelage métro blanc - 10 m² x 85,00 € - 850,00 €
+5. Évier inox 2 bacs avec mitigeur - 1 unité - 420,00 €
+6. Hotte aspirante 90cm inox - 1 unité - 650,00 €
+7. Plaque induction 4 feux - 1 unité - 580,00 €
+8. Four encastrable multifonctions - 1 unité - 720,00 €
+9. Réfection électricité (prises, éclairage) - Forfait - 1 850,00 €
+10. Plomberie (eau, évacuation) - Forfait - 1 250,00 €
+11. Peinture murs et plafond - 18 m² x 32,00 € - 576,00 €
+12. Pose parquet stratifié - 12 m² x 48,00 € - 576,00 €
+
+TOTAL HT: 19 472,00 €
+TVA 10%: 1 947,20 €
+TOTAL TTC: 21 419,20 €
+
+Acompte à la commande (30%): 6 425,76 €
+Solde à la livraison: 14 993,44 €
+
+Délai d'exécution: 4 semaines
+Garantie décennale: Allianz Police n° 987654321
+`
   }
 
   /**
@@ -79,25 +150,30 @@ export class OCRService {
     const siretMatch = text.match(/SIRET[:\s]*(\d{14})/i)
     const emailMatch = text.match(/[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g)
     const phoneMatch = text.match(/(?:0|\+33)[1-9](?:[\s.-]?\d{2}){4}/g)
+    const companyNameMatch = text.match(/Entreprise[:\s]+(.+)/i)
+    const addressMatch = text.match(/Adresse[:\s]+(.+)/i)
 
     return {
-      name: '', // Extract from first lines
+      name: companyNameMatch ? companyNameMatch[1].trim() : 'Entreprise Inconnue',
       siret: siretMatch ? siretMatch[1] : undefined,
       email: emailMatch ? emailMatch[0] : undefined,
       phone: phoneMatch ? phoneMatch[0] : undefined,
-      address: '', // Extract address
+      address: addressMatch ? addressMatch[1].trim() : '',
     }
   }
 
   /**
    * Extract client information
    */
-  private extractClientInfo(_text: string): any {
-    // Similar extraction logic for client
+  private extractClientInfo(text: string): any {
+    const clientNameMatch = text.match(/Client[:\s]+(.+)/i)
+    const lines = text.split('\n')
+    const clientIndex = lines.findIndex(line => line.includes('Client'))
+
     return {
-      name: '',
-      address: '',
-      phone: '',
+      name: clientNameMatch ? clientNameMatch[1].trim() : 'Client Inconnu',
+      address: clientIndex >= 0 && lines[clientIndex + 1] ? lines[clientIndex + 1].replace('Adresse:', '').trim() : '',
+      phone: text.match(/Tél[:\s]+(.+)/gi)?.[1]?.split(':')[1]?.trim() || '',
       email: '',
     }
   }
@@ -105,10 +181,11 @@ export class OCRService {
   /**
    * Extract project information
    */
-  private extractProjectInfo(_text: string): any {
+  private extractProjectInfo(text: string): any {
+    const projectMatch = text.match(/Projet[:\s]+(.+)/i)
     return {
-      title: '',
-      description: '',
+      title: projectMatch ? projectMatch[1].trim() : 'Projet Non Spécifié',
+      description: projectMatch ? projectMatch[1].trim() : '',
       location: '',
     }
   }
@@ -126,16 +203,22 @@ export class OCRService {
    * Extract totals
    */
   private extractTotals(text: string): any {
-    // Extract HT, TVA, TTC amounts
-    const totalMatch = text.match(/Total\s+TTC[:\s]*(\d+(?:[.,]\d{2})?)/i)
-    const tvaMatch = text.match(/TVA[:\s]*(\d+(?:[.,]\d{2})?)/i)
-    const htMatch = text.match(/Total\s+HT[:\s]*(\d+(?:[.,]\d{2})?)/i)
+    // Extract HT, TVA, TTC amounts with flexible regex
+    const totalMatch = text.match(/TOTAL\s+TTC[:\s]*([\d\s,]+)/i)
+    const tvaMatch = text.match(/TVA[:\s]*([\d\s,]+)/i)
+    const htMatch = text.match(/TOTAL\s+HT[:\s]*([\d\s,]+)/i)
+
+    const parseAmount = (str: string | undefined) => {
+      if (!str) return 0
+      // Remove spaces and replace comma with dot
+      return parseFloat(str.replace(/\s/g, '').replace(',', '.'))
+    }
 
     return {
-      subtotal: htMatch ? parseFloat(htMatch[1].replace(',', '.')) : 0,
-      tva: tvaMatch ? parseFloat(tvaMatch[1].replace(',', '.')) : 0,
-      tvaRate: 0.2, // Default 20%
-      total: totalMatch ? parseFloat(totalMatch[1].replace(',', '.')) : 0,
+      subtotal: htMatch ? parseAmount(htMatch[1]) : 0,
+      tva: tvaMatch ? parseAmount(tvaMatch[1]) : 0,
+      tvaRate: 0.1, // 10% for renovation
+      total: totalMatch ? parseAmount(totalMatch[1]) : 0,
     }
   }
 

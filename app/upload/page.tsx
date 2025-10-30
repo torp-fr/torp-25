@@ -2,6 +2,7 @@
 
 import { useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
+import { useUser } from '@auth0/nextjs-auth0/client'
 import { Button } from '@/components/ui/button'
 import {
   Card,
@@ -25,6 +26,7 @@ type UploadStatus = 'idle' | 'uploading' | 'processing' | 'success' | 'error'
 
 export default function UploadPage() {
   const router = useRouter()
+  const { user, isLoading: authLoading } = useUser()
   const [file, setFile] = useState<File | null>(null)
   const [dragActive, setDragActive] = useState(false)
   const [status, setStatus] = useState<UploadStatus>('idle')
@@ -34,9 +36,6 @@ export default function UploadPage() {
   // Form data
   const [projectType, setProjectType] = useState('renovation')
   const [tradeType, setTradeType] = useState('general')
-
-  // TODO: Remplacer par un vrai userId (Auth0)
-  const userId = 'demo-user-id'
 
   const handleDrag = useCallback((e: React.DragEvent) => {
     e.preventDefault()
@@ -109,91 +108,36 @@ export default function UploadPage() {
       // Create FormData
       const formData = new FormData()
       formData.append('file', file)
-      formData.append('userId', userId)
+      // userId is derived server-side from the Auth0 session
 
-      // Upload file
-      const uploadResponse = await fetch('/api/upload', {
+      // Simuler une progression pour l'UX
+      setProgress(10)
+
+      setStatus('processing')
+      setProgress(20)
+
+      // NOUVEAU: Une seule API call qui fait tout avec Claude !
+      // Upload + OCR + Extraction + Scoring = Tout en un !
+      const response = await fetch('/api/llm/analyze', {
         method: 'POST',
         body: formData,
       })
 
-      if (!uploadResponse.ok) {
-        throw new Error('Erreur lors de l\'upload du fichier')
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.details || 'Erreur lors de l\'analyse du document')
       }
 
-      const uploadData = await uploadResponse.json()
-      const documentId = uploadData.data.documentId
-
-      setProgress(50)
-      setStatus('processing')
-
-      // Create devis
-      // Note: In production, OCR would extract data automatically
-      // For now, we'll create a placeholder devis
-      const devisResponse = await fetch('/api/devis', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          documentId,
-          userId,
-          projectType,
-          tradeType,
-          extractedData: {
-            company: {
-              name: 'Entreprise Demo',
-              siret: '',
-              email: '',
-              phone: '',
-              address: '',
-            },
-            client: {
-              name: 'Client Demo',
-              email: '',
-              phone: '',
-              address: '',
-            },
-            project: {
-              title: 'Projet Demo',
-              description: '',
-              location: '',
-            },
-            items: [
-              {
-                description: 'Prestation 1',
-                quantity: 1,
-                unit: 'forfait',
-                unitPrice: 1000,
-                totalPrice: 1000,
-              },
-            ],
-            totals: {
-              subtotal: 1000,
-              tva: 200,
-              tvaRate: 0.2,
-              total: 1200,
-            },
-            dates: {
-              issueDate: new Date().toISOString(),
-            },
-          },
-        }),
-      })
-
-      if (!devisResponse.ok) {
-        throw new Error('Erreur lors de la création du devis')
-      }
-
-      const devisData = await devisResponse.json()
+      const data = await response.json()
+      const devisId = data.data.devisId
 
       setProgress(100)
       setStatus('success')
 
-      // Redirect after 2 seconds
+      // Redirect after 1.5 seconds
       setTimeout(() => {
-        router.push(`/analysis/${devisData.data.id}`)
-      }, 2000)
+        router.push(`/analysis/${devisId}`)
+      }, 1500)
     } catch (err) {
       setStatus('error')
       setError(
@@ -422,14 +366,14 @@ export default function UploadPage() {
                   <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
                     2
                   </span>
-                  <p>Notre IA extrait automatiquement les données</p>
+                  <p>Claude AI analyse votre document instantanément</p>
                 </div>
                 <div className="flex gap-2">
                   <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
                     3
                   </span>
                   <p>
-                    Le TORP-Score est calculé sur 80 critères
+                    Score TORP calculé sur 80 critères intelligents
                   </p>
                 </div>
                 <div className="flex gap-2">
@@ -437,7 +381,7 @@ export default function UploadPage() {
                     4
                   </span>
                   <p>
-                    Recevez des recommandations personnalisées
+                    Recommandations d&apos;expert générées automatiquement
                   </p>
                 </div>
               </CardContent>

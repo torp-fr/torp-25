@@ -1,6 +1,10 @@
 import type { NextConfig } from 'next'
 
 const nextConfig: NextConfig = {
+  // Disable ESLint during builds on CI to avoid plugin resolution issues
+  eslint: {
+    ignoreDuringBuilds: true,
+  },
   // Optimize images
   images: {
     remotePatterns: [

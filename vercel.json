@@ -3,11 +3,11 @@
   "version": 2,
   "name": "torp-platform",
   "framework": "nextjs",
-  "buildCommand": "npm run build",
+  "buildCommand": "npm run db:migrate:deploy && npm run build",
   "devCommand": "npm run dev",
   "installCommand": "npm install",
   "outputDirectory": ".next",
-  "regions": ["iad1"],
+  "regions": ["cdg1"],
   "env": {
     "NODE_ENV": "production"
   },

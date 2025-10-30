@@ -93,19 +93,13 @@ export default function AnalysisPage() {
       setLoading(true)
 
       // Fetch devis
-      const devisResponse = await fetch(`/api/devis?userId=demo-user-id`)
+      const devisResponse = await fetch(`/api/devis/${devisId}`)
       if (!devisResponse.ok) {
         throw new Error('Erreur lors du chargement du devis')
       }
 
       const devisData = await devisResponse.json()
-      const foundDevis = devisData.data.find((d: Devis) => d.id === devisId)
-
-      if (!foundDevis) {
-        throw new Error('Devis non trouvé')
-      }
-
-      setDevis(foundDevis)
+      setDevis(devisData.data)
 
       // Fetch score
       const scoreResponse = await fetch(`/api/score?devisId=${devisId}`)

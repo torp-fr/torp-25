@@ -1,7 +1,6 @@
 'use client'
 
-import { UserProvider } from '@auth0/nextjs-auth0/client'
-
+// Auth0 désactivé - Mode démo
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  return <UserProvider>{children}</UserProvider>
+  return <>{children}</>
 }
