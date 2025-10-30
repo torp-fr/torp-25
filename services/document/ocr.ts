@@ -4,7 +4,7 @@
  */
 
 import Tesseract from 'tesseract.js'
-import * as pdfParse from 'pdf-parse'
+import pdfParse from 'pdf-parse'
 import type { ExtractedData } from '@/types'
 
 interface OCRResult {
@@ -59,7 +59,7 @@ export class OCRService {
 
       // Extract text using pdf-parse
       // @ts-ignore - pdf-parse types are not perfect
-      const data = await pdfParse.default(buffer)
+      const data = await pdfParse(buffer)
 
       // pdf-parse doesn't provide confidence, so we estimate based on text length
       const confidence = data.text.length > 100 ? 95 : data.text.length > 10 ? 70 : 30
