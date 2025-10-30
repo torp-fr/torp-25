@@ -22,6 +22,8 @@ const s3 = process.env.AWS_ACCESS_KEY_ID &&
     })
   : null
 
+export const isS3Enabled = !!s3
+
 interface UploadOptions {
   userId: string
   file: File

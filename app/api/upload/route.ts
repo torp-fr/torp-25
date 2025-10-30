@@ -5,16 +5,24 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
-import { documentUploadService } from '@/services/document/upload'
+import { documentUploadService, isS3Enabled } from '@/services/document/upload'
+import { getSession } from '@auth0/nextjs-auth0'
+import { ensureUserExistsFromAuth0 } from '@/lib/onboarding'
 
 export const dynamic = 'force-dynamic'
+export const runtime = 'nodejs'
 
 export async function POST(request: NextRequest) {
   try {
+    const session = await getSession()
+    if (!session?.user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+    await ensureUserExistsFromAuth0(session.user as any)
+    const userId = session.user.sub
+
     const formData = await request.formData()
     const file = formData.get('file') as File
-    const userId = formData.get('userId') as string
-    const userEmail = formData.get('userEmail') as string
 
     if (!file) {
       return NextResponse.json(
@@ -23,23 +31,13 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    if (!userId) {
+    // In production, require S3 to be configured
+    if (process.env.NODE_ENV === 'production' && !isS3Enabled) {
       return NextResponse.json(
-        { error: 'User ID is required' },
-        { status: 400 }
+        { error: 'Storage not configured', message: 'AWS S3 credentials are missing' },
+        { status: 500 }
       )
     }
-
-    // Ensure user exists in database (create if first time)
-    await prisma.user.upsert({
-      where: { id: userId },
-      update: {},
-      create: {
-        id: userId,
-        email: userEmail || `user-${userId}@torp.fr`,
-        authProvider: 'auth0',
-      },
-    })
 
     // Upload to S3 (or local mock)
     const uploadResult = await documentUploadService.upload({
