@@ -2,7 +2,7 @@
 
 import { useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
-import { useAuth } from '@/hooks/use-auth'
+import { useUser } from '@auth0/nextjs-auth0/client'
 import { Button } from '@/components/ui/button'
 import {
   Card,
@@ -26,7 +26,7 @@ type UploadStatus = 'idle' | 'uploading' | 'processing' | 'success' | 'error'
 
 export default function UploadPage() {
   const router = useRouter()
-  const { userId } = useAuth()
+  const { user, isLoading: authLoading } = useUser()
   const [file, setFile] = useState<File | null>(null)
   const [dragActive, setDragActive] = useState(false)
   const [status, setStatus] = useState<UploadStatus>('idle')
@@ -108,7 +108,7 @@ export default function UploadPage() {
       // Create FormData
       const formData = new FormData()
       formData.append('file', file)
-      formData.append('userId', userId)
+      // userId is derived server-side from the Auth0 session
 
       // Simuler une progression pour l'UX
       setProgress(10)

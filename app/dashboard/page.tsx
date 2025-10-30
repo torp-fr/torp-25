@@ -19,6 +19,7 @@ import {
   Clock,
 } from 'lucide-react'
 import { AppHeader } from '@/components/app-header'
+import { useUser } from '@auth0/nextjs-auth0/client'
 
 interface Devis {
   id: string
@@ -41,6 +42,7 @@ interface DashboardStats {
 }
 
 export default function DashboardPage() {
+  const { user, isLoading: authLoading } = useUser()
   const [devisList, setDevisList] = useState<Devis[]>([])
   const [stats, setStats] = useState<DashboardStats>({
     totalDevis: 0,
@@ -52,17 +54,14 @@ export default function DashboardPage() {
   const [error, setError] = useState<string | null>(null)
   const [generating, setGenerating] = useState(false)
 
-  // TODO: Remplacer par un vrai userId (Auth0)
-  const userId = 'demo-user-id'
-
   useEffect(() => {
-    fetchDevis()
-  }, [])
+    if (user) fetchDevis()
+  }, [user])
 
   const fetchDevis = async () => {
     try {
       setLoading(true)
-      const response = await fetch(`/api/devis?userId=${userId}`)
+      const response = await fetch(`/api/devis`)
 
       if (!response.ok) {
         throw new Error('Erreur lors du chargement des devis')
@@ -184,7 +183,7 @@ export default function DashboardPage() {
     }).format(amount)
   }
 
-  if (loading) {
+  if (authLoading || loading) {
     return (
       <div className="flex min-h-screen items-center justify-center">
         <div className="text-center">

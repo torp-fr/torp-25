@@ -4,6 +4,8 @@ import { prisma } from '@/lib/db'
 import fs from 'fs'
 import path from 'path'
 import { Decimal } from '@prisma/client/runtime/library'
+import { getSession } from '@auth0/nextjs-auth0'
+import { ensureUserExistsFromAuth0 } from '@/lib/onboarding'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -21,10 +23,17 @@ export async function POST(request: NextRequest) {
   let tempFilePath: string | null = null
 
   try {
+    // Auth
+    const session = await getSession()
+    if (!session?.user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+    await ensureUserExistsFromAuth0(session.user as any)
+    const userId = session.user.sub
+
     // Récupérer le fichier uploadé
     const formData = await request.formData()
     const file = formData.get('file') as File
-    const userId = formData.get('userId') as string
 
     if (!file) {
       return NextResponse.json(
@@ -33,12 +42,6 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    if (!userId) {
-      return NextResponse.json(
-        { error: 'userId manquant' },
-        { status: 400 }
-      )
-    }
 
     // Vérifier le format
     const allowedTypes = ['application/pdf', 'image/jpeg', 'image/png', 'image/jpg']
