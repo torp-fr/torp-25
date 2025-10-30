@@ -21,7 +21,6 @@ import {
 import { AppHeader } from '@/components/app-header'
 import { useUser } from '@auth0/nextjs-auth0/client'
 export const dynamic = 'force-dynamic'
-export const ssr = false
 
 interface Devis {
   id: string
