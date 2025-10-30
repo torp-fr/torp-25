@@ -5,21 +5,21 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
+import { getSession } from '@auth0/nextjs-auth0'
+import { createDevisSchema } from '@/lib/validations/devis'
+import { ensureUserExistsFromAuth0 } from '@/lib/onboarding'
 
 export const dynamic = 'force-dynamic'
 
 // GET all devis for a user
 export async function GET(request: NextRequest) {
   try {
-    const { searchParams } = new URL(request.url)
-    const userId = searchParams.get('userId')
-
-    if (!userId) {
-      return NextResponse.json(
-        { error: 'User ID is required' },
-        { status: 400 }
-      )
+    const session = await getSession()
+    if (!session?.user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
+    const userId = session.user.sub
+    await ensureUserExistsFromAuth0(session.user as any)
 
     const devisList = await prisma.devis.findMany({
       where: { userId },
@@ -46,11 +46,24 @@ export async function GET(request: NextRequest) {
 // POST create new devis
 export async function POST(request: NextRequest) {
   try {
+    const session = await getSession()
+    if (!session?.user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+    const userId = session.user.sub
+
     const body = await request.json()
-    const { documentId, userId, extractedData, projectType, tradeType } = body
+    const parsed = createDevisSchema.safeParse(body)
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: 'Validation failed', details: parsed.error.flatten() },
+        { status: 422 }
+      )
+    }
+    const { documentId, extractedData, projectType, tradeType } = parsed.data
 
     // Validate required fields
-    if (!documentId || !userId || !extractedData) {
+    if (!documentId || !extractedData) {
       return NextResponse.json(
         { error: 'Missing required fields' },
         { status: 400 }

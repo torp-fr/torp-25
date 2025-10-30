@@ -12,6 +12,17 @@ export const dynamic = 'force-dynamic'
 
 export async function POST(request: NextRequest) {
   try {
+    // Block in production unless explicitly enabled
+    if (
+      process.env.NODE_ENV === 'production' &&
+      process.env.ENABLE_TEST_ROUTES !== 'true'
+    ) {
+      return NextResponse.json(
+        { success: false, error: 'Forbidden in production' },
+        { status: 403 }
+      )
+    }
+
     const { searchParams } = new URL(request.url)
     const userId = searchParams.get('userId') || 'demo-user-id'
 
@@ -250,6 +261,17 @@ export async function POST(request: NextRequest) {
 // GET to check if test data exists
 export async function GET(request: NextRequest) {
   try {
+    // Block in production unless explicitly enabled
+    if (
+      process.env.NODE_ENV === 'production' &&
+      process.env.ENABLE_TEST_ROUTES !== 'true'
+    ) {
+      return NextResponse.json(
+        { success: false, error: 'Forbidden in production' },
+        { status: 403 }
+      )
+    }
+
     const { searchParams } = new URL(request.url)
     const userId = searchParams.get('userId') || 'demo-user-id'
 
