@@ -112,7 +112,7 @@ export default function DashboardPage() {
       setGenerating(true)
       setError(null)
 
-      const response = await fetch(`/api/test/seed?userId=${userId}`, {
+      const response = await fetch(`/api/test/seed`, {
         method: 'POST',
       })
 
