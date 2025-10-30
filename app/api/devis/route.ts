@@ -12,7 +12,7 @@ import { ensureUserExistsFromAuth0 } from '@/lib/onboarding'
 export const dynamic = 'force-dynamic'
 
 // GET all devis for a user
-export async function GET(request: NextRequest) {
+export async function GET(_request: NextRequest) {
   try {
     const session = await getSession()
     if (!session?.user) {

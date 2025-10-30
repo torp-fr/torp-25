@@ -4,7 +4,7 @@
  */
 
 import Tesseract from 'tesseract.js'
-import * as pdfParseNS from 'pdf-parse'
+// Use dynamic import for CommonJS interop in Next build
 import type { ExtractedData } from '@/types'
 
 interface OCRResult {
@@ -58,7 +58,8 @@ export class OCRService {
       const buffer = Buffer.from(pdfBuffer)
 
       // Extract text using pdf-parse (CommonJS interop)
-      const parseFn = (pdfParseNS as any).default || (pdfParseNS as any)
+      const mod = await import('pdf-parse')
+      const parseFn = (mod as any).default ?? (mod as any)
       const data = await parseFn(buffer)
 
       // pdf-parse doesn't provide confidence, so we estimate based on text length
