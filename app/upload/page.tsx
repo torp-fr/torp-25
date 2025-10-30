@@ -24,6 +24,7 @@ import { AppHeader } from '@/components/app-header'
 type UploadStatus = 'idle' | 'uploading' | 'processing' | 'success' | 'error'
 
 export const dynamic = 'force-dynamic'
+export const ssr = false
 
 export default function UploadPage() {
   const router = useRouter()
