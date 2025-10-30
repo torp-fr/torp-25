@@ -20,6 +20,7 @@ import {
 } from 'lucide-react'
 import { AppHeader } from '@/components/app-header'
 import { useUser } from '@auth0/nextjs-auth0/client'
+export const dynamic = 'force-dynamic'
 
 interface Devis {
   id: string
