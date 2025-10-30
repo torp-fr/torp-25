@@ -51,18 +51,20 @@ export default function HomePage() {
             </Link>
           </nav>
           <div className="flex items-center gap-4">
-            <Link
-              href="/dashboard"
+            {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
+            <a
+              href="/api/auth/login"
               className="inline-flex h-10 items-center justify-center rounded-md px-4 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
             >
               Connexion
-            </Link>
-            <Link
-              href="/dashboard"
+            </a>
+            {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
+            <a
+              href="/api/auth/login"
               className="inline-flex h-10 items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
             >
               Commencer
-            </Link>
+            </a>
           </div>
         </div>
       </header>
@@ -81,10 +83,11 @@ export default function HomePage() {
           </p>
           <div className="flex gap-4">
             <Button size="lg" asChild>
-              <Link href="/dashboard">
+              {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
+              <a href="/api/auth/login">
                 <Upload className="mr-2 h-4 w-4" />
                 Analyser un devis
-              </Link>
+              </a>
             </Button>
             <Button size="lg" variant="outline" asChild>
               <Link href="#features">En savoir plus</Link>
@@ -228,10 +231,11 @@ export default function HomePage() {
             TORP pour leurs projets BTP.
           </p>
           <Button size="lg" className="mt-4" asChild>
-            <Link href="/dashboard">
+            {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
+            <a href="/api/auth/login">
               <Upload className="mr-2 h-4 w-4" />
               Commencer gratuitement
-            </Link>
+            </a>
           </Button>
         </div>
       </section>
