@@ -7,13 +7,23 @@
  * - /api/auth/me
  */
 
-import { handleAuth } from '@auth0/nextjs-auth0'
+import { handleAuth, handleLogin } from '@auth0/nextjs-auth0'
 
 // Force dynamic rendering to ensure environment variables are available
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
 
-// handleAuth() returns a single handler that handles all auth routes
-// For Next.js App Router, we need to export it for both GET and POST
-export const GET = handleAuth()
-export const POST = handleAuth()
+// Ensure baseURL always matches the current request origin to avoid redirect_uri mismatches
+const handler = handleAuth({
+  async login(request) {
+    const origin = new URL(request.url).origin
+    return handleLogin(request, {
+      returnTo: '/dashboard',
+      // @ts-ignore - baseURL is supported in v3 runtime
+      baseURL: origin,
+    })
+  },
+})
+
+export const GET = handler
+export const POST = handler
