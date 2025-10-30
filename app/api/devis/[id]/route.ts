@@ -5,7 +5,7 @@ import { ensureUserExistsFromAuth0 } from '@/lib/onboarding'
 
 export async function GET(
   _request: Request,
-  { params }: { params: { id: string } }
+  context: any
 ) {
   try {
     const session = await getSession()
@@ -16,7 +16,7 @@ export async function GET(
     await ensureUserExistsFromAuth0(session.user as any)
 
     const devis = await prisma.devis.findUnique({
-      where: { id: params.id },
+      where: { id: context?.params?.id },
       include: {
         document: true,
         torpScores: true,
