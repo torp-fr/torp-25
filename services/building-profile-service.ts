@@ -441,7 +441,6 @@ export class BuildingProfileService {
         user: {
           select: {
             id: true,
-            name: true,
             email: true,
           },
         },
