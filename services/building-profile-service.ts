@@ -20,12 +20,16 @@ export interface BuildingProfileCreateInput {
   name?: string
   address: string // Adresse textuelle pour recherche
   coordinates?: { lat: number; lng: number }
+  role?: 'PROPRIETAIRE' | 'LOCATAIRE' // Rôle : propriétaire (par défaut) ou locataire
+  parentProfileId?: string // ID de la carte propriétaire (obligatoire si LOCATAIRE)
+  lotNumber?: string // Numéro de lot/appartement (pour différencier appartements)
 }
 
 export interface BuildingProfileUpdateInput {
   name?: string
   customFields?: Record<string, any>
   notes?: string
+  tenantData?: Record<string, any> // Données spécifiques locataire (uniquement pour cartes LOCATAIRE)
 }
 
 export interface BuildingProfileEnrichmentResult {
@@ -50,9 +54,43 @@ export class BuildingProfileService {
 
   /**
    * Crée un nouveau profil de logement depuis une adresse
+   * Contrôle l'unicité : une seule carte PROPRIETAIRE par bien (parcelle + section + lot)
    */
   async createProfile(input: BuildingProfileCreateInput) {
     try {
+      const role = input.role || 'PROPRIETAIRE'
+
+      // Si c'est une carte LOCATAIRE, vérifier que la carte propriétaire existe
+      if (role === 'LOCATAIRE') {
+        if (!input.parentProfileId) {
+          throw new Error('Une carte LOCATAIRE doit être liée à une carte PROPRIETAIRE (parentProfileId requis)')
+        }
+
+        const parentProfile = await prisma.buildingProfile.findFirst({
+          where: {
+            id: input.parentProfileId,
+            role: 'PROPRIETAIRE',
+          },
+        })
+
+        if (!parentProfile) {
+          throw new Error('Carte propriétaire non trouvée ou non autorisée')
+        }
+
+        // Vérifier que l'utilisateur n'a pas déjà une carte locataire pour ce bien
+        const existingTenantProfile = await prisma.buildingProfile.findFirst({
+          where: {
+            userId: input.userId,
+            parentProfileId: input.parentProfileId,
+            role: 'LOCATAIRE',
+          },
+        })
+
+        if (existingTenantProfile) {
+          throw new Error('Vous avez déjà une carte locataire pour ce bien')
+        }
+      }
+
       // 1. Résoudre l'adresse
       let addressData: AddressData
       let coordinates = input.coordinates
@@ -74,25 +112,77 @@ export class BuildingProfileService {
         coordinates = addressData.coordinates
       }
 
-      // 2. Créer le profil avec les données de base
+      // 2. Si PROPRIETAIRE, enrichir avec données cadastrales pour identifier le bien de façon unique
+      let parcelleNumber: string | null = null
+      let sectionCadastrale: string | null = null
+      let lotNumber: string | null = input.lotNumber || null
+
+      if (role === 'PROPRIETAIRE') {
+        try {
+          const cadastralData = await this.cadastreService.getCadastralData(addressData)
+          if (cadastralData?.parcelle) {
+            parcelleNumber = cadastralData.parcelle.numero || null
+            sectionCadastrale = cadastralData.parcelle.section || null
+          }
+        } catch (error) {
+          console.warn('[BuildingProfileService] Erreur récupération cadastrales pour vérification unicité:', error)
+          // On continue quand même, l'enrichissement se fera après
+        }
+
+        // Vérifier l'unicité : une seule carte PROPRIETAIRE par bien
+        if (parcelleNumber && sectionCadastrale) {
+          const existingProfile = await prisma.buildingProfile.findFirst({
+            where: {
+              parcelleNumber,
+              sectionCadastrale,
+              lotNumber: lotNumber || null,
+              role: 'PROPRIETAIRE',
+            },
+          })
+
+          if (existingProfile) {
+            throw new Error(
+              `Une carte propriétaire existe déjà pour ce bien (parcelle ${parcelleNumber}, section ${sectionCadastrale}${lotNumber ? `, lot ${lotNumber}` : ''}). ` +
+              `Seul le propriétaire peut créer une carte pour ce bien.`
+            )
+          }
+        }
+      } else {
+        // Pour LOCATAIRE, récupérer les données depuis la carte parent
+        const parentProfile = await prisma.buildingProfile.findUnique({
+          where: { id: input.parentProfileId! },
+        })
+        if (parentProfile) {
+          parcelleNumber = parentProfile.parcelleNumber || null
+          sectionCadastrale = parentProfile.sectionCadastrale || null
+          lotNumber = parentProfile.lotNumber || null
+        }
+      }
+
+      // 3. Créer le profil avec les données de base
       const profile = await prisma.buildingProfile.create({
         data: {
           userId: input.userId,
           name: input.name || null,
+          role,
+          parentProfileId: role === 'LOCATAIRE' ? input.parentProfileId : null,
           address: addressData as any,
           coordinates: coordinates ? (coordinates as any) : null,
-          parcelleNumber: null,
-          sectionCadastrale: null,
+          parcelleNumber,
+          sectionCadastrale,
+          lotNumber,
           codeINSEE: addressData.department ? undefined : null,
-          enrichmentStatus: 'pending',
+          enrichmentStatus: role === 'PROPRIETAIRE' ? 'pending' : 'completed', // Locataire n'a pas besoin d'enrichissement
           enrichmentSources: [],
         },
       })
 
-      // 3. Lancer l'enrichissement en arrière-plan (non-bloquant)
-      this.enrichProfile(profile.id).catch((error) => {
-        console.error('[BuildingProfileService] Erreur enrichissement initial:', error)
-      })
+      // 4. Lancer l'enrichissement en arrière-plan uniquement pour PROPRIETAIRE
+      if (role === 'PROPRIETAIRE') {
+        this.enrichProfile(profile.id).catch((error) => {
+          console.error('[BuildingProfileService] Erreur enrichissement initial:', error)
+        })
+      }
 
       return profile
     } catch (error) {
@@ -103,6 +193,7 @@ export class BuildingProfileService {
 
   /**
    * Enrichit automatiquement un profil avec toutes les données disponibles
+   * Note: L'enrichissement est uniquement disponible pour les cartes PROPRIETAIRE
    */
   async enrichProfile(profileId: string): Promise<BuildingProfileEnrichmentResult> {
     try {
@@ -112,6 +203,11 @@ export class BuildingProfileService {
 
       if (!profile) {
         throw new Error('Profil non trouvé')
+      }
+
+      // L'enrichissement n'est disponible que pour les cartes PROPRIETAIRE
+      if (profile.role !== 'PROPRIETAIRE') {
+        throw new Error('L\'enrichissement automatique n\'est disponible que pour les cartes PROPRIETAIRE')
       }
 
       // Mettre à jour le statut
@@ -246,13 +342,107 @@ export class BuildingProfileService {
       throw new Error('Profil non trouvé ou non autorisé')
     }
 
+    // Validation : tenantData uniquement pour cartes LOCATAIRE
+    if (input.tenantData !== undefined && profile.role !== 'LOCATAIRE') {
+      throw new Error('Les données tenantData sont uniquement disponibles pour les cartes LOCATAIRE')
+    }
+
     return prisma.buildingProfile.update({
       where: { id: profileId },
       data: {
         ...(input.name !== undefined && { name: input.name }),
         ...(input.customFields !== undefined && { customFields: input.customFields as any }),
         ...(input.notes !== undefined && { notes: input.notes }),
+        ...(input.tenantData !== undefined && profile.role === 'LOCATAIRE' && { tenantData: input.tenantData as any }),
       },
+    })
+  }
+
+  /**
+   * Crée une carte LOCATAIRE liée à une carte propriétaire
+   */
+  async createTenantProfile(
+    parentProfileId: string,
+    userId: string,
+    name?: string
+  ) {
+    // Vérifier que la carte propriétaire existe
+    const parentProfile = await prisma.buildingProfile.findFirst({
+      where: {
+        id: parentProfileId,
+        role: 'PROPRIETAIRE',
+      },
+    })
+
+    if (!parentProfile) {
+      throw new Error('Carte propriétaire non trouvée')
+    }
+
+    // Vérifier que l'utilisateur n'a pas déjà une carte locataire pour ce bien
+    const existingTenantProfile = await prisma.buildingProfile.findFirst({
+      where: {
+        userId,
+        parentProfileId,
+        role: 'LOCATAIRE',
+      },
+    })
+
+    if (existingTenantProfile) {
+      throw new Error('Vous avez déjà une carte locataire pour ce bien')
+    }
+
+    // Créer la carte locataire avec les mêmes données de base
+    return prisma.buildingProfile.create({
+      data: {
+        userId,
+        name: name || null,
+        role: 'LOCATAIRE',
+        parentProfileId,
+        address: parentProfile.address,
+        coordinates: parentProfile.coordinates,
+        parcelleNumber: parentProfile.parcelleNumber,
+        sectionCadastrale: parentProfile.sectionCadastrale,
+        lotNumber: parentProfile.lotNumber,
+        codeINSEE: parentProfile.codeINSEE,
+        enrichmentStatus: 'completed', // Pas d'enrichissement pour locataire
+        enrichmentSources: [],
+        tenantData: {}, // Données vides initialement
+      },
+    })
+  }
+
+  /**
+   * Récupère toutes les cartes locataires liées à une carte propriétaire
+   */
+  async getTenantProfiles(profileId: string, userId: string) {
+    // Vérifier que le profil appartient à l'utilisateur et est une carte propriétaire
+    const profile = await prisma.buildingProfile.findFirst({
+      where: {
+        id: profileId,
+        userId,
+        role: 'PROPRIETAIRE',
+      },
+    })
+
+    if (!profile) {
+      throw new Error('Profil non trouvé, non autorisé, ou n\'est pas une carte propriétaire')
+    }
+
+    return prisma.buildingProfile.findMany({
+      where: {
+        parentProfileId: profileId,
+        role: 'LOCATAIRE',
+      },
+      include: {
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
     })
   }
 

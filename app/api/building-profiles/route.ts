@@ -47,11 +47,19 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { userId, name, address, coordinates } = body
+    const { userId, name, address, coordinates, role, parentProfileId, lotNumber } = body
 
     if (!userId || !address) {
       return NextResponse.json(
         { error: 'userId et address sont requis' },
+        { status: 400 }
+      )
+    }
+
+    // Validation pour cartes LOCATAIRE
+    if (role === 'LOCATAIRE' && !parentProfileId) {
+      return NextResponse.json(
+        { error: 'parentProfileId est requis pour créer une carte LOCATAIRE' },
         { status: 400 }
       )
     }
@@ -62,6 +70,9 @@ export async function POST(request: NextRequest) {
       name,
       address,
       coordinates,
+      role: role || 'PROPRIETAIRE',
+      parentProfileId,
+      lotNumber,
     })
 
     return NextResponse.json({
@@ -70,6 +81,31 @@ export async function POST(request: NextRequest) {
     }, { status: 201 })
   } catch (error) {
     console.error('[API Building Profiles POST] Erreur:', error)
+    
+    // Gérer les erreurs de validation spécifiques
+    if (error instanceof Error) {
+      // Erreur d'unicité (carte déjà existante)
+      if (error.message.includes('Une carte propriétaire existe déjà')) {
+        return NextResponse.json(
+          {
+            error: error.message,
+            code: 'DUPLICATE_PROPRIETAIRE',
+          },
+          { status: 409 }
+        )
+      }
+      // Erreur de validation (carte locataire)
+      if (error.message.includes('LOCATAIRE') || error.message.includes('parentProfileId')) {
+        return NextResponse.json(
+          {
+            error: error.message,
+            code: 'VALIDATION_ERROR',
+          },
+          { status: 400 }
+        )
+      }
+    }
+
     return NextResponse.json(
       {
         error: 'Erreur lors de la création du profil',

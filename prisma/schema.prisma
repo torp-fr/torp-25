@@ -500,31 +500,31 @@ model RNBImportJob {
 // ============================================================================
 
 model RGECertification {
-  id                 String   @id @default(uuid())
-  siret              String   @unique // SIRET de l'entreprise (14 chiffres)
-  siren              String   // SIREN (9 premiers chiffres du SIRET)
-  companyName        String?  @map("company_name")
-  
+  id          String  @id @default(uuid())
+  siret       String  @unique // SIRET de l'entreprise (14 chiffres)
+  siren       String // SIREN (9 premiers chiffres du SIRET)
+  companyName String? @map("company_name")
+
   // Adresse
-  address            String?
-  postalCode         String?  @map("postal_code")
-  city               String?
-  department         String? // Code département pour indexation
-  region             String?
-  
+  address    String?
+  postalCode String? @map("postal_code")
+  city       String?
+  department String? // Code département pour indexation
+  region     String?
+
   // Certification
-  certificationNumber String?  @map("certification_number")
+  certificationNumber String?   @map("certification_number")
   certificationDate   DateTime? @map("certification_date")
   expiryDate          DateTime? @map("expiry_date")
   isValid             Boolean   @default(true) @map("is_valid")
-  
+
   // Domaines d'activité (JSON array)
-  activities         Json? // Array<{code: string, label: string, validUntil?: string}>
-  
+  activities Json? // Array<{code: string, label: string, validUntil?: string}>
+
   // Métadonnées
-  sourceUrl          String?  @map("source_url")
-  indexedAt          DateTime @default(now()) @map("indexed_at")
-  lastUpdated        DateTime @updatedAt @map("last_updated")
+  sourceUrl   String?  @map("source_url")
+  indexedAt   DateTime @default(now()) @map("indexed_at")
+  lastUpdated DateTime @updatedAt @map("last_updated")
 
   @@index([siret])
   @@index([siren])
@@ -536,20 +536,20 @@ model RGECertification {
 }
 
 model RGEImportJob {
-  id            String         @id @default(uuid())
-  resourceId    String?        @map("resource_id") // ID ressource data.gouv.fr
-  resourceUrl   String         @map("resource_url")
-  resourceTitle String?        @map("resource_title")
-  resourceFormat String?       @map("resource_format") // csv, json, etc.
-  status        RGEImportStatus @default(PENDING)
-  progress      Float          @default(0) // 0-100
-  totalRows     Int?           @map("total_rows")
-  processedRows Int            @default(0) @map("processed_rows")
-  errorMessage  String?        @map("error_message")
-  startedAt     DateTime?      @map("started_at")
-  completedAt   DateTime?      @map("completed_at")
-  createdAt     DateTime       @default(now()) @map("created_at")
-  updatedAt     DateTime       @updatedAt @map("updated_at")
+  id             String          @id @default(uuid())
+  resourceId     String?         @map("resource_id") // ID ressource data.gouv.fr
+  resourceUrl    String          @map("resource_url")
+  resourceTitle  String?         @map("resource_title")
+  resourceFormat String?         @map("resource_format") // csv, json, etc.
+  status         RGEImportStatus @default(PENDING)
+  progress       Float           @default(0) // 0-100
+  totalRows      Int?            @map("total_rows")
+  processedRows  Int             @default(0) @map("processed_rows")
+  errorMessage   String?         @map("error_message")
+  startedAt      DateTime?       @map("started_at")
+  completedAt    DateTime?       @map("completed_at")
+  createdAt      DateTime        @default(now()) @map("created_at")
+  updatedAt      DateTime        @updatedAt @map("updated_at")
 
   @@index([status])
   @@index([createdAt])
@@ -654,99 +654,118 @@ enum BANImportStatus {
 // ============================================================================
 
 model BuildingProfile {
-  id        String   @id @default(uuid())
-  userId   String   @map("user_id")
-  name     String? // Nom personnalisé (ex: "Maison principale", "Résidence secondaire")
-  
-  // Adresse et localisation
-  address  Json     // Données complètes d'adresse (AddressData)
+  id     String  @id @default(uuid())
+  userId String  @map("user_id")
+  name   String? // Nom personnalisé (ex: "Maison principale", "Résidence secondaire")
+
+  // Rôle et hiérarchie
+  role            BuildingProfileRole @default(PROPRIETAIRE) // PROPRIETAIRE ou LOCATAIRE
+  parentProfileId String?             @map("parent_profile_id") // ID de la carte propriétaire (si locataire)
+
+  // Identification unique du bien
+  address     Json // Données complètes d'adresse (AddressData)
   coordinates Json? // {lat, lng}
-  
+
   // Données cadastrales
-  cadastralData Json? @map("cadastral_data") // Données complètes cadastrales
-  parcelleNumber String? @map("parcelle_number") // Numéro parcelle
+  cadastralData     Json?   @map("cadastral_data") // Données complètes cadastrales
+  parcelleNumber    String? @map("parcelle_number") // Numéro parcelle
   sectionCadastrale String? @map("section_cadastrale")
-  codeINSEE String? @map("code_insee")
-  
-  // Données enrichies automatiquement
+  lotNumber         String? @map("lot_number") // Numéro de lot/appartement (pour différencier appartements sur même parcelle)
+  codeINSEE         String? @map("code_insee")
+
+  // Données enrichies automatiquement (uniquement pour carte propriétaire)
   enrichedData Json? @map("enriched_data") // AggregatedBuildingData
   pluData      Json? @map("plu_data")
   rnbData      Json? @map("rnb_data")
   dpeData      Json? @map("dpe_data")
   urbanismData Json? @map("urbanism_data")
-  
+
   // Métadonnées enrichissement
-  enrichmentStatus String @default("pending") @map("enrichment_status") // pending, in_progress, completed, failed
-  enrichmentSources String[] @map("enrichment_sources") // Liste des sources utilisées
-  enrichmentErrors Json? @map("enrichment_errors")
-  lastEnrichedAt DateTime? @map("last_enriched_at")
-  
+  enrichmentStatus  String    @default("pending") @map("enrichment_status") // pending, in_progress, completed, failed
+  enrichmentSources String[]  @map("enrichment_sources") // Liste des sources utilisées
+  enrichmentErrors  Json?     @map("enrichment_errors")
+  lastEnrichedAt    DateTime? @map("last_enriched_at")
+
   // Données complémentaires utilisateur
-  customFields Json? @map("custom_fields") // Champs personnalisables par l'utilisateur
-  notes       String? // Notes libres
-  
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
+  customFields Json?   @map("custom_fields") // Champs personnalisables par l'utilisateur
+  notes        String? // Notes libres
+
+  // Données spécifiques locataire (entretien, maintenance, etc.)
+  tenantData Json? @map("tenant_data") // Données spécifiques locataire (carnet d'entretien, travaux, etc.)
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
   // Relations
   user              User               @relation(fields: [userId], references: [id], onDelete: Cascade)
   buildingDocuments BuildingDocument[]
+  parentProfile     BuildingProfile?   @relation("BuildingProfileHierarchy", fields: [parentProfileId], references: [id], onDelete: Cascade)
+  tenantProfiles    BuildingProfile[]  @relation("BuildingProfileHierarchy")
 
+  @@unique([parcelleNumber, sectionCadastrale, lotNumber, role], name: "unique_proprietaire_per_bien")
   @@index([userId])
   @@index([codeINSEE])
   @@index([parcelleNumber])
+  @@index([parentProfileId])
   @@map("building_profiles")
 }
 
+enum BuildingProfileRole {
+  PROPRIETAIRE // Carte propriétaire (unique par bien)
+  LOCATAIRE // Sous-carte locataire (liée à une carte propriétaire)
+
+  @@map("building_profile_role")
+}
+
 enum BuildingDocumentType {
-  TITLE_DEED         // Titre de propriété
-  INSURANCE_HOME     // Assurance habitation
-  INSURANCE_LIFE     // Assurance vie
-  PROPERTY_TAX       // Taxe foncière
-  NOTARY_ACT         // Acte notarié
+  TITLE_DEED // Titre de propriété
+  INSURANCE_HOME // Assurance habitation
+  INSURANCE_LIFE // Assurance vie
+  PROPERTY_TAX // Taxe foncière
+  NOTARY_ACT // Acte notarié
   CONSTRUCTION_PERMIT // Permis de construire
-  DPE_CERTIFICATE    // Certificat DPE
-  TECHNICAL_REPORT   // Rapport technique
-  WARRANTY           // Garantie
-  MAINTENANCE_LOG    // Carnet d'entretien
+  DPE_CERTIFICATE // Certificat DPE
+  TECHNICAL_REPORT // Rapport technique
+  WARRANTY // Garantie
+  MAINTENANCE_LOG // Carnet d'entretien
   ENERGY_CERTIFICATE // Certificat énergétique
-  RGE_CERTIFICATE    // Certificat RGE
-  OTHER               // Autre
+  RGE_CERTIFICATE // Certificat RGE
+  OTHER // Autre
 
   @@map("building_document_type")
 }
 
 model BuildingDocument {
-  id               String                @id @default(uuid())
-  buildingProfileId String                @map("building_profile_id")
-  userId           String                 @map("user_id")
-  
+  id                String @id @default(uuid())
+  buildingProfileId String @map("building_profile_id")
+  userId            String @map("user_id")
+
   // Métadonnées fichier
-  fileName         String                 @map("file_name")
-  fileType         String                 @map("file_type")
-  fileSize         Int                    @map("file_size")
-  fileUrl          String                 @map("file_url")
-  
+  fileName String @map("file_name")
+  fileType String @map("file_type")
+  fileSize Int    @map("file_size")
+  fileUrl  String @map("file_url")
+
   // Classification
-  documentType     BuildingDocumentType   @map("document_type")
-  documentCategory String?                @map("document_category") // Propriété, Assurance, Fiscalité, etc.
-  description      String?                // Description libre
-  
+  documentType     BuildingDocumentType @map("document_type")
+  documentCategory String?              @map("document_category") // Propriété, Assurance, Fiscalité, etc.
+  description      String? // Description libre
+
   // Métadonnées extraites (OCR)
-  extractedData    Json?                  @map("extracted_data")
-  ocrStatus        DocumentStatus         @default(PENDING) @map("ocr_status")
-  ocrData          Json?                  @map("ocr_data")
-  
+  extractedData Json?          @map("extracted_data")
+  ocrStatus     DocumentStatus @default(PENDING) @map("ocr_status")
+  ocrData       Json?          @map("ocr_data")
+
   // Validation et tags
-  isValidated      Boolean                @default(false) @map("is_validated")
-  tags             String[]               // Tags personnalisés
-  
+  isValidated Boolean  @default(false) @map("is_validated")
+  tags        String[] // Tags personnalisés
+
   // Dates importantes
-  documentDate     DateTime?              @map("document_date") // Date du document (ex: date échéance assurance)
-  expirationDate   DateTime?              @map("expiration_date") // Date d'expiration si applicable
-  
-  createdAt        DateTime               @default(now()) @map("created_at")
-  updatedAt        DateTime               @updatedAt @map("updated_at")
+  documentDate   DateTime? @map("document_date") // Date du document (ex: date échéance assurance)
+  expirationDate DateTime? @map("expiration_date") // Date d'expiration si applicable
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
   // Relations
   user            User            @relation(fields: [userId], references: [id], onDelete: Cascade)
