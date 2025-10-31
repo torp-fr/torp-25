@@ -1,17 +1,12 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 
-// Auth0 temporairement désactivé - utilise un userId demo
-const DEMO_USER_ID = 'demo-user-id'
-
 export async function GET(
   _request: Request,
   context: any
 ) {
   try {
-    // Auth0 désactivé - utilisateur demo par défaut
-    const userId = DEMO_USER_ID
-
+    // Auth0 désactivé - accès libre au devis
     const devis = await prisma.devis.findUnique({
       where: { id: context?.params?.id },
       include: {

@@ -10,15 +10,10 @@ import { z } from 'zod'
 
 export const dynamic = 'force-dynamic'
 
-// Auth0 temporairement désactivé - utilise un userId demo
-const DEMO_USER_ID = 'demo-user-id'
-
 // POST calculate new score
 export async function POST(request: NextRequest) {
   try {
-    // Auth0 désactivé - utilisateur demo par défaut
-    const userId = DEMO_USER_ID
-
+    // Auth0 désactivé - accès libre
     const body = await request.json()
     const scoreRequestSchema = z.object({
       devisId: z.string().min(1),
