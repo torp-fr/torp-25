@@ -3,9 +3,11 @@
  * Sources :
  * - Géoportail IGN : https://www.geoportail.gouv.fr/
  * - API Cadastre : https://wxs.ign.fr/ pour les données parcellaires
+ * - API Carto Cadastre (IGN) : https://apicarto.ign.fr/api/cadastre (nouvelle intégration)
  */
 
 import type { AddressData } from './types'
+import { APICartoCadastreService } from './apicarto-cadastre-service'
 
 export interface CadastralParcel {
   id: string // Identifiant parcellaire
@@ -161,8 +163,12 @@ export class CadastreService {
         const feature = result[0]
         const props = feature.properties
 
+        // Construire l'ID depuis code_com (code commune) + section + numero
+        const codeCom = props.code_com || ''
+        const id = feature.id || `${codeCom}-${props.section}-${props.numero}`
+
         return {
-          id: feature.id || `${props.code_insee || props.code_com}-${props.section}-${props.numero}`,
+          id,
           numero: props.numero || '',
           section: props.section || '',
           surface: undefined, // Calculé depuis la géométrie si nécessaire
@@ -250,27 +256,37 @@ export class CadastreService {
         }
       }
 
+      // Construire le code INSEE complet (5 chiffres) depuis code_com (3 chiffres) si nécessaire
+      // Note: L'API Carto utilise code_insee pour certaines requêtes, mais code_com dans les résultats
+      // Pour getParcelleById, nous devons utiliser code_insee complet (5 chiffres)
+      // Si codeCom fait 3 chiffres, il nous manque le code département
+      // Pour l'instant, on essaie avec code_com et on adapte si nécessaire
+      
       // Utiliser le service APICarto pour récupérer les détails complets
-      const parcelleDetails = await this.apicartoService.getParcelleById(
-        codeInsee,
-        parcelle.section,
-        parcelle.numero,
-        'PCI'
-      )
+      // Note: getParcelleById nécessite code_insee (5 chiffres), pas code_com (3 chiffres)
+      // Si on n'a que code_com, on doit le convertir ou utiliser une recherche par section+numero
+      const parcelleDetails = await this.apicartoService.getParcelles({
+        section: parcelle.section,
+        numero: parcelle.numero,
+        _limit: 1,
+        source_ign: 'PCI',
+      })
 
-      if (parcelleDetails) {
-        const props = parcelleDetails.properties
+      if (parcelleDetails.features && parcelleDetails.features.length > 0) {
+        const feature = parcelleDetails.features[0]
+        const props = feature.properties
         
         // Calculer la surface depuis la géométrie si disponible
         let surface = parcelle.surface
-        if (parcelleDetails.geometry && parcelleDetails.geometry.type === 'Polygon' || 
-            parcelleDetails.geometry.type === 'MultiPolygon') {
+        if (feature.geometry && 
+            (feature.geometry.type === 'Polygon' || 
+             feature.geometry.type === 'MultiPolygon')) {
           // TODO: Calculer la surface depuis les coordonnées GeoJSON
           // Pour l'instant, on garde la surface existante
         }
 
         return {
-          id: parcelle.id || `${codeInsee}-${parcelle.section}-${parcelle.numero}`,
+          id: parcelle.id || `${codeCom}-${parcelle.section}-${parcelle.numero}`,
           numero: parcelle.numero || props.numero,
           section: parcelle.section || props.section,
           surface,
