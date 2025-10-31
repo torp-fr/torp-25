@@ -1,13 +1,15 @@
 /**
  * Service d'enrichissement des données d'entreprise
- * Utilise l'API Sirene (data.gouv.fr) et autres sources
+ * Utilise l'API Sirene (INSEE et data.gouv.fr) et autres sources
  */
 
 import { ApiClient } from './api-client'
 import type { CompanyEnrichment } from './types'
+import { SireneService, type SireneCompany } from '../external-apis/sirene-service'
 
 export class CompanyEnrichmentService {
   private sireneClient: ApiClient
+  private sireneService: SireneService
 
   constructor() {
     // API Recherche d'Entreprises (data.gouv.fr) - gratuite, sans clé
@@ -17,10 +19,14 @@ export class CompanyEnrichmentService {
       timeout: 8000,
       retries: 2,
     })
+    
+    // Service Sirene complet (INSEE + fallback data.gouv.fr)
+    this.sireneService = new SireneService()
   }
 
   /**
    * Enrichit les données d'une entreprise à partir du SIRET
+   * Utilise d'abord le service Sirene complet, puis fallback sur API Recherche d'Entreprises
    */
   async enrichFromSiret(siret: string): Promise<CompanyEnrichment | null> {
     try {
@@ -32,8 +38,13 @@ export class CompanyEnrichmentService {
         return null
       }
 
-      // Appel à l'API Recherche d'Entreprises (data.gouv.fr)
-      // Endpoint: GET /search?q={siret}
+      // 1. Essayer d'abord avec le service Sirene complet (API INSEE)
+      const sireneCompany = await this.sireneService.getCompanyBySiret(cleanSiret)
+      if (sireneCompany) {
+        return this.mapSireneCompanyToEnrichment(sireneCompany)
+      }
+
+      // 2. Fallback sur l'API Recherche d'Entreprises (data.gouv.fr) - gratuite
       const data = await this.sireneClient.get<{
         results?: Array<{
           siret: string
@@ -106,6 +117,35 @@ export class CompanyEnrichmentService {
   }
 
   /**
+   * Convertit un SireneCompany en CompanyEnrichment
+   */
+  private mapSireneCompanyToEnrichment(company: SireneCompany): CompanyEnrichment {
+    return {
+      siret: company.siret,
+      siren: company.siren,
+      name: company.name,
+      legalStatus: company.legalFormLabel || company.legalForm,
+      address: company.address
+        ? {
+            street: company.address.street || '',
+            city: company.address.city || '',
+            postalCode: company.address.postalCode || '',
+            region: company.address.region || '',
+          }
+        : undefined,
+      activities: company.nafCode
+        ? [
+            {
+              code: company.nafCode,
+              label: company.nafLabel || '',
+            },
+            ...(company.secondaryActivities || []),
+          ]
+        : [],
+    }
+  }
+
+  /**
    * Valide le format d'un SIRET
    */
   private isValidSiret(siret: string): boolean {
@@ -132,10 +172,23 @@ export class CompanyEnrichmentService {
 
   /**
    * Recherche une entreprise par nom
+   * Utilise d'abord le service Sirene complet, puis fallback sur API Recherche d'Entreprises
    */
   async searchByName(name: string, limit = 5): Promise<CompanyEnrichment[]> {
     try {
-      // Appel à l'API Recherche d'Entreprises par nom
+      // 1. Essayer d'abord avec le service Sirene (API INSEE si disponible)
+      const sireneResults = await this.sireneService.searchCompanies(name, {
+        perPage: limit,
+        status: 'ACTIVE',
+      })
+
+      if (sireneResults.companies.length > 0) {
+        return sireneResults.companies.map((company) =>
+          this.mapSireneCompanyToEnrichment(company)
+        )
+      }
+
+      // 2. Fallback sur l'API Recherche d'Entreprises (data.gouv.fr)
       const data = await this.sireneClient.get<{
         results?: Array<{
           siret: string
@@ -173,6 +226,43 @@ export class CompanyEnrichmentService {
     } catch (error) {
       console.error(`[CompanyService] Erreur lors de la recherche par nom "${name}":`, error)
       return []
+    }
+  }
+
+  /**
+   * Vérifie et certifie les données d'une entreprise
+   */
+  async verifyCompany(data: {
+    siren?: string
+    siret?: string
+    name?: string
+    address?: string
+  }): Promise<{
+    valid: boolean
+    company?: CompanyEnrichment
+    errors: string[]
+    warnings: string[]
+    matchScore?: number
+  }> {
+    try {
+      const verification = await this.sireneService.verifyCompany(data)
+      
+      return {
+        valid: verification.valid,
+        company: verification.company
+          ? this.mapSireneCompanyToEnrichment(verification.company)
+          : undefined,
+        errors: verification.errors,
+        warnings: verification.warnings,
+        matchScore: verification.matchScore,
+      }
+    } catch (error) {
+      console.error('[CompanyService] Erreur vérification entreprise:', error)
+      return {
+        valid: false,
+        errors: ['Erreur lors de la vérification'],
+        warnings: [],
+      }
     }
   }
 }

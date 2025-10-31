@@ -72,7 +72,11 @@ export interface ExternalApiConfig {
   apiUrbanismUrl?: string
   apiONTBUrl?: string
   apiDPEUrl?: string
+  inseeApiKey?: string // Clé API INSEE Sirene
   cacheEnabled: boolean
   cacheTTL: number // en secondes
 }
+
+// Réexport des types Sirene pour usage dans d'autres services
+export type { SireneCompany, SireneSearchResult, SireneVerificationResult } from './sirene-service'
 
