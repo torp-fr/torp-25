@@ -6,21 +6,18 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { torpScoringEngine } from '@/services/scoring/torp-score'
-import { getSession } from '@auth0/nextjs-auth0'
 import { z } from 'zod'
-import { ensureUserExistsFromAuth0 } from '@/lib/onboarding'
 
 export const dynamic = 'force-dynamic'
+
+// Auth0 temporairement désactivé - utilise un userId demo
+const DEMO_USER_ID = 'demo-user-id'
 
 // POST calculate new score
 export async function POST(request: NextRequest) {
   try {
-    const session = await getSession()
-    if (!session?.user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-    const userId = session.user.sub
-    await ensureUserExistsFromAuth0(session.user as any)
+    // Auth0 désactivé - utilisateur demo par défaut
+    const userId = DEMO_USER_ID
 
     const body = await request.json()
     const scoreRequestSchema = z.object({
@@ -53,10 +50,6 @@ export async function POST(request: NextRequest) {
         { error: 'Devis not found' },
         { status: 404 }
       )
-    }
-
-    if (devis.userId !== userId) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
     // Calculate score

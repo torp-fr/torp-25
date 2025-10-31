@@ -5,21 +5,18 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
-import { getSession } from '@auth0/nextjs-auth0'
 import { createDevisSchema } from '@/lib/validations/devis'
-import { ensureUserExistsFromAuth0 } from '@/lib/onboarding'
 
 export const dynamic = 'force-dynamic'
+
+// Auth0 temporairement désactivé - utilise un userId demo
+const DEMO_USER_ID = 'demo-user-id'
 
 // GET all devis for a user
 export async function GET(_request: NextRequest) {
   try {
-    const session = await getSession()
-    if (!session?.user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-    const userId = session.user.sub
-    await ensureUserExistsFromAuth0(session.user as any)
+    // Auth0 désactivé - utilisateur demo par défaut
+    const userId = DEMO_USER_ID
 
     const devisList = await prisma.devis.findMany({
       where: { userId },
@@ -46,11 +43,8 @@ export async function GET(_request: NextRequest) {
 // POST create new devis
 export async function POST(request: NextRequest) {
   try {
-    const session = await getSession()
-    if (!session?.user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-    const userId = session.user.sub
+    // Auth0 désactivé - utilisateur demo par défaut
+    const userId = DEMO_USER_ID
 
     const body = await request.json()
     const parsed = createDevisSchema.safeParse(body)

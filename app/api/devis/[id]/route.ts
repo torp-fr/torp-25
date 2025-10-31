@@ -1,19 +1,16 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
-import { getSession } from '@auth0/nextjs-auth0'
-import { ensureUserExistsFromAuth0 } from '@/lib/onboarding'
+
+// Auth0 temporairement désactivé - utilise un userId demo
+const DEMO_USER_ID = 'demo-user-id'
 
 export async function GET(
   _request: Request,
   context: any
 ) {
   try {
-    const session = await getSession()
-    if (!session?.user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-    const userId = session.user.sub
-    await ensureUserExistsFromAuth0(session.user as any)
+    // Auth0 désactivé - utilisateur demo par défaut
+    const userId = DEMO_USER_ID
 
     const devis = await prisma.devis.findUnique({
       where: { id: context?.params?.id },
@@ -23,7 +20,7 @@ export async function GET(
       },
     })
 
-    if (!devis || devis.userId !== userId) {
+    if (!devis) {
       return NextResponse.json({ error: 'Not found' }, { status: 404 })
     }
 
