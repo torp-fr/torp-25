@@ -507,7 +507,7 @@ export class DVFService {
   /**
    * Estime la valeur d'un bien depuis les statistiques
    */
-  private estimateValue(statistics: DVFStatistics, address: AddressData): DVFData['estimation'] {
+  private estimateValue(statistics: DVFStatistics, _address: AddressData): DVFData['estimation'] {
     if (!statistics.prix_m2_median && !statistics.prix_m2_moyen) {
       return undefined
     }
