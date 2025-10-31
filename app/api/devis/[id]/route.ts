@@ -3,12 +3,13 @@ import { prisma } from '@/lib/db'
 
 export async function GET(
   _request: Request,
-  context: any
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params
     // Auth0 désactivé - accès libre au devis
     const devis = await prisma.devis.findUnique({
-      where: { id: context?.params?.id },
+      where: { id },
       include: {
         document: true,
         torpScores: true,
@@ -31,21 +32,14 @@ export async function GET(
 
 export async function DELETE(
   _request: NextRequest,
-  context: any
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const devisId = context?.params?.id
-
-    if (!devisId) {
-      return NextResponse.json(
-        { error: 'Devis ID is required' },
-        { status: 400 }
-      )
-    }
+    const { id } = await params
 
     // Vérifier que le devis existe
     const devis = await prisma.devis.findUnique({
-      where: { id: devisId },
+      where: { id },
     })
 
     if (!devis) {
@@ -57,7 +51,7 @@ export async function DELETE(
 
     // Supprimer le devis (les relations sont en cascade dans Prisma)
     await prisma.devis.delete({
-      where: { id: devisId },
+      where: { id },
     })
 
     return NextResponse.json({
