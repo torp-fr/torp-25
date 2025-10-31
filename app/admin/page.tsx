@@ -21,7 +21,6 @@ import {
   MapPin,
   BarChart3,
   PieChart,
-  Settings,
 } from 'lucide-react'
 import { AppHeader } from '@/components/app-header'
 
