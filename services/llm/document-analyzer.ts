@@ -89,8 +89,19 @@ export class DocumentAnalyzer {
 
   /**
    * Analyse complète d'un devis BTP avec Claude
+   * @param filePath Chemin du fichier à analyser
+   * @param enrichmentData Données enrichies (optionnel, sera utilisé si fourni)
    */
-  async analyzeDevis(filePath: string): Promise<TORPAnalysis> {
+  async analyzeDevis(
+    filePath: string,
+    enrichmentData?: {
+      company?: any
+      priceReferences?: any[]
+      regionalData?: any
+      complianceData?: any
+      weatherData?: any
+    }
+  ): Promise<TORPAnalysis> {
     try {
       // Lire le fichier
       const fileBuffer = fs.readFileSync(filePath)
@@ -123,9 +134,43 @@ export class DocumentAnalyzer {
         throw new Error(`Format de fichier non supporté: ${fileExt}`)
       }
 
+      // Construire le prompt avec les données enrichies si disponibles
+      let enrichmentContext = ''
+      if (enrichmentData) {
+        enrichmentContext = `
+
+**DONNÉES ENRICHIES DISPONIBLES** (utilise-les pour améliorer ta précision):
+${enrichmentData.company ? `
+- **Entreprise vérifiée**: ${JSON.stringify(enrichmentData.company, null, 2)}
+  - Utilise ces informations pour vérifier la cohérence avec le devis
+  - Vérifie que le SIRET correspond
+` : ''}
+${enrichmentData.priceReferences && enrichmentData.priceReferences.length > 0 ? `
+- **Prix de référence marché**: ${JSON.stringify(enrichmentData.priceReferences, null, 2)}
+  - Compare les prix du devis avec ces références
+  - Détecte les écarts significatifs (surfacturation/sous-tarification)
+` : ''}
+${enrichmentData.regionalData ? `
+- **Données régionales**: ${JSON.stringify(enrichmentData.regionalData, null, 2)}
+  - Utilise le benchmark régional pour évaluer le prix global
+  - Prends en compte les prix moyens au m² de la région
+` : ''}
+${enrichmentData.complianceData ? `
+- **Normes et conformité**: ${JSON.stringify(enrichmentData.complianceData, null, 2)}
+  - Vérifie si les normes obligatoires sont mentionnées
+  - Détecte les manquements aux réglementations
+` : ''}
+${enrichmentData.weatherData ? `
+- **Données météorologiques régionales**: ${JSON.stringify(enrichmentData.weatherData, null, 2)}
+  - Évalue le réalisme des délais en tenant compte des retards météo moyens
+  - Vérifie si les délais proposés sont réalistes selon la région
+` : ''}
+`
+      }
+
       // Prompt pour extraction et analyse complète
       const prompt = `Tu es un expert en analyse de devis BTP. Analyse ce document de devis et fournis une réponse JSON structurée.
-
+${enrichmentContext}
 IMPORTANT: Ta réponse doit être UNIQUEMENT du JSON valide, sans texte avant ou après. Commence directement par {
 
 Le JSON doit contenir:

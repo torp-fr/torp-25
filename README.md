@@ -16,7 +16,8 @@ TORP est une plateforme SaaS qui analyse et score automatiquement les devis de c
 
 - ✅ Upload multi-format (PDF, JPG, PNG, DOCX)
 - ✅ OCR intelligent avec >90% de précision
-- ✅ Algorithme TORP-Score propriétaire (80 critères)
+- ✅ Algorithme TORP-Score v2.0 propriétaire (1200 points, 8 axes, 250+ critères)
+- ✅ Enrichissement automatique multi-sources (INSEE, Infogreffe, Pappers, etc.)
 - ✅ Rapport PDF détaillé avec recommandations
 - ✅ Comparaison multi-devis (jusqu'à 5)
 - ✅ Benchmark régional de prix
@@ -39,9 +40,11 @@ TORP est une plateforme SaaS qui analyse et score automatiquement les devis de c
 - **Auth**: Auth0
 
 ### Intelligence Artificielle
-- **OCR**: Tesseract.js + AWS Rekognition
-- **NLP**: Custom parsing algorithms
-- **Scoring**: Proprietary TORP algorithm
+- **Analyse LLM**: Claude AI (Anthropic) - Analyse intelligente des devis
+- **OCR**: Lecture directe par Claude AI (PDF, images)
+- **NLP**: Analyse sémantique avancée des devis
+- **Scoring**: Algorithme propriétaire TORP v2.0 (1200 points, 8 axes, 250+ critères)
+- **Enrichissement**: Multi-sources via APIs externes (15+ sources)
 
 ### Infrastructure
 - **Cloud**: AWS (EU-West-3 Paris)
@@ -113,11 +116,26 @@ Visit [http://localhost:3000](http://localhost:3000)
 
 See `.env.example` for all required environment variables:
 
+**Obligatoires :**
 - `DATABASE_URL`: PostgreSQL connection string
-- `AUTH0_*`: Auth0 credentials
+- `ANTHROPIC_API_KEY`: Claude AI API key (pour analyse LLM)
+
+**Optionnelles - APIs d'Enrichissement :**
+- `REEF_PREMIUM_API_KEY`: Prix de référence BTP
+- `INFOGREFFE_API_KEY`: Données financières entreprises
+- `PAPPERS_API_KEY`: Enrichissement entreprises
+- `OPENWEATHER_API_KEY`: Données météorologiques
+- `METEOFRANCE_API_KEY`: Météo officielle française
+
+**Note** : L'API Sirene (data.gouv.fr) est **gratuite et ne nécessite pas de clé API**.
+
+**Autres :**
+- `AUTH0_*`: Auth0 credentials (optionnel - désactivé en mode demo)
 - `AWS_*`: AWS credentials for S3 and Rekognition
 - `STRIPE_*`: Stripe payment credentials
 - `REDIS_URL`: Redis connection string
+
+Voir [README_ADVANCED_SCORING.md](README_ADVANCED_SCORING.md) pour la documentation complète du système de scoring avancé.
 
 ## 📁 Project Structure
 
@@ -178,39 +196,103 @@ npm run db:studio    # Open Prisma Studio
 - **Testing**: Vitest for unit tests
 - **Pre-commit**: Husky (planned)
 
-## 🧮 TORP-Score Algorithm
+## 🧮 TORP-Score Algorithm - Architecture Avancée
 
-The proprietary TORP-Score evaluates quotes across **80 criteria** in 4 categories:
+### Version 2.0 - Système Multi-Niveaux (1200 points)
 
-### Scoring Categories
+Le système de scoring TORP v2.0 évalue les devis selon une **architecture hiérarchique multi-niveaux** :
 
-1. **PRIX (25% weight)** - 12 criteria
-   - Price comparison vs regional market
-   - Unit prices vs Reef Premium reference
-   - Pricing coherence and transparency
+- **Niveau 1** : 8 Axes Principaux (macro-analyse)
+- **Niveau 2** : 45 Sous-critères (méso-analyse)
+- **Niveau 3** : 250+ Points de contrôle (micro-analyse)
+- **Score Total** : 1200 points (évolutivité maximale)
 
-2. **QUALITE (30% weight)** - 20 criteria
-   - DTU compliance
-   - Materials quality and certifications
-   - Technical specifications detail
+### 🎯 Les 8 Axes Principaux
 
-3. **DELAIS (20% weight)** - 12 criteria
-   - Timeline realism
-   - Phasing coherence
-   - Buffer margins for contingencies
+1. **CONFORMITÉ RÉGLEMENTAIRE & TECHNIQUE (350 pts - 29%)**
+   - Respect normes DTU & Standards (140 pts)
+   - Qualifications & Certifications Entreprise (110 pts)
+   - Sécurité & Accessibilité (100 pts)
 
-4. **CONFORMITE (25% weight)** - 36 criteria
-   - Legal mentions
-   - Insurance coverage (RC, Décennale)
-   - Regulatory compliance (RE2020, DTU)
+2. **ANALYSE PRIX & MARCHÉ (250 pts - 21%)**
+   - Positionnement tarifaire (120 pts)
+   - Optimisation valeur (80 pts)
+   - Intelligence financière (50 pts)
 
-### Grade Thresholds
+3. **QUALITÉ & RÉPUTATION ENTREPRISE (200 pts - 17%)**
+   - Solidité financière (80 pts)
+   - Réputation & Références (70 pts)
+   - Capital humain & Organisation (50 pts)
 
-- **A (850-1000)**: Excellent
-- **B (700-849)**: Très bien
-- **C (550-699)**: Bien
-- **D (400-549)**: Passable
-- **E (0-399)**: Insuffisant
+4. **FAISABILITÉ & COHÉRENCE TECHNIQUE (150 pts - 12%)**
+   - Pertinence solutions (70 pts)
+   - Réalisme exécution (50 pts)
+   - Gestion risques (30 pts)
+
+5. **TRANSPARENCE & COMMUNICATION (100 pts - 8%)**
+   - Qualité documentation (50 pts)
+   - Relation client (30 pts)
+   - Suivi projet (20 pts)
+
+6. **GARANTIES & ASSURANCES (80 pts - 7%)**
+   - Couvertures légales (50 pts)
+   - Extensions & garanties commerciales (30 pts)
+
+7. **INNOVATION & DÉVELOPPEMENT DURABLE (50 pts - 4%)**
+   - Performance environnementale (30 pts)
+   - Innovation technique (20 pts)
+
+8. **GESTION PROJET & DÉLAIS (70 pts - 6%)**
+   - Réalisme planning (40 pts)
+   - Capacité respect délais (30 pts)
+
+### 📊 Pondération Adaptative
+
+Le système s'adapte automatiquement selon le profil utilisateur :
+
+**Profil B2C (Particuliers)** - Focus Sécurisation :
+- Conformité : 35% (+6%)
+- Qualité Entreprise : 22% (+5%)
+- Transparence : 15% (+7%)
+- Garanties : 10% (+3%)
+
+**Profil B2B (Professionnels)** - Focus Optimisation :
+- Prix & Marché : 28% (+7%)
+- Faisabilité Technique : 18% (+6%)
+- Innovation Durable : 8% (+4%)
+- Gestion Délais : 10% (+4%)
+
+### 🎖️ Grades Finaux
+
+- **A+ (1080-1200)**: 🏆 Excellence - Validation immédiate recommandée
+- **A (960-1079)**: ⭐ Très bien - Négociations mineures possibles
+- **B (840-959)**: ✅ Satisfaisant - Vérifications ciblées
+- **C (720-839)**: ⚠️ Moyen - Améliorations requises
+- **D (600-719)**: 🔍 Problématique - Vigilance renforcée
+- **E (<600)**: 🚨 Déconseillé - Recherche alternatives
+
+### 📡 Enrichissement de Données Multi-Sources
+
+Le système enrichit automatiquement les données via **15+ sources** :
+
+**APIs Publiques Officielles** (Gratuites) :
+- ✅ **INSEE Sirene** (data.gouv.fr) - Informations entreprises, SIRET
+- ✅ **BODACC** (data.gouv.fr) - Procédures collectives
+- ✅ **Data.gouv.fr** - Données publiques multiples
+
+**APIs Sectorielles** (Optionnelles) :
+- 🔑 **Infogreffe** - Bilans, données financières
+- 🔑 **Pappers.fr** - Enrichissement entreprises
+- 🔑 **Qualibat** - Certifications métiers
+- 🔑 **CSTB** - Base DTU, guides techniques
+- 🔑 **Reef Premium** - Prix de référence
+
+**Services Propriétaires** :
+- 🧠 **LLM Claude AI** - Analyse intelligente des devis
+- 📊 **Base TORP** - Historique analyses, modèles ML
+- 🌐 **Scraping légal** - Avis clients, réputation
+
+Voir [services/data-enrichment/README.md](services/data-enrichment/README.md) pour plus de détails.
 
 ## 🔒 Security
 

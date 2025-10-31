@@ -49,6 +49,36 @@ export const config = {
       process.env.REEF_PREMIUM_API_URL || 'https://api.reef-premium.fr/v1',
   },
 
+  // APIs externes pour enrichissement de données
+  externalApis: {
+    // API Recherche d'Entreprises (gratuite, data.gouv.fr)
+    rechercheEntreprises: {
+      baseUrl: 'https://recherche-entreprises.api.gouv.fr',
+      // Pas de clé API requise
+      // Documentation: https://www.data.gouv.fr/fr/datasets/api-recherche-entreprises/
+    },
+    // API Infogreffe (données financières)
+    infogreffe: {
+      apiKey: process.env.INFOGREFFE_API_KEY || '',
+      baseUrl: process.env.INFOGREFFE_API_URL || 'https://api.infogreffe.fr/v1',
+    },
+    // API Pappers (enrichissement entreprises)
+    pappers: {
+      apiKey: process.env.PAPPERS_API_KEY || '',
+      baseUrl: process.env.PAPPERS_API_URL || 'https://api.pappers.fr/v2',
+    },
+    // API OpenWeather (météo)
+    openWeather: {
+      apiKey: process.env.OPENWEATHER_API_KEY || '',
+      baseUrl: 'https://api.openweathermap.org/data/2.5',
+    },
+    // API Météo France (optionnel)
+    meteofrance: {
+      apiKey: process.env.METEOFRANCE_API_KEY || '',
+      baseUrl: 'https://api.meteofrance.fr/v1',
+    },
+  },
+
   redis: {
     url: process.env.REDIS_URL || 'redis://localhost:6379',
   },
