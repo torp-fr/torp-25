@@ -53,7 +53,6 @@ export default function DashboardPage() {
   })
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [generating, setGenerating] = useState(false)
   const [deleting, setDeleting] = useState<string | null>(null)
 
   useEffect(() => {
@@ -106,36 +105,6 @@ export default function DashboardPage() {
       )
     } finally {
       setLoading(false)
-    }
-  }
-
-  const generateTestData = async () => {
-    try {
-      setGenerating(true)
-      setError(null)
-
-      const response = await fetch(`/api/test/seed`, {
-        method: 'POST',
-      })
-
-      if (!response.ok) {
-        throw new Error('Erreur lors de la génération des données de test')
-      }
-
-      const data = await response.json()
-
-      if (data.success) {
-        // Recharger les devis après génération
-        await fetchDevis()
-      } else {
-        throw new Error(data.error || 'Erreur lors de la génération')
-      }
-    } catch (err) {
-      setError(
-        err instanceof Error ? err.message : 'Erreur inconnue'
-      )
-    } finally {
-      setGenerating(false)
     }
   }
 
@@ -333,33 +302,15 @@ export default function DashboardPage() {
                   Aucun devis pour le moment
                 </h3>
                 <p className="mb-4 text-muted-foreground">
-                  Uploadez votre premier devis pour commencer l&apos;analyse ou
-                  générez des données de test
+                  Uploadez votre premier devis pour commencer l&apos;analyse
                 </p>
-                <div className="flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
+                <div className="flex justify-center">
                   <Link href="/upload">
                     <Button>
                       <Upload className="mr-2 h-4 w-4" />
                       Uploader un Devis
                     </Button>
                   </Link>
-                  <Button
-                    variant="outline"
-                    onClick={generateTestData}
-                    disabled={generating}
-                  >
-                    {generating ? (
-                      <>
-                        <Clock className="mr-2 h-4 w-4 animate-spin" />
-                        Génération...
-                      </>
-                    ) : (
-                      <>
-                        <FileText className="mr-2 h-4 w-4" />
-                        Générer Données de Test
-                      </>
-                    )}
-                  </Button>
                 </div>
               </div>
             ) : (
