@@ -15,7 +15,7 @@ export class Axe1Conformite {
    */
   async calculate(
     devis: Devis,
-    enrichmentData: ScoringEnrichmentData,
+    _enrichmentData: ScoringEnrichmentData,
     context: { projectType: string; tradeType?: string; region: string }
   ): Promise<AxisScore> {
     const subCriteriaScores: SubCriteriaScore[] = []
@@ -54,7 +54,7 @@ export class Axe1Conformite {
    */
   private async calculateDTUStandards(
     devis: Devis,
-    enrichmentData: ScoringEnrichmentData,
+    _enrichmentData: ScoringEnrichmentData,
     context: any
   ): Promise<SubCriteriaScore> {
     const controlPointScores: ControlPointScore[] = []
@@ -88,7 +88,7 @@ export class Axe1Conformite {
    */
   private async scoreDTUSpecifiques(
     devis: Devis,
-    enrichmentData: ScoringEnrichmentData,
+    _enrichmentData: ScoringEnrichmentData,
     _context: any
   ): Promise<ControlPointScore> {
     let score = 0
@@ -204,7 +204,7 @@ export class Axe1Conformite {
    */
   private async scoreRE2020(
     devis: Devis,
-    enrichmentData: ScoringEnrichmentData,
+    _enrichmentData: ScoringEnrichmentData,
     context: any
   ): Promise<ControlPointScore> {
     let score = 0
@@ -414,7 +414,7 @@ export class Axe1Conformite {
    */
   private async scoreAssurances(
     devis: Devis,
-    enrichmentData: ScoringEnrichmentData
+    _enrichmentData: ScoringEnrichmentData
   ): Promise<ControlPointScore> {
     let score = 0
     let justification = ''
@@ -437,7 +437,7 @@ export class Axe1Conformite {
 
     // RC Professionnelle appropriée (10 pts)
     const hasRC = legalMentions.hasInsurance || 
-                  enrichmentData.company?.insurances?.hasRC
+                  _enrichmentData.company?.insurances?.hasRC
     if (hasRC) {
       score += 8
       justification += 'RC Professionnelle mentionnée. '
@@ -493,7 +493,7 @@ export class Axe1Conformite {
    */
   private async scoreSecuriteIncendie(
     devis: Devis,
-    enrichmentData: ScoringEnrichmentData,
+    _enrichmentData: ScoringEnrichmentData,
     _context: any
   ): Promise<ControlPointScore> {
     let score = 0
@@ -540,7 +540,7 @@ export class Axe1Conformite {
    */
   private async scoreAccessibilitePMR(
     devis: Devis,
-    enrichmentData: ScoringEnrichmentData,
+    _enrichmentData: ScoringEnrichmentData,
     _context: any
   ): Promise<ControlPointScore> {
     let score = 0
@@ -588,7 +588,7 @@ export class Axe1Conformite {
    */
   private async scoreAcoustique(
     devis: Devis,
-    enrichmentData: ScoringEnrichmentData
+    _enrichmentData: ScoringEnrichmentData
   ): Promise<ControlPointScore> {
     let score = 0
     let justification = ''
