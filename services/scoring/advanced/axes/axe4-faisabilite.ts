@@ -12,7 +12,7 @@ import type { ScoringEnrichmentData, ControlPointScore, SubCriteriaScore, AxisSc
 export class Axe4Faisabilite {
   async calculate(
     devis: Devis,
-    _enrichmentData: ScoringEnrichmentData,
+    enrichmentData: ScoringEnrichmentData,
     context: { projectType: string }
   ): Promise<AxisScore> {
     const subCriteriaScores: SubCriteriaScore[] = []
@@ -47,7 +47,7 @@ export class Axe4Faisabilite {
    */
   private async calculatePertinence(
     devis: Devis,
-    _enrichmentData: ScoringEnrichmentData,
+    enrichmentData: ScoringEnrichmentData,
     context: any
   ): Promise<SubCriteriaScore> {
     const controlPointScores: ControlPointScore[] = []
@@ -178,7 +178,7 @@ export class Axe4Faisabilite {
    */
   private async calculateRealisme(
     devis: Devis,
-    _enrichmentData: ScoringEnrichmentData,
+    enrichmentData: ScoringEnrichmentData,
     context: any
   ): Promise<SubCriteriaScore> {
     const controlPointScores: ControlPointScore[] = []

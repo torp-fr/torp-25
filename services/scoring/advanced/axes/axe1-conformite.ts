@@ -54,7 +54,7 @@ export class Axe1Conformite {
    */
   private async calculateDTUStandards(
     devis: Devis,
-    _enrichmentData: ScoringEnrichmentData,
+    enrichmentData: ScoringEnrichmentData,
     context: any
   ): Promise<SubCriteriaScore> {
     const controlPointScores: ControlPointScore[] = []
@@ -88,7 +88,7 @@ export class Axe1Conformite {
    */
   private async scoreDTUSpecifiques(
     devis: Devis,
-    _enrichmentData: ScoringEnrichmentData,
+    enrichmentData: ScoringEnrichmentData,
     _context: any
   ): Promise<ControlPointScore> {
     let score = 0

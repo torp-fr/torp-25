@@ -41,8 +41,8 @@ export class Axe7Innovation {
    * 7.1 Performance Environnementale (30 points)
    */
   private async calculatePerformanceEnvironnementale(
-    _devis: Devis,
-    _enrichmentData: ScoringEnrichmentData,
+    devis: Devis,
+    enrichmentData: ScoringEnrichmentData,
     _context: any
   ): Promise<SubCriteriaScore> {
     const controlPointScores: ControlPointScore[] = []
@@ -70,7 +70,7 @@ export class Axe7Innovation {
    * Solutions Bas Carbone (20 points)
    */
   private async scoreSolutionsBasCarbone(
-    _devis: Devis,
+    devis: Devis,
     _enrichmentData: ScoringEnrichmentData,
     _context: any
   ): Promise<ControlPointScore> {
@@ -121,7 +121,7 @@ export class Axe7Innovation {
    * Démarche Écologique (10 points)
    */
   private async scoreDemarcheEcologique(
-    _devis: Devis,
+    devis: Devis,
     _enrichmentData: ScoringEnrichmentData
   ): Promise<ControlPointScore> {
     let score = 0
@@ -168,8 +168,8 @@ export class Axe7Innovation {
    * 7.2 Innovation Technique (20 points)
    */
   private async calculateInnovationTechnique(
-    _devis: Devis,
-    _enrichmentData: ScoringEnrichmentData
+    devis: Devis,
+    enrichmentData: ScoringEnrichmentData
   ): Promise<SubCriteriaScore> {
     const controlPointScores: ControlPointScore[] = []
     let totalScore = 0
@@ -196,7 +196,7 @@ export class Axe7Innovation {
    * Technologies Avancées (15 points)
    */
   private async scoreTechnologiesAvancees(
-    _devis: Devis,
+    devis: Devis,
     _enrichmentData: ScoringEnrichmentData
   ): Promise<ControlPointScore> {
     let score = 0
@@ -247,7 +247,7 @@ export class Axe7Innovation {
    */
   private async scoreVeilleFormation(
     _devis: Devis,
-    _enrichmentData: ScoringEnrichmentData
+    enrichmentData: ScoringEnrichmentData
   ): Promise<ControlPointScore> {
     let score = 0
     let justification = ''
