@@ -173,8 +173,14 @@ export async function POST(request: NextRequest) {
         ? extractRegion(analysis.extractedData.project.location)
         : 'ILE_DE_FRANCE'
 
+      // Créer un objet devis compatible pour le scoring (avec extractedData typé correctement)
+      const devisForScoring = {
+        ...devis,
+        extractedData: analysis.extractedData,
+      } as any
+
       advancedScore = await scoringEngine.calculateScore(
-        devis,
+        devisForScoring,
         enrichmentData || {
           company: {
             siret: analysis.extractedData.company.siret || '',
