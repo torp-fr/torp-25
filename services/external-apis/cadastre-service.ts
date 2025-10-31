@@ -74,9 +74,11 @@ export interface CadastralData {
 
 export class CadastreService {
   private geoportailApiKey: string | undefined
+  private apicartoService: APICartoCadastreService
 
   constructor() {
     this.geoportailApiKey = process.env.GEOPORTAIL_API_KEY
+    this.apicartoService = new APICartoCadastreService()
   }
 
   /**
@@ -147,47 +149,30 @@ export class CadastreService {
 
   /**
    * Identifie la parcelle depuis les coordonnées GPS
-   * Utilise l'API Carto IGN - Module Cadastre (service réel)
+   * Utilise l'API Carto IGN - Module Cadastre via le service dédié
    */
   private async identifyParcelle(coordinates: { lat: number; lng: number }): Promise<CadastralParcel | null> {
     try {
-      // API Carto IGN - Module Cadastre (gratuite, pas besoin de clé pour usage basique)
-      // Documentation: https://api.gouv.fr/guides/amenagement-cadastre
-      // Alternative: API Géoportail WMTS si clé disponible
-      
-      // Méthode 1: Utiliser l'API Carto IGN (recommandée)
-      const response = await fetch(
-        `https://apicarto.ign.fr/api/cadastre/parcelle?lat=${coordinates.lat}&lon=${coordinates.lng}`,
-        {
-          headers: { 
-            Accept: 'application/json',
-            'User-Agent': 'TORP-Platform/1.0'
-          },
-        }
-      )
+      // Utiliser le service APICartoCadastreService (recommandé - PCI Express)
+      const geom = APICartoCadastreService.createPointGeometry(coordinates.lat, coordinates.lng)
+      const result = await this.apicartoService.getParcellesByGeometry(geom, 'PCI', 1)
 
-      if (!response.ok) {
-        // Fallback sur Géoportail si clé disponible
-        if (this.geoportailApiKey) {
-          return await this.identifyParcelleGeoportail(coordinates)
+      if (result.length > 0) {
+        const feature = result[0]
+        const props = feature.properties
+
+        return {
+          id: feature.id || `${props.code_insee || props.code_com}-${props.section}-${props.numero}`,
+          numero: props.numero || '',
+          section: props.section || '',
+          surface: undefined, // Calculé depuis la géométrie si nécessaire
+          nature: undefined,
         }
-        return null
       }
 
-      const data = await response.json()
-      
-      if (data.features && data.features.length > 0) {
-        const feature = data.features[0]
-        const props = feature.properties || feature
-
-        // Extraire les informations depuis la réponse API Carto
-        return {
-          id: props.id || props.id_parcelle || props.numero,
-          numero: props.numero || props.number || props.parcelle?.numero || '',
-          section: props.section || props.section_parcelle || '',
-          surface: props.surface || props.contenance || props.superficie,
-          nature: props.nature || props.nature_culture || '',
-        }
+      // Fallback sur Géoportail si clé disponible
+      if (this.geoportailApiKey) {
+        return await this.identifyParcelleGeoportail(coordinates)
       }
 
       return null
@@ -246,47 +231,51 @@ export class CadastreService {
    */
   private async getParcelleDetails(parcelle: CadastralParcel): Promise<CadastralParcel | null> {
     try {
-      if (!parcelle.id && !parcelle.numero) {
+      if (!parcelle.section || !parcelle.numero) {
         return parcelle
       }
 
-      // Utiliser l'API Carto IGN pour récupérer les détails complets
-      // Format: https://apicarto.ign.fr/api/cadastre/parcelle/{id}
-      let response
-      
-      if (parcelle.id) {
-        response = await fetch(
-          `https://apicarto.ign.fr/api/cadastre/parcelle/${parcelle.id}`,
-          {
-            headers: { 
-              Accept: 'application/json',
-              'User-Agent': 'TORP-Platform/1.0'
-            },
-          }
-        )
-      } else {
-        // Fallback: utiliser le numéro si pas d'ID
+      // Extraire le code INSEE depuis l'ID de la parcelle si disponible
+      // Format attendu: code_insee-section-numero
+      let codeInsee: string | undefined
+      if (parcelle.id && parcelle.id.includes('-')) {
+        codeInsee = parcelle.id.split('-')[0]
+      }
+
+      if (!codeInsee) {
+        // Si pas de code INSEE, retourner les données de base
         return {
           ...parcelle,
           contenance: parcelle.surface ? parcelle.surface / 10000 : undefined,
         }
       }
 
-      if (response && response.ok) {
-        const data = await response.json()
-        
-        if (data.features && data.features.length > 0) {
-          const feature = data.features[0]
-          const props = feature.properties || feature
+      // Utiliser le service APICarto pour récupérer les détails complets
+      const parcelleDetails = await this.apicartoService.getParcelleById(
+        codeInsee,
+        parcelle.section,
+        parcelle.numero,
+        'PCI'
+      )
 
-          return {
-            id: parcelle.id || props.id,
-            numero: parcelle.numero || props.numero,
-            section: parcelle.section || props.section,
-            surface: parcelle.surface || props.surface || props.contenance * 10000,
-            nature: parcelle.nature || props.nature,
-            contenance: parcelle.surface ? parcelle.surface / 10000 : (props.contenance || undefined),
-          }
+      if (parcelleDetails) {
+        const props = parcelleDetails.properties
+        
+        // Calculer la surface depuis la géométrie si disponible
+        let surface = parcelle.surface
+        if (parcelleDetails.geometry && parcelleDetails.geometry.type === 'Polygon' || 
+            parcelleDetails.geometry.type === 'MultiPolygon') {
+          // TODO: Calculer la surface depuis les coordonnées GeoJSON
+          // Pour l'instant, on garde la surface existante
+        }
+
+        return {
+          id: parcelle.id || `${codeInsee}-${parcelle.section}-${parcelle.numero}`,
+          numero: parcelle.numero || props.numero,
+          section: parcelle.section || props.section,
+          surface,
+          nature: parcelle.nature,
+          contenance: surface ? surface / 10000 : undefined,
         }
       }
 
