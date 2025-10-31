@@ -198,5 +198,8 @@ export interface ScoringEnrichmentData {
     name: string
     valid: boolean
   }>
+  buildingData?: any
+  urbanismData?: any
+  energyData?: any
 }
 

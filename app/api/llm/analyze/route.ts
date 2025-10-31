@@ -183,7 +183,7 @@ export async function POST(request: NextRequest) {
       const projectTypeForScoring = ccfData?.projectType 
         || (inferProjectType(analysis.extractedData) as 'construction' | 'renovation' | 'extension' | 'maintenance')
       const projectAmount = ccfData?.budgetRange?.preferred
-        ? (ccfData.budgetRange.preferred < 10000 ? 'small' : ccfData.budgetRange.preferred < 50000 ? 'medium' : 'large')
+        ? (ccfData.budgetRange.preferred < 10000 ? 'low' : ccfData.budgetRange.preferred < 50000 ? 'medium' : 'high')
         : inferProjectAmount(analysis.extractedData.totals.total)
       const tradeTypeForScoring = ccfData?.tradeType || inferTradeType(analysis.rawText)
       const regionForScoring = ccfData?.region 

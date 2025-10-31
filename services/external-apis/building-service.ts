@@ -6,7 +6,7 @@
  * - Cadastre
  */
 
-import type { BuildingData, EnergyData, UrbanismData, AggregatedBuildingData } from './types'
+import type { BuildingData, EnergyData, UrbanismData, AggregatedBuildingData, AddressData } from './types'
 import { AddressService } from './address-service'
 
 export class BuildingService {
@@ -46,9 +46,9 @@ export class BuildingService {
 
       return {
         address: addressData,
-        urbanism,
-        building,
-        energy,
+        urbanism: urbanism || undefined,
+        building: building || undefined,
+        energy: energy || undefined,
         sources,
         lastUpdated: new Date().toISOString(),
       }
@@ -68,7 +68,7 @@ export class BuildingService {
    * Récupère les données d'urbanisme (APU, autorisations)
    * TODO: Implémenter l'intégration avec l'API réelle quand disponible
    */
-  private async getUrbanismData(address: AddressData): Promise<UrbanismData | null> {
+  private async getUrbanismData(_address: AddressData): Promise<UrbanismData | null> {
     try {
       // Placeholder - À remplacer par l'API réelle
       // Pour l'instant, on simule une vérification basique
@@ -93,7 +93,7 @@ export class BuildingService {
    * Récupère les données ONTB et PLU
    * TODO: Implémenter l'intégration avec l'API réelle quand disponible
    */
-  private async getBuildingData(address: AddressData): Promise<BuildingData | null> {
+  private async getBuildingData(_address: AddressData): Promise<BuildingData | null> {
     try {
       // Placeholder - À remplacer par l'API réelle
       // TODO: Intégrer avec ONTB et données PLU
@@ -113,7 +113,7 @@ export class BuildingService {
    * Récupère les données DPE
    * TODO: Implémenter l'intégration avec l'API DPE officielle
    */
-  private async getEnergyData(address: AddressData): Promise<EnergyData | null> {
+  private async getEnergyData(_address: AddressData): Promise<EnergyData | null> {
     try {
       // Placeholder - À remplacer par l'API réelle
       // TODO: Intégrer avec l'API DPE quand disponible

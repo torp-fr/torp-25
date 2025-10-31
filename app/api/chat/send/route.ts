@@ -10,8 +10,6 @@ import { z } from 'zod'
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
-const DEMO_USER_ID = 'demo-user-id'
-
 const chatMessageSchema = z.object({
   devisId: z.string(),
   userId: z.string(),
@@ -52,16 +50,16 @@ export async function POST(request: NextRequest) {
 
     // 2. Si c'est un message utilisateur, générer une réponse avec l'assistant
     if (role === 'user') {
-      // Récupérer le devis et son score pour le contexte
-      const devis = await prisma.devis.findUnique({
-        where: { id: devisId },
-        include: {
-          torpScores: {
-            orderBy: { createdAt: 'desc' },
-            take: 1,
-          },
-        },
-      })
+      // TODO: Utiliser le devis et son score pour générer une réponse contextuelle avec Claude
+      // const devis = await prisma.devis.findUnique({
+      //   where: { id: devisId },
+      //   include: {
+      //     torpScores: {
+      //       orderBy: { createdAt: 'desc' },
+      //       take: 1,
+      //     },
+      //   },
+      // })
 
       // Générer une réponse contextuelle avec Claude
       let assistantResponse = 'Je vais analyser votre demande...'

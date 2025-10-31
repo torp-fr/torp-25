@@ -35,7 +35,7 @@ const testScoringSchema = z.object({
   context: z.object({
     profile: z.enum(['B2C', 'B2B']).default('B2C'),
     projectType: z.enum(['construction', 'renovation', 'extension', 'maintenance']).default('renovation'),
-    projectAmount: z.enum(['small', 'medium', 'large']).optional(),
+    projectAmount: z.enum(['low', 'medium', 'high']).optional(),
     region: z.string().default('ILE_DE_FRANCE'),
     tradeType: z.string().optional(),
   }).optional(),
@@ -147,11 +147,11 @@ export async function POST(request: NextRequest) {
       return 'renovation'
     }
 
-    const inferProjectAmount = (total: string): 'small' | 'medium' | 'large' => {
+    const inferProjectAmount = (total: string): 'low' | 'medium' | 'high' => {
       const amount = parseFloat(total)
-      if (amount < 10000) return 'small'
+      if (amount < 10000) return 'low'
       if (amount < 50000) return 'medium'
-      return 'large'
+      return 'high'
     }
 
     const inferTradeType = (data: any): string => {

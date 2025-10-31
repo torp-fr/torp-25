@@ -30,7 +30,6 @@ import {
   MapPin,
   Building,
   DollarSign,
-  FileText,
   CheckCircle2,
 } from 'lucide-react'
 
