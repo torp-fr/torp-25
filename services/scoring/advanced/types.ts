@@ -169,6 +169,15 @@ export interface EnrichedCompanyData {
     linkedInEmployees?: number
     certifications?: string[]
   }
+
+  // Assurances
+  insurances?: {
+    hasDecennale?: boolean
+    hasRC?: boolean
+    decennaleAmount?: number
+    rcAmount?: number
+    expirationDate?: string
+  }
 }
 
 // Données enrichies pour scoring
