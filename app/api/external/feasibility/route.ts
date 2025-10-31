@@ -49,7 +49,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // 2. Générer l'étude de faisabilité
+    // 2. Générer l'étude de faisabilité (avec données Géorisques)
     const feasibilityService = new FeasibilityService()
     const study = await feasibilityService.generateFeasibilityStudy(
       address,
@@ -59,7 +59,8 @@ export async function POST(request: NextRequest) {
       buildingData.plu || null,
       constraints,
       accessConditions,
-      rooms
+      rooms,
+      buildingData.georisques || null
     )
 
     return NextResponse.json({

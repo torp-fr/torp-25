@@ -10,6 +10,7 @@ import type { BuildingData, EnergyData, UrbanismData, AggregatedBuildingData, Ad
 import { AddressService } from './address-service'
 import { PLUService } from './plu-service'
 import { CadastreService } from './cadastre-service'
+import { GeorisquesService } from './georisques-service'
 import { RNBService } from './rnb-service'
 import { DPEService } from './dpe-service'
 
@@ -19,6 +20,7 @@ export class BuildingService {
   private cadastreService: CadastreService
   private rnbService: RNBService
   private dpeService: DPEService
+  private georisquesService: GeorisquesService
 
   constructor() {
     this.addressService = new AddressService()
@@ -26,6 +28,7 @@ export class BuildingService {
     this.cadastreService = new CadastreService()
     this.rnbService = new RNBService()
     this.dpeService = new DPEService()
+    this.georisquesService = new GeorisquesService()
   }
 
   /**
@@ -46,7 +49,7 @@ export class BuildingService {
       sources.push('API Adresse')
 
       // 2. Récupération des données depuis différentes sources
-      const [urbanism, building, energy, plu, cadastre, rnb, dpe] = await Promise.all([
+      const [urbanism, building, energy, plu, cadastre, rnb, dpe, georisques] = await Promise.all([
         this.getUrbanismData(addressData),
         this.getBuildingData(addressData),
         this.getEnergyData(addressData),
@@ -54,6 +57,7 @@ export class BuildingService {
         this.cadastreService.getCadastralData(addressData),
         this.rnbService.getBuildingData(addressData),
         this.dpeService.getDPEData(addressData),
+        this.georisquesService.getRiskData(addressData),
       ])
 
       if (urbanism) sources.push('APU Urbanisme')
@@ -62,6 +66,7 @@ export class BuildingService {
       if (cadastre) sources.push('Cadastre Géoportail')
       if (rnb) sources.push('RNB')
       if (dpe) sources.push('DPE certifié data.gouv.fr')
+      if (georisques) sources.push(...georisques.sources)
       
       // Enrichir energyData avec les données DPE certifiées (priorité) ou RNB (fallback)
       let enrichedEnergy = energy
@@ -113,6 +118,7 @@ export class BuildingService {
         energy: enrichedEnergy || undefined,
         plu: plu || undefined,
         cadastre: cadastre || undefined,
+        georisques: georisques || undefined,
         rnb: rnb || undefined,
         dpe: dpe || undefined,
         sources,

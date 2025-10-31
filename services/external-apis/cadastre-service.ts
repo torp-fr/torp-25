@@ -107,7 +107,7 @@ export class CadastreService {
       // 2. Récupérer les détails de la parcelle
       const [parcelleDetails, constraints, connectivity] = await Promise.all([
         this.getParcelleDetails(parcelle),
-        this.getConstraints(coordinates),
+        this.getConstraints(address, coordinates),
         this.getConnectivity(address),
       ])
 
@@ -351,28 +351,53 @@ export class CadastreService {
    * Récupère les contraintes de la zone (protections, risques, etc.)
    * Utilise les APIs réelles du gouvernement français
    */
-  private async getConstraints(coordinates: { lat: number; lng: number }): Promise<CadastralData['constraints']> {
+  private async getConstraints(address: AddressData, coordinates: { lat: number; lng: number }): Promise<CadastralData['constraints']> {
     try {
       const constraints: CadastralData['constraints'] = {}
 
-      // 1. Vérifier zones inondables via API Géorisques
+      // Utiliser le service Géorisques pour les risques
       try {
-        const floodResponse = await fetch(
-          `https://www.georisques.gouv.fr/api/v1/gaspar/commune?lat=${coordinates.lat}&lon=${coordinates.lng}`,
-          {
-            headers: { Accept: 'application/json' },
-          }
-        )
-        
-        if (floodResponse.ok) {
-          const floodData = await floodResponse.json()
-          constraints.isFloodZone = floodData && floodData.length > 0
+        const { GeorisquesService } = await import('./georisques-service')
+        const georisquesService = new GeorisquesService()
+        const riskData = await georisquesService.getRiskData(address)
+
+        if (riskData) {
+          // Risques d'inondation
+          constraints.isFloodZone = !!(riskData.tri && riskData.tri.length > 0) || 
+                                    !!(riskData.azi && riskData.azi.length > 0) ||
+                                    !!(riskData.papi && riskData.papi.length > 0)
+          
+          // Mouvements de terrain
+          const hasMVT = !!(riskData.mvt && riskData.mvt.length > 0)
+          const hasRGA = !!(riskData.rga && riskData.rga.potentiel !== 'faible')
+          const casias = riskData.ssp?.casias ?? 0
+          const basol = riskData.ssp?.basol ?? 0
+          const hasSSP = casias > 0 || basol > 0
+          
+          constraints.hasRisk = hasMVT || hasRGA || hasSSP
         }
       } catch (error) {
-        console.warn('[CadastreService] Erreur vérification zones inondables:', error)
+        console.warn('[CadastreService] ⚠️ Erreur service Géorisques (fallback):', error)
+        
+        // Fallback sur appel direct API Géorisques simplifié
+        try {
+          const floodResponse = await fetch(
+            `https://www.georisques.gouv.fr/api/v1/gaspar/tri?lat=${coordinates.lat}&lon=${coordinates.lng}`,
+            {
+              headers: { Accept: 'application/json' },
+            }
+          )
+          
+          if (floodResponse.ok) {
+            const floodData = await floodResponse.json()
+            constraints.isFloodZone = floodData && floodData.length > 0
+          }
+        } catch (fallbackError) {
+          console.warn('[CadastreService] ⚠️ Erreur fallback zones inondables:', fallbackError)
+        }
       }
 
-      // 2. Vérifier monuments historiques via API Mérimée
+      // Vérifier monuments historiques via API Mérimée
       try {
         const mhResponse = await fetch(
           `https://api.culture.gouv.fr/open-data/memoire/base-memoire?lat=${coordinates.lat}&lon=${coordinates.lng}&rayon=100`,
@@ -389,28 +414,15 @@ export class CadastreService {
           }
         }
       } catch (error) {
-        console.warn('[CadastreService] Erreur vérification monuments historiques:', error)
+        console.warn('[CadastreService] ⚠️ Erreur vérification monuments historiques:', error)
       }
 
-      // 3. Vérifier sites archéologiques via API Archéologie
-      try {
-        // Utiliser l'API Carto IGN pour les zonages
-        // Note: Les sites archéologiques nécessitent une source spécifique
-        // Pour l'instant, on se base sur les données cadastrales
-        await fetch(
-          `https://apicarto.ign.fr/api/cadastre/commune?lat=${coordinates.lat}&lon=${coordinates.lng}`,
-          {
-            headers: { Accept: 'application/json' },
-          }
-        )
-        constraints.hasArchaeologicalSite = false
-      } catch (error) {
-        console.warn('[CadastreService] Erreur vérification sites archéologiques:', error)
-      }
+      // Sites archéologiques (placeholder - nécessite source spécifique)
+      constraints.hasArchaeologicalSite = false
 
       return constraints
     } catch (error) {
-      console.warn('[CadastreService] Erreur récupération contraintes:', error)
+      console.warn('[CadastreService] ⚠️ Erreur récupération contraintes:', error)
       return {}
     }
   }

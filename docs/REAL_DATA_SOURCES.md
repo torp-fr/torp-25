@@ -51,10 +51,18 @@ Ce document liste toutes les sources de données réelles utilisées par TORP po
 ### 5. API Géorisques (géorisques.gouv.fr)
 - **URL**: `https://www.georisques.gouv.fr/api/v1`
 - **Statut**: ✅ Réelle et opérationnelle
-- **Usage**: Zones inondables, risques naturels
+- **Usage**: Risques naturels et technologiques complets
 - **Données**: 
-  - Zones inondables (PPRI, TRI)
-  - Risques naturels par commune
+  - **Risques d'inondation**: TRI (Territoires à Risques Importants), AZI (Atlas des Zones Inondables), PAPI (Programmes d'Actions de Prévention)
+  - **Mouvements de terrain (MVT)**: Identification des zones à risque
+  - **Retrait gonflement des argiles (RGA)**: Potentiel géotechnique
+  - **Sites et sols pollués (SSP)**: CASIAS, BASOL, SIS, SUP
+  - **Radon**: Potentiel radon par commune (1=faible, 2=moyen, 3=élevé)
+  - **Zonage sismique**: Classification sismique (zones 1-5)
+  - **Installations classées**: ICPE à proximité
+  - **Catastrophes naturelles (CatNat)**: Historique des arrêtés
+  - **Cavités souterraines**: Identification des risques
+  - **Documents DICRIM**: Documents d'Information Communale sur les Risques Majeurs
 - **Clé API**: Non requise (gratuite)
 
 ### 6. API Mérimée (Culture.gouv.fr)

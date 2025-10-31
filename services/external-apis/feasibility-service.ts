@@ -11,6 +11,7 @@
 import type { AggregatedBuildingData } from './types'
 import type { CadastralData } from './cadastre-service'
 import type { PLUData } from './plu-service'
+import type { GeorisquesRiskData } from './georisques-service'
 
 export interface FeasibilityStudy {
   projectId: string
@@ -95,7 +96,8 @@ export class FeasibilityService {
     pluData: PLUData | null,
     userConstraints: string[] = [],
     accessConditions: string[] = [],
-    _rooms: string[] = []
+    _rooms: string[] = [],
+    riskData?: GeorisquesRiskData | null
   ): Promise<FeasibilityStudy> {
     const study: FeasibilityStudy = {
       projectId: `feasibility-${Date.now()}`,
@@ -162,7 +164,8 @@ export class FeasibilityService {
     study.analyses.risks = this.analyzeRisks(
       cadastralData,
       buildingData,
-      pluData
+      pluData,
+      riskData
     )
 
     // 5. Calculer les scores
@@ -368,17 +371,125 @@ export class FeasibilityService {
   private analyzeRisks(
     cadastralData: CadastralData | null,
     buildingData: AggregatedBuildingData | null,
-    pluData: PLUData | null
+    pluData: PLUData | null,
+    riskData?: GeorisquesRiskData | null
   ): FeasibilityStudy['analyses']['risks'] {
     const risks: FeasibilityStudy['analyses']['risks'] = []
 
-    // Risques environnementaux
-    if (cadastralData?.constraints?.isFloodZone) {
+    // Risques depuis Géorisques
+    if (riskData) {
+      // Risques d'inondation (TRI, AZI, PAPI)
+      if (riskData.tri && riskData.tri.length > 0) {
+        risks.push({
+          type: 'high',
+          category: 'Environnemental',
+          description: `Territoire à Risque Important d'Inondation (TRI): ${riskData.tri.map(t => t.nom).join(', ')}`,
+          mitigation: 'Vérifier le plan de prévention des risques d\'inondation (PPRI) et les normes de construction adaptées',
+        })
+      }
+      
+      if (riskData.azi && riskData.azi.length > 0) {
+        risks.push({
+          type: 'high',
+          category: 'Environnemental',
+          description: `Zone inondable (AZI): ${riskData.azi.map(a => a.nom).join(', ')}`,
+          mitigation: 'Consulter l\'Atlas des Zones Inondables et les règles de construction en zone inondable',
+        })
+      }
+
+      // Mouvements de terrain
+      if (riskData.mvt && riskData.mvt.length > 0) {
+        risks.push({
+          type: 'medium',
+          category: 'Environnemental',
+          description: `Mouvements de terrain identifiés: ${riskData.mvt.map(m => m.nom).join(', ')}`,
+          mitigation: 'Réaliser une étude géotechnique approfondie avant travaux',
+        })
+      }
+
+      // Retrait gonflement des argiles
+      if (riskData.rga && riskData.rga.potentiel !== 'faible') {
+        const niveau = riskData.rga.potentiel === 'très fort' ? 'high' : riskData.rga.potentiel === 'fort' ? 'high' : 'medium'
+        risks.push({
+          type: niveau,
+          category: 'Géotechnique',
+          description: `Retrait gonflement des argiles: Potentiel ${riskData.rga.potentiel}`,
+          mitigation: 'Obligation d\'étude géotechnique (Loi ELAN) et mise en œuvre de fondations adaptées',
+        })
+      }
+
+      // Sites et sols pollués
+      if (riskData.ssp) {
+        const casias = riskData.ssp.casias ?? 0
+        const basol = riskData.ssp.basol ?? 0
+        const sis = riskData.ssp.sis ?? 0
+        const sup = riskData.ssp.sup ?? 0
+        const totalSites = casias + basol + sis + sup
+        if (totalSites > 0) {
+          risks.push({
+            type: 'high',
+            category: 'Environnemental',
+            description: `Sites et sols pollués à proximité: ${totalSites} site(s) identifié(s) (CASIAS: ${casias}, BASOL: ${basol}, SIS: ${sis}, SUP: ${sup})`,
+            mitigation: 'Consulter les informations disponibles sur les sites pollués et réaliser une étude de sol si nécessaire',
+          })
+        }
+      }
+
+      // Radon
+      if (riskData.radon && riskData.radon.potentiel >= 2) {
+        risks.push({
+          type: 'medium',
+          category: 'Santé',
+          description: `Potentiel radon: ${riskData.radon.potentiel === 3 ? 'Élevé' : 'Moyen'}`,
+          mitigation: 'Prévoir des mesures de prévention du radon (ventilation, étanchéité) selon la réglementation',
+        })
+      }
+
+      // Zonage sismique
+      if (riskData.sismique && ['4', '5'].includes(riskData.sismique.zone)) {
+        risks.push({
+          type: 'medium',
+          category: 'Réglementaire',
+          description: `Zone sismique ${riskData.sismique.zone}: Règles parasismiques renforcées applicables`,
+          mitigation: 'Respecter les normes de construction parasismique (Eurocode 8)',
+        })
+      }
+
+      // Installations classées
+      if (riskData.installations_classees && riskData.installations_classees.length > 0) {
+        risks.push({
+          type: 'low',
+          category: 'Environnemental',
+          description: `${riskData.installations_classees.length} installation(s) classée(s) à proximité`,
+          mitigation: 'Consulter les informations sur les installations classées et les risques associés',
+        })
+      }
+
+      // Catastrophes naturelles historiques
+      if (riskData.catnat && riskData.catnat.length > 0) {
+        const recentCatnat = riskData.catnat.filter(c => {
+          const dateFin = new Date(c.date_fin || c.date_debut || '')
+          return dateFin > new Date(Date.now() - 10 * 365 * 24 * 60 * 60 * 1000) // 10 dernières années
+        })
+        
+        if (recentCatnat.length > 0) {
+          risks.push({
+            type: 'medium',
+            category: 'Environnemental',
+            description: `${recentCatnat.length} catastrophe(s) naturelle(s) récente(s) (${recentCatnat.map(c => c.type).join(', ')})`,
+            mitigation: 'Tenir compte de l\'historique des catastrophes naturelles dans la conception du projet',
+          })
+        }
+      }
+    }
+
+    // Risques environnementaux (fallback depuis cadastralData si Géorisques non disponible)
+    if (!riskData && cadastralData?.constraints?.isFloodZone) {
       risks.push({
         type: 'high',
         category: 'Environnemental',
-        description: 'Zone inondable identifiée',
-        mitigation: 'Vérifier les règles PLU et normes de construction en zone inondable',
+        description: 'Zone inondable identifiée - Risque de submersion',
+        mitigation: 'Vérifier les règles PLU pour zones inondables, prévoir des mesures de prévention',
       })
     }
 
