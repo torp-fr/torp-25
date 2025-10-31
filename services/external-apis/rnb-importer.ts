@@ -55,8 +55,7 @@ export class RNBImporter {
           throw new Error(`Erreur téléchargement: ${zipResponse.statusText}`)
         }
 
-        const zipBuffer = await zipResponse.arrayBuffer()
-        // TODO: Décompresser le ZIP et parser le CSV
+        const _zipBuffer = await zipResponse.arrayBuffer() // TODO: Décompresser le ZIP et parser le CSV
         // Pour l'instant, on simule un import progressif
 
         // Simulation d'un parsing progressif
