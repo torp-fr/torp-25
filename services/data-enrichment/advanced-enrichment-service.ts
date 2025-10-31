@@ -10,6 +10,7 @@ import { ReputationEnrichmentService } from './reputation-service'
 import { PriceEnrichmentService } from './price-service'
 import { ComplianceEnrichmentService } from './compliance-service'
 import { WeatherEnrichmentService } from './weather-service'
+import { CertificationsEnrichmentService } from './certifications-service'
 import type { EnrichedCompanyData, ScoringEnrichmentData } from '../scoring/advanced/types'
 import type { ExtractedDevisData } from '@/services/llm/document-analyzer'
 
@@ -21,6 +22,7 @@ export class AdvancedEnrichmentService {
   private priceService: PriceEnrichmentService
   private complianceService: ComplianceEnrichmentService
   private weatherService: WeatherEnrichmentService
+  private certificationsService: CertificationsEnrichmentService
 
   constructor() {
     this.companyService = new CompanyEnrichmentService()
@@ -30,6 +32,7 @@ export class AdvancedEnrichmentService {
     this.priceService = new PriceEnrichmentService()
     this.complianceService = new ComplianceEnrichmentService()
     this.weatherService = new WeatherEnrichmentService()
+    this.certificationsService = new CertificationsEnrichmentService()
   }
 
   /**
@@ -130,6 +133,34 @@ export class AdvancedEnrichmentService {
           console.warn('[AdvancedEnrichment] Erreur réputation:', error)
           confidence -= 2
         }
+
+        // Source 5: Certifications (RGE, Qualibat, etc.)
+        try {
+          const certifications = await this.certificationsService.getCompanyCertifications(
+            extractedData.company.siret
+          )
+          if (certifications && certifications.certifications.length > 0) {
+            // Ajouter les qualifications dans enrichedCompany
+            if (enrichedCompany) {
+              enrichedCompany.qualifications = certifications.certifications.map(cert => ({
+                type: cert.type,
+                level: cert.level || 'CERTIFIED',
+                validUntil: cert.expiryDate,
+                scope: cert.activities || [],
+              }))
+            }
+            sources.push(`Certifications (${certifications.certifications.length})`)
+            confidence += 8
+            
+            // Log des certifications trouvées
+            console.log('[AdvancedEnrichment] Certifications trouvées:', 
+              certifications.certifications.map(c => `${c.type}: ${c.name}`).join(', ')
+            )
+          }
+        } catch (error) {
+          console.warn('[AdvancedEnrichment] Erreur certifications:', error)
+          confidence -= 2
+        }
       } catch (error) {
         console.error('[AdvancedEnrichment] Erreur enrichissement entreprise:', error)
         confidence -= 10
@@ -192,7 +223,39 @@ export class AdvancedEnrichmentService {
       confidence -= 5
     }
 
-    // 4. Météo
+    // 4. Certifications réelles de l'entreprise (RGE, Qualibat, etc.)
+    let companyCertifications: any[] = []
+    
+    if (extractedData.company.siret) {
+      try {
+        const certifications = await this.certificationsService.getCompanyCertifications(
+          extractedData.company.siret
+        )
+        if (certifications && certifications.certifications.length > 0) {
+          companyCertifications = certifications.certifications.map(cert => ({
+            type: cert.type,
+            name: cert.name,
+            valid: cert.valid,
+            number: cert.number,
+            expiryDate: cert.expiryDate,
+            activities: cert.activities || [],
+            source: cert.source,
+            verifiedAt: cert.verifiedAt,
+          }))
+          
+          if (companyCertifications.length > 0) {
+            sources.push(`Certifications entreprise (${companyCertifications.length})`)
+            console.log('[AdvancedEnrichment] Certifications réelles trouvées:', 
+              companyCertifications.map(c => `${c.type}: ${c.name}`).join(', ')
+            )
+          }
+        }
+      } catch (error) {
+        console.warn('[AdvancedEnrichment] Erreur certifications entreprise:', error)
+      }
+    }
+
+    // 5. Météo
     let weatherData: any = null
 
     try {
@@ -217,7 +280,10 @@ export class AdvancedEnrichmentService {
       complianceData,
       weatherData,
       dtus: complianceData?.dtus || [],
-      certifications: complianceData?.certifications || [],
+      // Prioriser les certifications réelles de l'entreprise, sinon utiliser celles de compliance
+      certifications: companyCertifications.length > 0 
+        ? companyCertifications 
+        : (complianceData?.certifications || []),
     }
   }
 

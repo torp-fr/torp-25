@@ -19,10 +19,31 @@ import {
   CheckCircle2,
   XCircle,
   MessageSquare,
+  ChevronDown,
+  ChevronRight,
 } from 'lucide-react'
 import { AppHeader } from '@/components/app-header'
 import { DevisChat } from '@/components/chat/devis-chat'
 import { RecommendationCard } from '@/components/recommendations/recommendation-card'
+
+interface AxisScore {
+  id: string
+  score: number
+  maxPoints: number
+  percentage: number
+  subCriteria?: Array<{
+    subCriteriaId: string
+    score: number
+    maxPoints: number
+    controlPointScores?: Array<{
+      controlPointId: string
+      score: number
+      maxPoints: number
+      justification?: string
+      confidence?: number
+    }>
+  }>
+}
 
 interface TORPScore {
   id: string
@@ -34,6 +55,9 @@ interface TORPScore {
     qualite: { score: number; weight: number }
     delais: { score: number; weight: number }
     conformite: { score: number; weight: number }
+    // Structure avancée avec axes détaillés
+    axes?: AxisScore[]
+    version?: string
   }
   alerts: Array<{
     type: string
@@ -91,7 +115,18 @@ export default function AnalysisPage() {
   const [error, setError] = useState<string | null>(null)
   const [calculatingScore, setCalculatingScore] = useState(false)
   const [showChat, setShowChat] = useState(false)
+  const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set())
   const DEMO_USER_ID = 'demo-user-id'
+
+  const toggleSection = (sectionId: string) => {
+    const newExpanded = new Set(expandedSections)
+    if (newExpanded.has(sectionId)) {
+      newExpanded.delete(sectionId)
+    } else {
+      newExpanded.add(sectionId)
+    }
+    setExpandedSections(newExpanded)
+  }
 
   const fetchData = useCallback(async () => {
     try {
@@ -288,36 +323,190 @@ export default function AnalysisPage() {
                     {/* Breakdown */}
                     <div className="space-y-3">
                       <h4 className="font-semibold">Détail par Catégorie</h4>
-                      {Object.entries(score.breakdown).map(
-                        ([category, data]) => {
-                          const scoreValue = Math.round(Number(data.score))
-                          const percentage = (scoreValue / 1000) * 100
+                      {score.breakdown.axes && score.breakdown.axes.length > 0 ? (
+                        // Format avancé avec axes détaillés
+                        score.breakdown.axes.map((axis) => {
+                          const sectionId = `axis-${axis.id}`
+                          const isExpanded = expandedSections.has(sectionId)
+                          const percentage = axis.percentage || 0
 
                           return (
-                            <div key={category} className="space-y-1">
-                              <div className="flex items-center justify-between text-sm">
-                                <span className="font-medium capitalize">
-                                  {category} ({data.weight * 100}%)
-                                </span>
-                                <span className="font-semibold">
-                                  {scoreValue}/1000
-                                </span>
-                              </div>
-                              <div className="h-2 overflow-hidden rounded-full bg-gray-200">
-                                <div
-                                  className={`h-full transition-all ${
-                                    percentage >= 70
-                                      ? 'bg-green-500'
-                                      : percentage >= 50
-                                      ? 'bg-yellow-500'
-                                      : 'bg-red-500'
-                                  }`}
-                                  style={{ width: `${percentage}%` }}
-                                />
-                              </div>
+                            <div
+                              key={axis.id}
+                              className="rounded-lg border border-gray-200 bg-white"
+                            >
+                              <button
+                                onClick={() => toggleSection(sectionId)}
+                                className="w-full px-4 py-3 text-left hover:bg-gray-50"
+                              >
+                                <div className="flex items-center justify-between">
+                                  <div className="flex items-center gap-2">
+                                    {isExpanded ? (
+                                      <ChevronDown className="h-4 w-4 text-gray-500" />
+                                    ) : (
+                                      <ChevronRight className="h-4 w-4 text-gray-500" />
+                                    )}
+                                    <span className="font-medium capitalize">
+                                      {axis.id} ({Math.round(axis.score)}/{axis.maxPoints} pts)
+                                    </span>
+                                  </div>
+                                  <span className="text-sm font-semibold">
+                                    {Math.round(percentage)}%
+                                  </span>
+                                </div>
+                                <div className="mt-2 h-2 overflow-hidden rounded-full bg-gray-200">
+                                  <div
+                                    className={`h-full transition-all ${
+                                      percentage >= 70
+                                        ? 'bg-green-500'
+                                        : percentage >= 50
+                                        ? 'bg-yellow-500'
+                                        : 'bg-red-500'
+                                    }`}
+                                    style={{ width: `${percentage}%` }}
+                                  />
+                                </div>
+                              </button>
+                              
+                              {isExpanded && axis.subCriteria && axis.subCriteria.length > 0 && (
+                                <div className="border-t border-gray-200 bg-gray-50 p-4">
+                                  <div className="space-y-3">
+                                    <h5 className="text-sm font-semibold text-gray-700">
+                                      Sous-critères
+                                    </h5>
+                                    {axis.subCriteria.map((subCriteria) => {
+                                      const subId = `${sectionId}-${subCriteria.subCriteriaId}`
+                                      const subExpanded = expandedSections.has(subId)
+                                      const subPercentage = (subCriteria.score / subCriteria.maxPoints) * 100
+
+                                      return (
+                                        <div
+                                          key={subCriteria.subCriteriaId}
+                                          className="rounded border border-gray-200 bg-white"
+                                        >
+                                          <button
+                                            onClick={() => toggleSection(subId)}
+                                            className="w-full px-3 py-2 text-left text-sm hover:bg-gray-50"
+                                          >
+                                            <div className="flex items-center justify-between">
+                                              <div className="flex items-center gap-2">
+                                                {subExpanded ? (
+                                                  <ChevronDown className="h-3 w-3 text-gray-500" />
+                                                ) : (
+                                                  <ChevronRight className="h-3 w-3 text-gray-500" />
+                                                )}
+                                                <span className="font-medium">
+                                                  {subCriteria.subCriteriaId} ({Math.round(subCriteria.score)}/{subCriteria.maxPoints} pts)
+                                                </span>
+                                              </div>
+                                              <span className="text-xs font-semibold">
+                                                {Math.round(subPercentage)}%
+                                              </span>
+                                            </div>
+                                          </button>
+
+                                          {subExpanded && subCriteria.controlPointScores && subCriteria.controlPointScores.length > 0 && (
+                                            <div className="border-t border-gray-200 bg-gray-50 p-3">
+                                              <div className="space-y-2">
+                                                {subCriteria.controlPointScores.map((controlPoint) => {
+                                                  const cpPercentage = (controlPoint.score / controlPoint.maxPoints) * 100
+                                                  return (
+                                                    <div
+                                                      key={controlPoint.controlPointId}
+                                                      className="rounded border border-gray-100 bg-white p-2 text-xs"
+                                                    >
+                                                      <div className="flex items-center justify-between mb-1">
+                                                        <span className="font-medium capitalize">
+                                                          {controlPoint.controlPointId}
+                                                        </span>
+                                                        <span className="font-semibold">
+                                                          {Math.round(controlPoint.score)}/{controlPoint.maxPoints} ({Math.round(cpPercentage)}%)
+                                                        </span>
+                                                      </div>
+                                                      {controlPoint.justification && (
+                                                        <p className="mt-1 text-xs text-gray-600">
+                                                          {controlPoint.justification}
+                                                        </p>
+                                                      )}
+                                                      {controlPoint.confidence && (
+                                                        <p className="mt-1 text-xs text-gray-500">
+                                                          Confiance: {Math.round(controlPoint.confidence)}%
+                                                        </p>
+                                                      )}
+                                                    </div>
+                                                  )
+                                                })}
+                                              </div>
+                                            </div>
+                                          )}
+                                        </div>
+                                      )
+                                    })}
+                                  </div>
+                                </div>
+                              )}
                             </div>
                           )
-                        }
+                        })
+                      ) : (
+                        // Format classique (rétrocompatibilité)
+                        Object.entries(score.breakdown)
+                          .filter(([key]) => !['axes', 'version'].includes(key))
+                          .map(([category, data]: [string, any]) => {
+                            const sectionId = `category-${category}`
+                            const isExpanded = expandedSections.has(sectionId)
+                            const scoreValue = Math.round(Number(data.score))
+                            const percentage = (scoreValue / 1000) * 100
+
+                            return (
+                              <div
+                                key={category}
+                                className="rounded-lg border border-gray-200 bg-white"
+                              >
+                                <button
+                                  onClick={() => toggleSection(sectionId)}
+                                  className="w-full px-4 py-3 text-left hover:bg-gray-50"
+                                >
+                                  <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-2">
+                                      {isExpanded ? (
+                                        <ChevronDown className="h-4 w-4 text-gray-500" />
+                                      ) : (
+                                        <ChevronRight className="h-4 w-4 text-gray-500" />
+                                      )}
+                                      <span className="font-medium capitalize">
+                                        {category} ({data.weight * 100}%)
+                                      </span>
+                                    </div>
+                                    <span className="font-semibold">
+                                      {scoreValue}/1000
+                                    </span>
+                                  </div>
+                                  <div className="mt-2 h-2 overflow-hidden rounded-full bg-gray-200">
+                                    <div
+                                      className={`h-full transition-all ${
+                                        percentage >= 70
+                                          ? 'bg-green-500'
+                                          : percentage >= 50
+                                          ? 'bg-yellow-500'
+                                          : 'bg-red-500'
+                                      }`}
+                                      style={{ width: `${percentage}%` }}
+                                    />
+                                  </div>
+                                </button>
+                                
+                                {isExpanded && (
+                                  <div className="border-t border-gray-200 bg-gray-50 p-4">
+                                    <p className="text-sm text-gray-600">
+                                      Détails supplémentaires non disponibles dans ce format de score.
+                                      Utilisez le format avancé pour voir les sous-critères et points de contrôle.
+                                    </p>
+                                  </div>
+                                )}
+                              </div>
+                            )
+                          })
                       )}
                     </div>
                   </div>
