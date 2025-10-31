@@ -8,7 +8,7 @@
  * 3. Génère un rapport
  */
 
-import { readFileSync, writeFileSync, readdirSync } from 'fs'
+import { readFileSync, writeFileSync } from 'fs'
 import { join } from 'path'
 import { execSync } from 'child_process'
 
