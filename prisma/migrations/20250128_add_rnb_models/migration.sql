@@ -1,12 +1,9 @@
--- AlterEnum (si le type enum existe déjà, cette ligne peut être ignorée)
--- DO $$ BEGIN
---  CREATE TYPE "rnb_import_status" AS ENUM ('PENDING', 'IN_PROGRESS', 'COMPLETED', 'FAILED', 'CANCELLED');
--- EXCEPTION
---  WHEN duplicate_object THEN null;
--- END $$;
-
 -- CreateEnum
-CREATE TYPE IF NOT EXISTS "rnb_import_status" AS ENUM ('PENDING', 'IN_PROGRESS', 'COMPLETED', 'FAILED', 'CANCELLED');
+DO $$ BEGIN
+  CREATE TYPE "rnb_import_status" AS ENUM ('PENDING', 'IN_PROGRESS', 'COMPLETED', 'FAILED', 'CANCELLED');
+EXCEPTION
+  WHEN duplicate_object THEN null;
+END $$;
 
 -- CreateTable
 CREATE TABLE IF NOT EXISTS "rnb_buildings" (
@@ -52,8 +49,12 @@ CREATE TABLE IF NOT EXISTS "rnb_import_jobs" (
     CONSTRAINT "rnb_import_jobs_pkey" PRIMARY KEY ("id")
 );
 
--- CreateIndex
-CREATE UNIQUE INDEX IF NOT EXISTS "rnb_buildings_rnb_id_key" ON "rnb_buildings"("rnb_id") WHERE "rnb_id" IS NOT NULL;
+-- CreateIndex (Unique index with NULL handling)
+DO $$ BEGIN
+  CREATE UNIQUE INDEX "rnb_buildings_rnb_id_key" ON "rnb_buildings"("rnb_id") WHERE "rnb_id" IS NOT NULL;
+EXCEPTION
+  WHEN duplicate_table THEN null;
+END $$;
 
 -- CreateIndex
 CREATE INDEX IF NOT EXISTS "rnb_buildings_department_idx" ON "rnb_buildings"("department");

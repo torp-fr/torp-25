@@ -1,11 +1,17 @@
--- CreateEnum
+-- Migration de résolution pour la migration RNB échouée
+-- Cette migration corrige l'état de la base de données après l'échec de 20250128_add_rnb_models
+
+-- 1. Résoudre l'état de la migration précédente si nécessaire
+-- (Prisma le fera automatiquement, mais on s'assure que l'enum existe)
+
+-- CreateEnum (idempotent)
 DO $$ BEGIN
   CREATE TYPE "rnb_import_status" AS ENUM ('PENDING', 'IN_PROGRESS', 'COMPLETED', 'FAILED', 'CANCELLED');
 EXCEPTION
   WHEN duplicate_object THEN null;
 END $$;
 
--- CreateTable
+-- 2. Créer les tables si elles n'existent pas
 CREATE TABLE IF NOT EXISTS "rnb_buildings" (
     "id" TEXT NOT NULL,
     "rnb_id" TEXT,
@@ -30,7 +36,6 @@ CREATE TABLE IF NOT EXISTS "rnb_buildings" (
     CONSTRAINT "rnb_buildings_pkey" PRIMARY KEY ("id")
 );
 
--- CreateTable
 CREATE TABLE IF NOT EXISTS "rnb_import_jobs" (
     "id" TEXT NOT NULL,
     "department" TEXT NOT NULL,
@@ -49,34 +54,58 @@ CREATE TABLE IF NOT EXISTS "rnb_import_jobs" (
     CONSTRAINT "rnb_import_jobs_pkey" PRIMARY KEY ("id")
 );
 
--- CreateIndex (Unique index with NULL handling)
+-- 3. Créer les index si ils n'existent pas
 DO $$ BEGIN
   CREATE UNIQUE INDEX "rnb_buildings_rnb_id_key" ON "rnb_buildings"("rnb_id") WHERE "rnb_id" IS NOT NULL;
 EXCEPTION
   WHEN duplicate_table THEN null;
 END $$;
 
--- CreateIndex
-CREATE INDEX IF NOT EXISTS "rnb_buildings_department_idx" ON "rnb_buildings"("department");
+DO $$ BEGIN
+  CREATE INDEX "rnb_buildings_department_idx" ON "rnb_buildings"("department");
+EXCEPTION
+  WHEN duplicate_table THEN null;
+END $$;
 
--- CreateIndex
-CREATE INDEX IF NOT EXISTS "rnb_buildings_code_insee_idx" ON "rnb_buildings"("code_insee");
+DO $$ BEGIN
+  CREATE INDEX "rnb_buildings_code_insee_idx" ON "rnb_buildings"("code_insee");
+EXCEPTION
+  WHEN duplicate_table THEN null;
+END $$;
 
--- CreateIndex
-CREATE INDEX IF NOT EXISTS "rnb_buildings_postal_code_idx" ON "rnb_buildings"("postal_code");
+DO $$ BEGIN
+  CREATE INDEX "rnb_buildings_postal_code_idx" ON "rnb_buildings"("postal_code");
+EXCEPTION
+  WHEN duplicate_table THEN null;
+END $$;
 
--- CreateIndex
-CREATE INDEX IF NOT EXISTS "rnb_buildings_dpe_class_idx" ON "rnb_buildings"("dpe_class");
+DO $$ BEGIN
+  CREATE INDEX "rnb_buildings_dpe_class_idx" ON "rnb_buildings"("dpe_class");
+EXCEPTION
+  WHEN duplicate_table THEN null;
+END $$;
 
--- CreateIndex
-CREATE INDEX IF NOT EXISTS "rnb_buildings_indexed_at_idx" ON "rnb_buildings"("indexed_at");
+DO $$ BEGIN
+  CREATE INDEX "rnb_buildings_indexed_at_idx" ON "rnb_buildings"("indexed_at");
+EXCEPTION
+  WHEN duplicate_table THEN null;
+END $$;
 
--- CreateIndex
-CREATE INDEX IF NOT EXISTS "rnb_import_jobs_department_idx" ON "rnb_import_jobs"("department");
+DO $$ BEGIN
+  CREATE INDEX "rnb_import_jobs_department_idx" ON "rnb_import_jobs"("department");
+EXCEPTION
+  WHEN duplicate_table THEN null;
+END $$;
 
--- CreateIndex
-CREATE INDEX IF NOT EXISTS "rnb_import_jobs_status_idx" ON "rnb_import_jobs"("status");
+DO $$ BEGIN
+  CREATE INDEX "rnb_import_jobs_status_idx" ON "rnb_import_jobs"("status");
+EXCEPTION
+  WHEN duplicate_table THEN null;
+END $$;
 
--- CreateIndex
-CREATE INDEX IF NOT EXISTS "rnb_import_jobs_created_at_idx" ON "rnb_import_jobs"("created_at");
+DO $$ BEGIN
+  CREATE INDEX "rnb_import_jobs_created_at_idx" ON "rnb_import_jobs"("created_at");
+EXCEPTION
+  WHEN duplicate_table THEN null;
+END $$;
 
