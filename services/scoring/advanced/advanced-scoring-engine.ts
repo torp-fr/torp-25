@@ -12,6 +12,7 @@ import type {
   ProjectAmount,
   ScoreGrade,
   ScoringEnrichmentData,
+  Recommendation,
 } from './types'
 import type { Devis } from '@/types'
 
@@ -151,7 +152,7 @@ export class AdvancedScoringEngine {
   ): Promise<FinalScore> {
     const axisScores: AxisScore[] = []
     const allAlerts: any[] = []
-    const allRecommendations: any[] = []
+    const allRecommendations: Recommendation[] = []
 
     // Calculer chaque axe
     const scoringContext = {
@@ -257,8 +258,8 @@ export class AdvancedScoringEngine {
       percentage: Math.round(percentage * 10) / 10,
       axisScores,
       overallAlerts: allAlerts.filter((a) => a.type === 'critical' || a.type === 'major'),
-      overallRecommendations: allRecommendations.sort((a, b) => {
-        const priorityOrder = { high: 3, medium: 2, low: 1 }
+      overallRecommendations: allRecommendations.sort((a: Recommendation, b: Recommendation) => {
+        const priorityOrder: Record<'high' | 'medium' | 'low', number> = { high: 3, medium: 2, low: 1 }
         return priorityOrder[b.priority] - priorityOrder[a.priority]
       }),
       confidenceLevel,
@@ -313,8 +314,8 @@ export class AdvancedScoringEngine {
     totalScore: number,
     axisScores: AxisScore[],
     context: any
-  ): any[] {
-    const recommendations: any[] = []
+  ): Recommendation[] {
+    const recommendations: Recommendation[] = []
 
     // Identifier les axes les plus faibles
     const weakAxes = axisScores
