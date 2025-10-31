@@ -347,14 +347,18 @@ export class BuildingProfileService {
       throw new Error('Les données tenantData sont uniquement disponibles pour les cartes LOCATAIRE')
     }
 
+    const updateData: any = {}
+    
+    if (input.name !== undefined) updateData.name = input.name
+    if (input.customFields !== undefined) updateData.customFields = input.customFields
+    if (input.notes !== undefined) updateData.notes = input.notes
+    if (input.tenantData !== undefined && profile.role === 'LOCATAIRE') {
+      updateData.tenantData = input.tenantData
+    }
+
     return prisma.buildingProfile.update({
       where: { id: profileId },
-      data: {
-        ...(input.name !== undefined && { name: input.name }),
-        ...(input.customFields !== undefined && { customFields: input.customFields as any }),
-        ...(input.notes !== undefined && { notes: input.notes }),
-        ...(input.tenantData !== undefined && profile.role === 'LOCATAIRE' && { tenantData: input.tenantData as any }),
-      },
+      data: updateData,
     })
   }
 
@@ -398,15 +402,15 @@ export class BuildingProfileService {
         name: name || null,
         role: 'LOCATAIRE',
         parentProfileId,
-        address: parentProfile.address,
-        coordinates: parentProfile.coordinates,
+        address: parentProfile.address as any,
+        coordinates: parentProfile.coordinates as any,
         parcelleNumber: parentProfile.parcelleNumber,
         sectionCadastrale: parentProfile.sectionCadastrale,
         lotNumber: parentProfile.lotNumber,
         codeINSEE: parentProfile.codeINSEE,
         enrichmentStatus: 'completed', // Pas d'enrichissement pour locataire
         enrichmentSources: [],
-        tenantData: {}, // Données vides initialement
+        tenantData: {} as any, // Données vides initialement
       },
     })
   }
