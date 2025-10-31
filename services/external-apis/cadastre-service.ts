@@ -6,7 +6,6 @@
  */
 
 import type { AddressData } from './types'
-import { ApiClient } from '@/services/data-enrichment/api-client'
 
 export interface CadastralParcel {
   id: string // Identifiant parcellaire
