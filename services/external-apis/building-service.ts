@@ -11,18 +11,21 @@ import { AddressService } from './address-service'
 import { PLUService } from './plu-service'
 import { CadastreService } from './cadastre-service'
 import { RNBService } from './rnb-service'
+import { DPEService } from './dpe-service'
 
 export class BuildingService {
   private addressService: AddressService
   private pluService: PLUService
   private cadastreService: CadastreService
   private rnbService: RNBService
+  private dpeService: DPEService
 
   constructor() {
     this.addressService = new AddressService()
     this.pluService = new PLUService()
     this.cadastreService = new CadastreService()
     this.rnbService = new RNBService()
+    this.dpeService = new DPEService()
   }
 
   /**
@@ -43,21 +46,42 @@ export class BuildingService {
       sources.push('API Adresse')
 
       // 2. Récupération des données depuis différentes sources
-      const [urbanism, building, energy, plu, cadastre, rnb] = await Promise.all([
+      const [urbanism, building, energy, plu, cadastre, rnb, dpe] = await Promise.all([
         this.getUrbanismData(addressData),
         this.getBuildingData(addressData),
         this.getEnergyData(addressData),
         this.pluService.getPLUData(addressData),
         this.cadastreService.getCadastralData(addressData),
         this.rnbService.getBuildingData(addressData),
+        this.dpeService.getDPEData(addressData),
       ])
 
       if (urbanism) sources.push('APU Urbanisme')
       if (building) sources.push('ONTB')
       if (plu) sources.push('PLU')
-      if (energy) sources.push('DPE')
       if (cadastre) sources.push('Cadastre Géoportail')
       if (rnb) sources.push('RNB')
+      if (dpe) sources.push('DPE certifié data.gouv.fr')
+      
+      // Enrichir energyData avec les données DPE certifiées (priorité) ou RNB (fallback)
+      let enrichedEnergy = energy
+      if (dpe) {
+        // Données DPE certifiées ont la priorité
+        enrichedEnergy = this.dpeService.convertToEnergyData(dpe)
+      } else if (rnb) {
+        // Fallback sur RNB si DPE non disponible
+        enrichedEnergy = {
+          ...enrichedEnergy,
+          dpeDate: enrichedEnergy?.dpeDate || rnb.dpeDate,
+          dpeClass: (enrichedEnergy?.dpeClass || (rnb.dpeClass && rnb.dpeClass !== 'N/A' ? rnb.dpeClass : undefined)) as 'A' | 'B' | 'C' | 'D' | 'E' | 'F' | 'G' | undefined,
+          energyConsumption: enrichedEnergy?.energyConsumption || rnb.energyConsumption,
+          ghgEmissions: enrichedEnergy?.ghgEmissions || rnb.ghgEmissions,
+        }
+      }
+      
+      if (enrichedEnergy) {
+        sources.push('DPE')
+      }
 
       // Enrichir buildingData avec les données RNB et PLU
       let enrichedBuilding = building
@@ -72,17 +96,6 @@ export class BuildingService {
         }
       }
 
-      // Enrichir energyData avec les données RNB
-      let enrichedEnergy = energy
-      if (rnb) {
-        enrichedEnergy = {
-          ...enrichedEnergy,
-          dpeDate: enrichedEnergy?.dpeDate || rnb.dpeDate,
-          dpeClass: (enrichedEnergy?.dpeClass || (rnb.dpeClass && rnb.dpeClass !== 'N/A' ? rnb.dpeClass : undefined)) as 'A' | 'B' | 'C' | 'D' | 'E' | 'F' | 'G' | undefined,
-          energyConsumption: enrichedEnergy?.energyConsumption || rnb.energyConsumption,
-          ghgEmissions: enrichedEnergy?.ghgEmissions || rnb.ghgEmissions,
-        }
-      }
 
       // Enrichir buildingData avec les données PLU
       if (plu && enrichedBuilding) {
@@ -101,6 +114,7 @@ export class BuildingService {
         plu: plu || undefined,
         cadastre: cadastre || undefined,
         rnb: rnb || undefined,
+        dpe: dpe || undefined,
         sources,
         lastUpdated: new Date().toISOString(),
       }
@@ -162,14 +176,27 @@ export class BuildingService {
   }
 
   /**
-   * Récupère les données DPE
-   * TODO: Implémenter l'intégration avec l'API DPE officielle
+   * Récupère les données DPE via le service DPE dédié
+   * Utilise maintenant le service DPE certifié depuis data.gouv.fr
    */
-  private async getEnergyData(_address: AddressData): Promise<EnergyData | null> {
+  private async getEnergyData(address: AddressData): Promise<EnergyData | null> {
     try {
-      // Placeholder - À remplacer par l'API réelle
-      // TODO: Intégrer avec l'API DPE quand disponible
-      // L'API DPE est accessible via data.gouv.fr mais nécessite une clé API
+      // Utiliser le service DPE certifié (priorité)
+      const dpeData = await this.dpeService.getDPEData(address)
+      if (dpeData) {
+        return this.dpeService.convertToEnergyData(dpeData)
+      }
+      
+      // Fallback : utiliser les données RNB si DPE non disponible
+      const rnbData = await this.rnbService.getBuildingData(address)
+      if (rnbData && rnbData.dpeClass && rnbData.dpeClass !== 'N/A') {
+        return {
+          dpeDate: rnbData.dpeDate,
+          dpeClass: rnbData.dpeClass as 'A' | 'B' | 'C' | 'D' | 'E' | 'F' | 'G',
+          energyConsumption: rnbData.energyConsumption,
+          ghgEmissions: rnbData.ghgEmissions,
+        }
+      }
       
       return null
     } catch (error) {
