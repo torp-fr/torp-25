@@ -95,7 +95,7 @@ export class FeasibilityService {
     pluData: PLUData | null,
     userConstraints: string[] = [],
     accessConditions: string[] = [],
-    rooms: string[] = []
+    _rooms: string[] = []
   ): Promise<FeasibilityStudy> {
     const study: FeasibilityStudy = {
       projectId: `feasibility-${Date.now()}`,
@@ -243,12 +243,18 @@ export class FeasibilityService {
    */
   private analyzeConnections(
     cadastralData: CadastralData | null,
-    buildingData: AggregatedBuildingData | null,
+    _buildingData: AggregatedBuildingData | null,
     accessConditions: string[]
   ): FeasibilityStudy['analyses']['connections'] {
     const connectivity = cadastralData?.connectivity || {}
 
-    const connections = {
+    interface ConnectionData {
+      available: boolean
+      distance: number
+      cost?: number
+    }
+
+    const connections: Record<string, ConnectionData> = {
       electricity: {
         available: connectivity.hasElectricity ?? true,
         distance: accessConditions.includes('Accès difficile') ? 50 : 0,
@@ -429,7 +435,17 @@ export class FeasibilityService {
     // Score connectivité (vérifier disponibilité des réseaux)
     const connections = analyses.connections
     if (connections) {
-      const missingConnections = Object.values(connections).filter((c) => !c.available).length
+      const connectionValues = [
+        connections.electricity,
+        connections.water,
+        connections.sewer,
+        connections.gas,
+        connections.internet,
+      ]
+      
+      const missingConnections = connectionValues.filter((c) => 
+        c && typeof c === 'object' && !c.available
+      ).length
       connectivity -= missingConnections * 20
 
       // Pénalité pour coûts élevés de connexion

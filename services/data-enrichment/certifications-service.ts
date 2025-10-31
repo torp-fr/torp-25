@@ -27,27 +27,15 @@ export interface CompanyCertifications {
 }
 
 export class CertificationsEnrichmentService {
-  private rgeClient: ApiClient
   private qualibatClient: ApiClient
 
   constructor() {
-    // RGE - Données publiques via data.gouv.fr
-    this.rgeClient = new ApiClient({
-      baseUrl: 'https://www.data.gouv.fr/api/1',
-      timeout: 10000,
-      retries: 2,
-    })
-
     // Qualibat - API officielle (nécessite clé API)
     this.qualibatClient = new ApiClient({
       baseUrl: process.env.QUALIBAT_API_URL || 'https://api.qualibat.com/v1',
       timeout: 10000,
       retries: 2,
-      headers: process.env.QUALIBAT_API_KEY
-        ? {
-            Authorization: `Bearer ${process.env.QUALIBAT_API_KEY}`,
-          }
-        : undefined,
+      apiKey: process.env.QUALIBAT_API_KEY,
     })
   }
 
@@ -86,7 +74,7 @@ export class CertificationsEnrichmentService {
   /**
    * Récupère la certification RGE depuis data.gouv.fr
    */
-  private async getRGECertification(siret: string): Promise<CertificationData | null> {
+  private async getRGECertification(_siret: string): Promise<CertificationData | null> {
     try {
       // Dataset RGE sur data.gouv.fr
       // Format : https://www.data.gouv.fr/fr/datasets/referentiel-entreprises-rge/

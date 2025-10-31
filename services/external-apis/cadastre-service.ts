@@ -74,21 +74,10 @@ export interface CadastralData {
 }
 
 export class CadastreService {
-  private client: ApiClient
   private geoportailApiKey: string | undefined
 
   constructor() {
     this.geoportailApiKey = process.env.GEOPORTAIL_API_KEY
-    this.client = new ApiClient({
-      baseUrl: 'https://wxs.ign.fr',
-      timeout: 15000,
-      retries: 2,
-      headers: this.geoportailApiKey
-        ? {
-            Authorization: `Bearer ${this.geoportailApiKey}`,
-          }
-        : undefined,
-    })
   }
 
   /**
@@ -365,15 +354,14 @@ export class CadastreService {
       // 3. Vérifier sites archéologiques via API Archéologie
       try {
         // Utiliser l'API Carto IGN pour les zonages
-        const archResponse = await fetch(
+        // Note: Les sites archéologiques nécessitent une source spécifique
+        // Pour l'instant, on se base sur les données cadastrales
+        await fetch(
           `https://apicarto.ign.fr/api/cadastre/commune?lat=${coordinates.lat}&lon=${coordinates.lng}`,
           {
             headers: { Accept: 'application/json' },
           }
         )
-        
-        // Note: Les sites archéologiques nécessitent une source spécifique
-        // Pour l'instant, on se base sur les données cadastrales
         constraints.hasArchaeologicalSite = false
       } catch (error) {
         console.warn('[CadastreService] Erreur vérification sites archéologiques:', error)
@@ -408,12 +396,12 @@ export class CadastreService {
 
       // Vérifier la disponibilité des réseaux depuis les données de l'adresse
       // Les réseaux sont généralement disponibles en zone urbaine
-      const connectivity = {
-        hasElectricity: isUrban || hasStreetNumber,
-        hasWater: isUrban || hasStreetNumber,
-        hasGas: isUrban, // Gaz plus rare en zone rurale
-        hasSewer: isUrban || hasStreetNumber,
-        hasInternet: isUrban, // Internet généralement disponible même en zone rurale
+      const connectivity: CadastralData['connectivity'] = {
+        hasElectricity: !!(isUrban || hasStreetNumber),
+        hasWater: !!(isUrban || hasStreetNumber),
+        hasGas: !!isUrban, // Gaz plus rare en zone rurale
+        hasSewer: !!(isUrban || hasStreetNumber),
+        hasInternet: !!isUrban, // Internet généralement disponible même en zone rurale
         distanceToRoad: distanceToRoad > 0 ? distanceToRoad : undefined,
       }
 
