@@ -156,7 +156,7 @@ export class InfogreffeEnrichmentService {
     try {
       // Note: L'API Banque de France n'est généralement pas accessible publiquement
       // Cette fonction est un placeholder pour une future intégration
-      // Pour l'instant, on retourne null
+      // TODO: Utiliser siren pour récupérer le score BDF
       return null
     } catch (error) {
       console.error(`[InfogreffeService] Erreur score BDF SIREN ${siren}:`, error)
