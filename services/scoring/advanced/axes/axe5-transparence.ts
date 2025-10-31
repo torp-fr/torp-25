@@ -17,15 +17,15 @@ export class Axe5Transparence {
     const subCriteriaScores: SubCriteriaScore[] = []
 
     // 5.1 Qualité Documentation (50 points)
-    const documentation = await this.calculateDocumentation(devis, enrichmentData)
+    const documentation = await this.calculateDocumentation(devis, _enrichmentData)
     subCriteriaScores.push(documentation)
 
     // 5.2 Relation Client (30 points)
-    const relation = await this.calculateRelationClient(devis, enrichmentData)
+    const relation = await this.calculateRelationClient(devis, _enrichmentData)
     subCriteriaScores.push(relation)
 
     // 5.3 Suivi Projet (20 points)
-    const suivi = await this.calculateSuiviProjet(devis, enrichmentData)
+    const suivi = await this.calculateSuiviProjet(devis, _enrichmentData)
     subCriteriaScores.push(suivi)
 
     const totalScore = subCriteriaScores.reduce((sum, sc) => sum + sc.score, 0)
