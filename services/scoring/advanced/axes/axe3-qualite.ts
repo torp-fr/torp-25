@@ -518,7 +518,7 @@ export class Axe3Qualite {
    * Moyens Matériels (20 points)
    */
   private async scoreMoyensMateriels(
-    devis: Devis,
+    _devis: Devis,
     enrichmentData: ScoringEnrichmentData
   ): Promise<ControlPointScore> {
     let score = 0
