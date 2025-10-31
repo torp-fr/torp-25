@@ -157,6 +157,7 @@ export class Axe5Transparence {
     }
 
     // Notices & modes d'emploi (10 pts)
+    const hasNotices = text.includes('notice') ||
                      text.includes('mode d\'emploi') ||
                      text.includes('manuel') ||
                      text.includes('maintenance')
@@ -318,6 +319,7 @@ export class Axe5Transparence {
     const text = JSON.stringify(devis.extractedData).toLowerCase()
 
     // Points d'étape (8 pts)
+    const hasMilestones = text.includes('jalon') ||
                         text.includes('étape') ||
                         text.includes('point d\'étape') ||
                         text.includes('reporting')

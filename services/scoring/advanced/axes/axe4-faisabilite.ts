@@ -292,6 +292,7 @@ export class Axe4Faisabilite {
     }
 
     // Coordination métiers (10 pts)
+    const hasCoordination = text.includes('coordination') ||
                            text.includes('corps d\'état') ||
                            text.includes('intervenant') ||
                            text.includes('phasage')

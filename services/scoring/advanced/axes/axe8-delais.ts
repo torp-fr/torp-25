@@ -161,6 +161,7 @@ export class Axe8Delais {
     const text = JSON.stringify(devis.extractedData).toLowerCase()
 
     // Interfaces bien définies (8 pts)
+    const hasInterfaces = text.includes('interface') ||
                          text.includes('corps d\'état') ||
                          text.includes('jalon') ||
                          text.includes('phase')
