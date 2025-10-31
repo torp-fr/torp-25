@@ -1,7 +1,6 @@
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
-import { Home, Upload, Building2 } from 'lucide-react'
-import { UserButton } from '@/components/user-button'
+import { UserProfileMenu } from '@/components/user-profile-menu'
 
 export function AppHeader() {
   return (
@@ -17,36 +16,13 @@ export function AppHeader() {
             <span className="text-xl font-bold">TORP</span>
           </Link>
 
-          <nav className="hidden gap-6 md:flex">
-            <Link
-              href="/dashboard"
-              className="flex items-center gap-2 text-sm font-medium transition-colors hover:text-primary"
-            >
-              <Home className="h-4 w-4" />
-              Dashboard
-            </Link>
-            <Link
-              href="/buildings"
-              className="flex items-center gap-2 text-sm font-medium transition-colors hover:text-primary"
-            >
-              <Building2 className="h-4 w-4" />
-              Mes Logements
-            </Link>
-            <Link
-              href="/upload"
-              className="flex items-center gap-2 text-sm font-medium transition-colors hover:text-primary"
-            >
-              <Upload className="h-4 w-4" />
-              Upload
-            </Link>
-          </nav>
+          <Button variant="ghost" size="sm" asChild>
+            <Link href="/">Accueil</Link>
+          </Button>
         </div>
 
         <div className="flex items-center gap-4">
-          <Button variant="ghost" size="sm" asChild className="hidden sm:inline-flex">
-            <Link href="/">Accueil</Link>
-          </Button>
-          <UserButton />
+          <UserProfileMenu />
         </div>
       </div>
     </header>
