@@ -77,6 +77,16 @@ export const config = {
       apiKey: process.env.METEOFRANCE_API_KEY || '',
       baseUrl: 'https://api.meteofrance.fr/v1',
     },
+    // API Géoportail IGN (Cadastre)
+    geoportail: {
+      apiKey: process.env.GEOPORTAIL_API_KEY || '',
+      baseUrl: 'https://wxs.ign.fr',
+    },
+    // API Qualibat (Certifications BTP)
+    qualibat: {
+      apiKey: process.env.QUALIBAT_API_KEY || '',
+      apiUrl: process.env.QUALIBAT_API_URL || 'https://api.qualibat.com/v1',
+    },
   },
 
   redis: {
