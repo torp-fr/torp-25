@@ -379,10 +379,11 @@ export class AdvancedScoringEngine {
    * Calcule le niveau de confiance global
    */
   private calculateConfidenceLevel(
-    axisScores: AxisScore[],
+    _axisScores: AxisScore[],
     enrichmentData: ScoringEnrichmentData
   ): number {
     // Base de confiance selon les données enrichies disponibles
+    // TODO: Utiliser _axisScores pour ajuster la confiance selon la qualité des scores
     let confidence = 70
 
     if (enrichmentData.company?.financialData) confidence += 10
