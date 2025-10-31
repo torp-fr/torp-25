@@ -239,6 +239,8 @@ export class RNBIndexer {
       totalRows?: number
       processedRows?: number
       errorMessage?: string
+      startedAt?: Date
+      completedAt?: Date
     }
   ): Promise<void> {
     await prisma.rNBImportJob.update({
