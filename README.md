@@ -322,7 +322,7 @@ See `prisma/schema.prisma` for full schema.
 ### Production Checklist
 
 - [ ] Set all environment variables
-- [ ] Run database migrations
+- [x] Run database migrations (automatique via `db:migrate:deploy` sur Vercel)
 - [ ] Configure AWS S3 bucket
 - [ ] Setup Auth0 production tenant
 - [ ] Configure Stripe webhooks
