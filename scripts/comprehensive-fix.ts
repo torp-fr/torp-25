@@ -22,7 +22,6 @@ const axesDir = join(process.cwd(), 'services/scoring/advanced/axes')
 
 function analyzeFile(filePath: string): FunctionInfo[] {
   const content = readFileSync(filePath, 'utf-8')
-  const lines = content.split('\n')
   const functions: FunctionInfo[] = []
   
   // Pattern pour trouver les fonctions
