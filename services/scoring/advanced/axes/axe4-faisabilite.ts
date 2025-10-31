@@ -271,7 +271,7 @@ export class Axe4Faisabilite {
    */
   private async scoreContraintes(
     devis: Devis,
-    enrichmentData: ScoringEnrichmentData
+    _enrichmentData: ScoringEnrichmentData
   ): Promise<ControlPointScore> {
     let score = 0
     let justification = ''
@@ -390,7 +390,7 @@ export class Axe4Faisabilite {
    */
   private async scoreMesuresPreventives(
     devis: Devis,
-    enrichmentData: ScoringEnrichmentData
+    _enrichmentData: ScoringEnrichmentData
   ): Promise<ControlPointScore> {
     let score = 0
     let justification = ''

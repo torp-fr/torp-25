@@ -196,7 +196,7 @@ export class Axe2Prix {
    */
   private async scoreRatiosSectoriels(
     devis: Devis,
-    enrichmentData: ScoringEnrichmentData
+    _enrichmentData: ScoringEnrichmentData
   ): Promise<ControlPointScore> {
     let score = 0
     let justification = ''
@@ -336,7 +336,7 @@ export class Axe2Prix {
    */
   private async scoreRapportQualitePrix(
     devis: Devis,
-    enrichmentData: ScoringEnrichmentData
+    _enrichmentData: ScoringEnrichmentData
   ): Promise<ControlPointScore> {
     let score = 0
     let justification = ''
