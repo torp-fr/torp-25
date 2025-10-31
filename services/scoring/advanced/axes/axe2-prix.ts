@@ -68,7 +68,6 @@ export class Axe2Prix {
     const controlPointScores: ControlPointScore[] = []
     let totalScore = 0
 
-    const totalAmount = Number(devis.totalAmount) || 0
     const regionalData = enrichmentData.regionalData
 
     // Benchmarking Multi-Sources (60 points)
