@@ -191,7 +191,7 @@ export class BuildingProfileService {
         where: { id: profileId },
         data: {
           enrichmentStatus: 'failed',
-          enrichmentErrors: [error instanceof Error ? error.message : 'Unknown error'],
+          enrichmentErrors: [error instanceof Error ? error.message : 'Unknown error'] as any,
         },
       })
 
