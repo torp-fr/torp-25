@@ -93,15 +93,16 @@ export interface SireneVerificationResult {
 
 export class SireneService {
   private readonly inseeApiUrl = 'https://api.insee.fr/entreprises/sirene/v3'
-  // Réserve pour future implémentation d'indexation data.gouv.fr
-  private readonly _dataGouvDatasetId = '5b7ffc618b4c4169d30727e0'
-  // Réserve pour future implémentation d'indexation data.gouv.fr
-  private readonly _dataGouvBaseUrl = 'https://www.data.gouv.fr/api/1'
   
   // Clé API INSEE (à définir via variable d'environnement)
   private get inseeApiKey(): string | undefined {
     return process.env.INSEE_API_KEY || process.env.NEXT_PUBLIC_INSEE_API_KEY
   }
+  
+  // Constantes pour future implémentation data.gouv.fr (dataset: 5b7ffc618b4c4169d30727e0)
+  // Ces valeurs seront utilisées lors de l'implémentation de l'indexation locale
+  // private readonly dataGouvDatasetId = '5b7ffc618b4c4169d30727e0'
+  // private readonly dataGouvBaseUrl = 'https://www.data.gouv.fr/api/1'
 
   /**
    * Recherche une entreprise par SIREN (unité légale)
@@ -402,8 +403,9 @@ export class SireneService {
     _type: 'siren' | 'siret'
   ): Promise<SireneCompany | null> {
     // TODO: Implémenter la recherche dans les exports data.gouv.fr
+    // Dataset ID: 5b7ffc618b4c4169d30727e0
+    // Base URL: https://www.data.gouv.fr/api/1
     // Pour l'instant, on retourne null et on suggère l'utilisation de l'API INSEE
-    // Référence: this._dataGouvDatasetId et this._dataGouvBaseUrl pour future implémentation
     console.warn(
       '[SireneService] data.gouv.fr nécessite l\'indexation des exports. Utilisez l\'API INSEE pour les requêtes temps réel.'
     )
