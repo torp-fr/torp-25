@@ -1,4 +1,8 @@
+'use client'
+
+import { useState } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import {
   Card,
@@ -8,15 +12,41 @@ import {
   CardTitle,
 } from '@/components/ui/card'
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import {
   Upload,
   BarChart3,
   FileText,
   Shield,
   Zap,
   CheckCircle2,
+  User,
+  Building2,
+  Settings,
+  ChevronDown,
 } from 'lucide-react'
 
 export default function HomePage() {
+  const router = useRouter()
+  const [showB2BMessage, setShowB2BMessage] = useState(false)
+
+  const handleProfileSelect = (profile: string) => {
+    if (profile === 'b2c') {
+      router.push('/dashboard')
+    } else if (profile === 'b2b') {
+      setShowB2BMessage(true)
+      setTimeout(() => setShowB2BMessage(false), 3000)
+    } else if (profile === 'admin') {
+      router.push('/admin/rge')
+    }
+  }
+
   return (
     <div className="flex min-h-screen flex-col">
       {/* Header */}
@@ -51,6 +81,60 @@ export default function HomePage() {
             </Link>
           </nav>
           <div className="flex items-center gap-4">
+            {/* Menu déroulant Profil */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" className="gap-2">
+                  <Settings className="h-4 w-4" />
+                  Profil
+                  <ChevronDown className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuLabel>Choisir votre profil</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  onClick={() => handleProfileSelect('b2c')}
+                  className="cursor-pointer"
+                >
+                  <User className="mr-2 h-4 w-4" />
+                  <div className="flex flex-col">
+                    <span className="font-medium">Particulier (B2C)</span>
+                    <span className="text-xs text-muted-foreground">
+                      Actuellement disponible
+                    </span>
+                  </div>
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => handleProfileSelect('b2b')}
+                  className="cursor-pointer"
+                  disabled
+                >
+                  <Building2 className="mr-2 h-4 w-4" />
+                  <div className="flex flex-col">
+                    <span className="font-medium">Professionnel (B2B)</span>
+                    <span className="text-xs text-muted-foreground">
+                      Développement à venir
+                    </span>
+                  </div>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  onClick={() => handleProfileSelect('admin')}
+                  className="cursor-pointer"
+                >
+                  <Settings className="mr-2 h-4 w-4" />
+                  <div className="flex flex-col">
+                    <span className="font-medium">Admin TORP</span>
+                    <span className="text-xs text-muted-foreground">
+                      Gestion plateforme
+                    </span>
+                  </div>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+
+            {/* Bouton Connexion (redirige vers dashboard B2C) */}
             <Link
               href="/dashboard"
               className="inline-flex h-10 items-center justify-center rounded-md px-4 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
@@ -65,6 +149,18 @@ export default function HomePage() {
             </Link>
           </div>
         </div>
+
+        {/* Message B2B */}
+        {showB2BMessage && (
+          <div className="container">
+            <div className="mx-auto max-w-2xl rounded-md border border-blue-200 bg-blue-50 p-4 text-center text-sm text-blue-800">
+              <p className="font-medium">
+                Le profil Professionnel (B2B) est en cours de développement.
+                Revenez bientôt !
+              </p>
+            </div>
+          </div>
+        )}
       </header>
 
       {/* Hero Section */}
