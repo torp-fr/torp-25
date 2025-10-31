@@ -92,9 +92,13 @@ function getAllErrors(): Error[] {
         const varName = varMatch[2]
         if (varName.startsWith('_')) continue
         
-        // Compter les occurrences dans le reste du fichier
+        // Compter les occurrences dans le reste du fichier (après la déclaration)
         const restOfFile = lines.slice(i + 1).join('\n')
-        const occurrences = (restOfFile.match(new RegExp(`\\b${varName}\\b`, 'g')) || []).length
+        
+        // Chercher toutes les occurrences de la variable (mais pas sa déclaration)
+        // Ignorer les occurrences dans les commentaires et strings
+        const codeAfterDeclaration = restOfFile.replace(/\/\/.*$/gm, '').replace(/\/\*[\s\S]*?\*\//g, '').replace(/"[^"]*"/g, '').replace(/'[^']*'/g, '')
+        const occurrences = (codeAfterDeclaration.match(new RegExp(`\\b${varName}\\b`, 'g')) || []).length
         
         if (occurrences === 0) {
           errors.push({
