@@ -3,37 +3,13 @@
  * Pour évaluer l'impact de la météo sur les délais de construction
  */
 
-import { ApiClient } from './api-client'
 import type { WeatherData } from './types'
 
 export class WeatherEnrichmentService {
-  private _openWeatherClient?: ApiClient
-  private _meteofranceClient?: ApiClient
-
   constructor() {
-    // API OpenWeather (gratuite avec clé API)
-    // TODO: Utiliser _openWeatherClient pour récupérer les données météo réelles
-    const openWeatherKey = process.env.OPENWEATHER_API_KEY
-    if (openWeatherKey) {
-      this._openWeatherClient = new ApiClient({
-        baseUrl: 'https://api.openweathermap.org/data/2.5',
-        apiKey: openWeatherKey,
-        timeout: 8000,
-        retries: 2,
-      })
-    }
-
-    // API Météo France (si disponible)
-    // TODO: Utiliser _meteofranceClient pour récupérer les données météo réelles
-    const meteofranceKey = process.env.METEOFRANCE_API_KEY
-    if (meteofranceKey) {
-      this._meteofranceClient = new ApiClient({
-        baseUrl: 'https://api.meteofrance.fr/v1',
-        apiKey: meteofranceKey,
-        timeout: 8000,
-        retries: 2,
-      })
-    }
+    // TODO: Intégrer avec OpenWeather ou Météo France pour des données météo réelles
+    // API OpenWeather : https://api.openweathermap.org/data/2.5 (nécessite clé API)
+    // API Météo France : https://api.meteofrance.fr/v1 (nécessite clé API)
   }
 
   /**
