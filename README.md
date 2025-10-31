@@ -121,13 +121,14 @@ See `.env.example` for all required environment variables:
 - `ANTHROPIC_API_KEY`: Claude AI API key (pour analyse LLM)
 
 **Optionnelles - APIs d'Enrichissement :**
+- `INSEE_API_KEY`: Clé API INSEE Sirene (officielle) - Pour données complètes d'entreprises
+  - **Note** : Sans clé, le système utilise automatiquement l'API Recherche d'Entreprises (data.gouv.fr) gratuite comme fallback
+  - Obtenir une clé : https://api.insee.fr/
 - `REEF_PREMIUM_API_KEY`: Prix de référence BTP
 - `INFOGREFFE_API_KEY`: Données financières entreprises
 - `PAPPERS_API_KEY`: Enrichissement entreprises
 - `OPENWEATHER_API_KEY`: Données météorologiques
 - `METEOFRANCE_API_KEY`: Météo officielle française
-
-**Note** : L'API Sirene (data.gouv.fr) est **gratuite et ne nécessite pas de clé API**.
 
 **Autres :**
 - `AUTH0_*`: Auth0 credentials (optionnel - désactivé en mode demo)
@@ -276,7 +277,11 @@ Le système s'adapte automatiquement selon le profil utilisateur :
 Le système enrichit automatiquement les données via **15+ sources** :
 
 **APIs Publiques Officielles** (Gratuites) :
-- ✅ **INSEE Sirene** (data.gouv.fr) - Informations entreprises, SIRET
+- ✅ **INSEE Sirene** (API officielle + fallback data.gouv.fr) - Informations entreprises, SIRET, certification
+  - Service complet avec vérification et certification automatique des données d'entreprise
+  - Recherche par SIREN/SIRET, nom, département, code NAF
+  - Vérification de correspondance des données (nom, adresse, statut)
+  - Dataset ID: 5b7ffc618b4c4169d30727e0
 - ✅ **BODACC** (data.gouv.fr) - Procédures collectives
 - ✅ **Data.gouv.fr** - Données publiques multiples
 
