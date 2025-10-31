@@ -51,9 +51,26 @@ export async function POST(request: NextRequest) {
       console.log('[RGE Import API] 🔍 Auto-détection de la ressource...')
       
       const dataset = await rgeService.getDatasetInfo()
-      if (!dataset || !dataset.resources || dataset.resources.length === 0) {
+      if (!dataset) {
+        console.error('[RGE Import API] ❌ Dataset non trouvé ou erreur API')
         return NextResponse.json(
-          { error: 'Aucune ressource disponible dans le dataset RGE' },
+          { 
+            error: 'Impossible de récupérer les informations du dataset RGE',
+            details: 'Vérifiez les logs pour plus de détails'
+          },
+          { status: 500 }
+        )
+      }
+      
+      if (!dataset.resources || dataset.resources.length === 0) {
+        console.error('[RGE Import API] ❌ Aucune ressource trouvée dans le dataset')
+        console.error('[RGE Import API] 📋 Dataset ID:', dataset.id)
+        console.error('[RGE Import API] 📋 Dataset Title:', dataset.title)
+        return NextResponse.json(
+          { 
+            error: 'Aucune ressource disponible dans le dataset RGE',
+            details: `Le dataset "${dataset.title}" ne contient aucune ressource CSV/JSON. Vérifiez que le dataset contient bien des fichiers à importer.`
+          },
           { status: 404 }
         )
       }
