@@ -28,7 +28,7 @@ export class RNBImporter {
    * Télécharge le fichier CSV, le parse et l'indexe progressivement
    */
   async importDepartment(options: ImportOptions): Promise<{ success: boolean; indexed: number; errors: number }> {
-    const { department, maxRows, batchSize: _batchSize = 1000, onProgress } = options // batchSize réservé pour usage futur (parsing CSV)
+    const { department, maxRows, batchSize: _batchSize = 1000, onProgress: _onProgress } = options // batchSize et onProgress réservés pour usage futur (parsing CSV)
 
     try {
       // 1. Récupérer la ressource RNB pour ce département
