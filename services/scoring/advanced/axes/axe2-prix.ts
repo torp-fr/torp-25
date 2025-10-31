@@ -100,7 +100,7 @@ export class Axe2Prix {
   private async scoreBenchmarking(
     devis: Devis,
     enrichmentData: ScoringEnrichmentData,
-    context: any
+    _context: any
   ): Promise<ControlPointScore> {
     let score = 0
     let justification = ''
@@ -258,7 +258,7 @@ export class Axe2Prix {
   private async detectAnomaliesTarifaires(
     devis: Devis,
     enrichmentData: ScoringEnrichmentData,
-    context: any
+    _context: any
   ): Promise<ControlPointScore> {
     let score = 20 // Score par défaut (pas d'anomalie)
     let justification = 'Aucune anomalie détectée. '
@@ -308,7 +308,7 @@ export class Axe2Prix {
   private async calculateOptimisationValeur(
     devis: Devis,
     enrichmentData: ScoringEnrichmentData,
-    context: any
+    _context: any
   ): Promise<SubCriteriaScore> {
     const controlPointScores: ControlPointScore[] = []
     let totalScore = 0

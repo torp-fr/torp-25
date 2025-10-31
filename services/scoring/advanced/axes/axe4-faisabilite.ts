@@ -77,7 +77,7 @@ export class Axe4Faisabilite {
   private async scoreAdequationTechnique(
     devis: Devis,
     enrichmentData: ScoringEnrichmentData,
-    context: any
+    _context: any
   ): Promise<ControlPointScore> {
     let score = 0
     let justification = ''

@@ -43,13 +43,13 @@ export class Axe7Innovation {
   private async calculatePerformanceEnvironnementale(
     devis: Devis,
     enrichmentData: ScoringEnrichmentData,
-    context: any
+    _context: any
   ): Promise<SubCriteriaScore> {
     const controlPointScores: ControlPointScore[] = []
     let totalScore = 0
 
     // Solutions Bas Carbone (20 points)
-    const basCarbone = await this.scoreSolutionsBasCarbone(devis, enrichmentData, context)
+    const basCarbone = await this.scoreSolutionsBasCarbone(devis, enrichmentData, _context)
     controlPointScores.push(basCarbone)
     totalScore += basCarbone.score
 
@@ -72,7 +72,7 @@ export class Axe7Innovation {
   private async scoreSolutionsBasCarbone(
     devis: Devis,
     enrichmentData: ScoringEnrichmentData,
-    context: any
+    _context: any
   ): Promise<ControlPointScore> {
     let score = 0
     let justification = ''

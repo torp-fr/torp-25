@@ -429,13 +429,13 @@ export class Axe3Qualite {
   private async calculateCapitalHumain(
     devis: Devis,
     enrichmentData: ScoringEnrichmentData,
-    context: any
+    _context: any
   ): Promise<SubCriteriaScore> {
     const controlPointScores: ControlPointScore[] = []
     let totalScore = 0
 
     // Moyens Humains (30 points)
-    const humains = await this.scoreMoyensHumains(devis, enrichmentData, context)
+    const humains = await this.scoreMoyensHumains(devis, enrichmentData, _context)
     controlPointScores.push(humains)
     totalScore += humains.score
 

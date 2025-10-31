@@ -89,7 +89,7 @@ export class Axe1Conformite {
   private async scoreDTUSpecifiques(
     devis: Devis,
     enrichmentData: ScoringEnrichmentData,
-    context: any
+    _context: any
   ): Promise<ControlPointScore> {
     let score = 0
     let justification = ''
@@ -495,7 +495,7 @@ export class Axe1Conformite {
   private async scoreSecuriteIncendie(
     devis: Devis,
     enrichmentData: ScoringEnrichmentData,
-    context: any
+    _context: any
   ): Promise<ControlPointScore> {
     let score = 0
     let justification = ''
@@ -542,7 +542,7 @@ export class Axe1Conformite {
   private async scoreAccessibilitePMR(
     devis: Devis,
     enrichmentData: ScoringEnrichmentData,
-    context: any
+    _context: any
   ): Promise<ControlPointScore> {
     let score = 0
     let justification = ''
