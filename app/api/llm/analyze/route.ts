@@ -43,6 +43,7 @@ export async function POST(request: NextRequest) {
     // Récupérer le fichier uploadé
     const formData = await request.formData()
     const file = formData.get('file') as File
+    const ccfDataStr = formData.get('ccfData') as string | null
 
     if (!file) {
       return NextResponse.json(
@@ -92,17 +93,30 @@ export async function POST(request: NextRequest) {
 
     console.log('[LLM Analyze] Analyse initiale terminée, enrichissement avancé des données...')
 
+    // Parser les données CCF si fournies
+    let ccfData: any = null
+    if (ccfDataStr) {
+      try {
+        ccfData = JSON.parse(ccfDataStr)
+        console.log('[LLM Analyze] Données CCF reçues, utilisation pour l\'enrichissement')
+      } catch (error) {
+        console.warn('[LLM Analyze] Erreur parsing CCF data:', error)
+      }
+    }
+
     // 2. Enrichissement avancé des données (multi-sources)
     let enrichmentData = null
     try {
       const enrichmentService = new AdvancedEnrichmentService()
 
-      // Récupérer le type de métier depuis le devis analysé ou utiliser 'general'
-      const tradeType = inferTradeType(quickAnalysis.rawText)
-      const region = quickAnalysis.extractedData.project?.location 
-        ? extractRegion(quickAnalysis.extractedData.project.location)
-        : 'ILE_DE_FRANCE'
-      const projectType = inferProjectType(quickAnalysis.extractedData)
+      // Utiliser les données CCF si disponibles, sinon inférer depuis le devis
+      const tradeType = ccfData?.tradeType || inferTradeType(quickAnalysis.rawText)
+      const region = ccfData?.region 
+        || (quickAnalysis.extractedData.project?.location 
+          ? extractRegion(quickAnalysis.extractedData.project.location)
+          : 'ILE_DE_FRANCE')
+      const projectType = ccfData?.projectType 
+        || (inferProjectType(quickAnalysis.extractedData) as 'construction' | 'renovation' | 'extension' | 'maintenance')
 
       enrichmentData = await enrichmentService.enrichForScoring(
         quickAnalysis.extractedData,
@@ -164,14 +178,31 @@ export async function POST(request: NextRequest) {
     try {
       const scoringEngine = new AdvancedScoringEngine()
       
-      // Déterminer le profil (pour l'instant B2C par défaut, à améliorer avec données utilisateur)
+      // Utiliser les données CCF si disponibles pour le contexte de scoring
       const userProfile = 'B2C' // TODO: Récupérer depuis le profil utilisateur
-      const projectType = inferProjectType(analysis.extractedData) as 'construction' | 'renovation' | 'extension' | 'maintenance'
-      const projectAmount = inferProjectAmount(analysis.extractedData.totals.total)
-      const tradeType = inferTradeType(analysis.rawText)
-      const region = analysis.extractedData.project?.location 
-        ? extractRegion(analysis.extractedData.project.location)
-        : 'ILE_DE_FRANCE'
+      const projectTypeForScoring = ccfData?.projectType 
+        || (inferProjectType(analysis.extractedData) as 'construction' | 'renovation' | 'extension' | 'maintenance')
+      const projectAmount = ccfData?.budgetRange?.preferred
+        ? (ccfData.budgetRange.preferred < 10000 ? 'small' : ccfData.budgetRange.preferred < 50000 ? 'medium' : 'large')
+        : inferProjectAmount(analysis.extractedData.totals.total)
+      const tradeTypeForScoring = ccfData?.tradeType || inferTradeType(analysis.rawText)
+      const regionForScoring = ccfData?.region 
+        || (analysis.extractedData.project?.location 
+          ? extractRegion(analysis.extractedData.project.location)
+          : 'ILE_DE_FRANCE')
+      
+      // Enrichir les données d'enrichissement avec les données CCF (bâti, urbanisme, énergie)
+      if (ccfData && enrichmentData) {
+        if (ccfData.buildingData) {
+          enrichmentData.buildingData = ccfData.buildingData
+        }
+        if (ccfData.urbanismData) {
+          enrichmentData.urbanismData = ccfData.urbanismData
+        }
+        if (ccfData.energyData) {
+          enrichmentData.energyData = ccfData.energyData
+        }
+      }
 
       // Créer un objet devis compatible pour le scoring (avec extractedData typé correctement)
       const devisForScoring = {
@@ -196,10 +227,10 @@ export async function POST(request: NextRequest) {
         },
         {
           profile: userProfile,
-          projectType,
+          projectType: projectTypeForScoring,
           projectAmount,
-          region,
-          tradeType,
+          region: regionForScoring,
+          tradeType: tradeTypeForScoring,
         }
       )
 
@@ -330,6 +361,44 @@ export async function POST(request: NextRequest) {
     })
 
     console.log(`[LLM Analyze] Score TORP créé: ${torpScore.id}`)
+
+    // 5. Lier le CCF au devis si fourni
+    if (ccfData && ccfData.projectType) {
+      try {
+        await prisma.projectCCF.upsert({
+          where: {
+            devisId: devis.id,
+          },
+          update: {
+            devisId: devis.id,
+            status: 'linked',
+          },
+          create: {
+            userId,
+            devisId: devis.id,
+            projectType: ccfData.projectType,
+            projectTitle: ccfData.projectTitle,
+            projectDescription: ccfData.projectDescription,
+            address: ccfData.address,
+            postalCode: ccfData.postalCode,
+            city: ccfData.city,
+            region: ccfData.region,
+            coordinates: ccfData.coordinates,
+            buildingData: ccfData.buildingData,
+            urbanismData: ccfData.urbanismData,
+            energyData: ccfData.energyData,
+            constraints: ccfData.constraints,
+            requirements: ccfData.requirements,
+            budgetRange: ccfData.budgetRange,
+            status: 'linked',
+          },
+        })
+        console.log('[LLM Analyze] CCF lié au devis')
+      } catch (error) {
+        console.warn('[LLM Analyze] Erreur lors de la liaison CCF:', error)
+        // Ne pas bloquer si la liaison CCF échoue
+      }
+    }
 
     // Retourner la réponse
     return NextResponse.json(

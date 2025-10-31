@@ -20,12 +20,15 @@ import {
   Loader2,
 } from 'lucide-react'
 import { AppHeader } from '@/components/app-header'
+import { UploadWizard } from '@/components/wizard/upload-wizard'
 
 type UploadStatus = 'idle' | 'uploading' | 'processing' | 'success' | 'error'
 
 export const dynamic = 'force-dynamic'
 
 export default function UploadPage() {
+  const [showWizard, setShowWizard] = useState(false)
+  const [ccfData, setCcfData] = useState<any>(null)
   const router = useRouter()
   const [file, setFile] = useState<File | null>(null)
   const [dragActive, setDragActive] = useState(false)
@@ -108,6 +111,10 @@ export default function UploadPage() {
       // Create FormData
       const formData = new FormData()
       formData.append('file', file)
+      // Ajouter les données CCF si disponibles
+      if (ccfData) {
+        formData.append('ccfData', JSON.stringify(ccfData))
+      }
       // userId is derived server-side from the Auth0 session
 
       // Simuler une progression pour l'UX
@@ -166,6 +173,45 @@ export default function UploadPage() {
             Analysez automatiquement votre devis BTP avec l&apos;algorithme TORP
           </p>
         </div>
+
+        {/* Wizard Option */}
+        {!showWizard && !ccfData && (
+          <div className="mb-6">
+            <Card className="bg-blue-50 border-blue-200">
+              <CardContent className="pt-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="font-semibold mb-1">Définir votre projet (Optionnel)</h3>
+                    <p className="text-sm text-muted-foreground">
+                      Renseignez les informations de votre projet pour une analyse optimisée avec données bâti et urbanisme
+                    </p>
+                  </div>
+                  <Button onClick={() => setShowWizard(true)} variant="outline">
+                    Ouvrir le Wizard
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
+        {/* Wizard */}
+        {showWizard && (
+          <div className="mb-8">
+            <UploadWizard
+              onComplete={(data) => {
+                setCcfData(data)
+                setShowWizard(false)
+              }}
+              onCancel={() => setShowWizard(false)}
+            />
+            {ccfData && (
+              <div className="mt-4 p-4 bg-green-50 border border-green-200 rounded-md">
+                <p className="text-sm text-green-800">✓ CCF complété avec succès</p>
+              </div>
+            )}
+          </div>
+        )}
 
         <div className="grid gap-8 lg:grid-cols-3">
           {/* Upload Section */}

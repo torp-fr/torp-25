@@ -18,8 +18,11 @@ import {
   Minus,
   CheckCircle2,
   XCircle,
+  MessageSquare,
 } from 'lucide-react'
 import { AppHeader } from '@/components/app-header'
+import { DevisChat } from '@/components/chat/devis-chat'
+import { RecommendationCard } from '@/components/recommendations/recommendation-card'
 
 interface TORPScore {
   id: string
@@ -87,6 +90,8 @@ export default function AnalysisPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [calculatingScore, setCalculatingScore] = useState(false)
+  const [showChat, setShowChat] = useState(false)
+  const DEMO_USER_ID = 'demo-user-id'
 
   const fetchData = useCallback(async () => {
     try {
@@ -385,45 +390,67 @@ export default function AnalysisPage() {
               score.recommendations.length > 0 && (
                 <Card>
                   <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Lightbulb className="h-5 w-5 text-yellow-600" />
-                      Recommandations ({score.recommendations.length})
-                    </CardTitle>
-                    <CardDescription>
-                      Suggestions d&apos;amélioration
-                    </CardDescription>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <CardTitle className="flex items-center gap-2">
+                          <Lightbulb className="h-5 w-5 text-yellow-600" />
+                          Recommandations ({score.recommendations.length})
+                        </CardTitle>
+                        <CardDescription>
+                          Suggestions d&apos;amélioration
+                        </CardDescription>
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setShowChat(!showChat)}
+                      >
+                        <MessageSquare className="mr-2 h-4 w-4" />
+                        Chat
+                      </Button>
+                    </div>
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-3">
                       {score.recommendations.map((rec, index) => (
-                        <div
+                        <RecommendationCard
                           key={index}
-                          className="rounded-lg border p-4"
-                        >
-                          <div className="mb-2 flex items-center justify-between">
-                            <span
-                              className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${getPriorityBadge(
-                                rec.priority
-                              )}`}
-                            >
-                              {rec.priority}
-                            </span>
-                            <span className="text-xs capitalize text-muted-foreground">
-                              {rec.category}
-                            </span>
-                          </div>
-                          <p className="mb-2 font-medium">{rec.suggestion}</p>
-                          {rec.potentialImpact && (
-                            <p className="text-sm text-muted-foreground">
-                              💡 {rec.potentialImpact}
-                            </p>
-                          )}
-                        </div>
+                          recommendation={{
+                            id: `rec-${index}`,
+                            ...rec,
+                            message: rec.suggestion,
+                            actionable: rec.priority === 'high' || rec.priority === 'medium',
+                          }}
+                          devisId={devisId}
+                          userId={DEMO_USER_ID}
+                          index={index}
+                        />
                       ))}
                     </div>
                   </CardContent>
                 </Card>
               )}
+
+            {/* Chat Panel */}
+            {showChat && (
+              <Card className="mt-6">
+                <CardHeader>
+                  <CardTitle>Chat Assistant</CardTitle>
+                  <CardDescription>
+                    Posez des questions sur votre devis
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="h-[500px]">
+                    <DevisChat
+                      devisId={devisId}
+                      userId={DEMO_USER_ID}
+                      recommendations={score?.recommendations || []}
+                    />
+                  </div>
+                </CardContent>
+              </Card>
+            )}
           </div>
 
           {/* Sidebar */}

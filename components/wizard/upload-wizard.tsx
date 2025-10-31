@@ -1,0 +1,522 @@
+'use client'
+
+/**
+ * Wizard d'upload avec CCF (Cahier des Charges Fonctionnel)
+ * Guide l'utilisateur pour renseigner les éléments du projet avant l'upload
+ */
+
+import { useState } from 'react'
+import { Button } from '@/components/ui/button'
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card'
+import { Label } from '@/components/ui/label'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
+import {
+  ArrowLeft,
+  ArrowRight,
+  MapPin,
+  Building,
+  DollarSign,
+  FileText,
+  CheckCircle2,
+} from 'lucide-react'
+
+interface CCFData {
+  // Étape 1: Type de projet
+  projectType: 'construction' | 'renovation' | 'extension' | 'maintenance'
+  projectTitle: string
+  projectDescription: string
+
+  // Étape 2: Localisation
+  address: string
+  postalCode: string
+  city: string
+  region: string
+  coordinates?: { lat: number; lng: number }
+
+  // Étape 3: Données bâti (enrichies depuis APIs)
+  buildingData?: any
+  urbanismData?: any
+  energyData?: any
+
+  // Étape 4: Contraintes et besoins
+  constraints: string[]
+  requirements: string[]
+  budgetRange: {
+    min: number
+    max: number
+    preferred?: number
+  }
+}
+
+interface UploadWizardProps {
+  onComplete: (ccfData: CCFData) => void
+  onCancel?: () => void
+}
+
+export function UploadWizard({ onComplete, onCancel }: UploadWizardProps) {
+  const [currentStep, setCurrentStep] = useState(1)
+  const [loading, setLoading] = useState(false)
+  const [ccfData, setCcfData] = useState<CCFData>({
+    projectType: 'renovation',
+    projectTitle: '',
+    projectDescription: '',
+    address: '',
+    postalCode: '',
+    city: '',
+    region: '',
+    constraints: [],
+    requirements: [],
+    budgetRange: { min: 0, max: 0 },
+  })
+
+  const [addressSearchQuery, setAddressSearchQuery] = useState('')
+  const [addressSuggestions, setAddressSuggestions] = useState<any[]>([])
+  const [selectedAddress, setSelectedAddress] = useState<any>(null)
+
+  const steps = [
+    { id: 1, title: 'Type de projet', icon: Building },
+    { id: 2, title: 'Localisation', icon: MapPin },
+    { id: 3, title: 'Données bâti', icon: Building },
+    { id: 4, title: 'Contraintes & Budget', icon: DollarSign },
+    { id: 5, title: 'Récapitulatif', icon: CheckCircle2 },
+  ]
+
+  // Recherche d'adresse
+  const searchAddress = async (query: string) => {
+    if (query.length < 3) return
+
+    try {
+      const response = await fetch('/api/external/address', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query }),
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        setAddressSuggestions(data.data || [])
+      }
+    } catch (error) {
+      console.error('Erreur recherche adresse:', error)
+    }
+  }
+
+  // Récupération des données bâti
+  const fetchBuildingData = async (address: string) => {
+    setLoading(true)
+    try {
+      const response = await fetch('/api/external/building', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ address }),
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        setCcfData((prev) => ({
+          ...prev,
+          buildingData: data.data.building,
+          urbanismData: data.data.urbanism,
+          energyData: data.data.energy,
+        }))
+      }
+    } catch (error) {
+      console.error('Erreur récupération données bâti:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleAddressSelect = (address: any) => {
+    setSelectedAddress(address)
+    setAddressSearchQuery(address.formatted)
+    setAddressSuggestions([])
+    setCcfData((prev) => ({
+      ...prev,
+      address: address.formatted,
+      postalCode: address.postalCode,
+      city: address.city,
+      region: address.region,
+      coordinates: address.coordinates,
+    }))
+
+    // Charger les données bâti automatiquement
+    if (address.formatted) {
+      fetchBuildingData(address.formatted)
+    }
+  }
+
+  const nextStep = () => {
+    if (currentStep < steps.length) {
+      setCurrentStep(currentStep + 1)
+    }
+  }
+
+  const prevStep = () => {
+    if (currentStep > 1) {
+      setCurrentStep(currentStep - 1)
+    }
+  }
+
+  const handleSubmit = () => {
+    onComplete(ccfData)
+  }
+
+  const renderStepContent = () => {
+    switch (currentStep) {
+      case 1:
+        return (
+          <div className="space-y-6">
+            <div>
+              <Label htmlFor="projectType">Type de projet *</Label>
+              <Select
+                value={ccfData.projectType}
+                onValueChange={(value: any) =>
+                  setCcfData((prev) => ({ ...prev, projectType: value }))
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="construction">Construction neuve</SelectItem>
+                  <SelectItem value="renovation">Rénovation</SelectItem>
+                  <SelectItem value="extension">Extension</SelectItem>
+                  <SelectItem value="maintenance">Maintenance / Entretien</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <Label htmlFor="projectTitle">Titre du projet</Label>
+              <Input
+                id="projectTitle"
+                value={ccfData.projectTitle}
+                onChange={(e) =>
+                  setCcfData((prev) => ({ ...prev, projectTitle: e.target.value }))
+                }
+                placeholder="Ex: Rénovation appartement 3 pièces"
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="projectDescription">Description du projet</Label>
+              <Textarea
+                id="projectDescription"
+                value={ccfData.projectDescription}
+                onChange={(e) =>
+                  setCcfData((prev) => ({
+                    ...prev,
+                    projectDescription: e.target.value,
+                  }))
+                }
+                placeholder="Décrivez votre projet en détail..."
+                rows={5}
+              />
+            </div>
+          </div>
+        )
+
+      case 2:
+        return (
+          <div className="space-y-6">
+            <div>
+              <Label htmlFor="address">Adresse du projet *</Label>
+              <div className="relative">
+                <Input
+                  id="address"
+                  value={addressSearchQuery}
+                  onChange={(e) => {
+                    setAddressSearchQuery(e.target.value)
+                    searchAddress(e.target.value)
+                  }}
+                  placeholder="Tapez une adresse..."
+                />
+                {addressSuggestions.length > 0 && (
+                  <div className="absolute z-10 w-full mt-1 bg-white border rounded-md shadow-lg">
+                    {addressSuggestions.map((addr, idx) => (
+                      <button
+                        key={idx}
+                        type="button"
+                        className="w-full text-left px-4 py-2 hover:bg-gray-100"
+                        onClick={() => handleAddressSelect(addr)}
+                      >
+                        {addr.formatted}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {selectedAddress && (
+              <div className="p-4 bg-green-50 border border-green-200 rounded-md">
+                <p className="text-sm text-green-800">
+                  ✓ Adresse validée: {selectedAddress.formatted}
+                </p>
+                {ccfData.buildingData && (
+                  <p className="text-xs text-green-600 mt-2">
+                    Données bâti récupérées automatiquement
+                  </p>
+                )}
+              </div>
+            )}
+          </div>
+        )
+
+      case 3:
+        return (
+          <div className="space-y-6">
+            {loading ? (
+              <div className="text-center py-8">
+                <p>Chargement des données du bâti...</p>
+              </div>
+            ) : (
+              <>
+                {ccfData.energyData && (
+                  <div className="p-4 bg-blue-50 border border-blue-200 rounded-md">
+                    <h4 className="font-semibold mb-2">Données énergétiques</h4>
+                    <p className="text-sm">
+                      Classe DPE: {ccfData.energyData.dpeClass || 'Non disponible'}
+                    </p>
+                  </div>
+                )}
+                {ccfData.urbanismData && (
+                  <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-md">
+                    <h4 className="font-semibold mb-2">Données d'urbanisme</h4>
+                    <p className="text-sm">
+                      Autorisation: {ccfData.urbanismData.hasPermit ? 'Oui' : 'Non'}
+                    </p>
+                  </div>
+                )}
+                <div className="text-sm text-gray-600">
+                  Ces données seront utilisées pour enrichir l'analyse du devis et
+                  vérifier la cohérence avec les contraintes réglementaires.
+                </div>
+              </>
+            )}
+          </div>
+        )
+
+      case 4:
+        return (
+          <div className="space-y-6">
+            <div>
+              <Label htmlFor="constraints">Contraintes particulières</Label>
+              <Textarea
+                id="constraints"
+                placeholder="Contraintes techniques, réglementaires, accès, etc."
+                rows={4}
+                onChange={(e) =>
+                  setCcfData((prev) => ({
+                    ...prev,
+                    constraints: e.target.value.split('\n').filter(Boolean),
+                  }))
+                }
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="requirements">Besoins fonctionnels</Label>
+              <Textarea
+                id="requirements"
+                placeholder="Vos besoins, préférences, exigences..."
+                rows={4}
+                onChange={(e) =>
+                  setCcfData((prev) => ({
+                    ...prev,
+                    requirements: e.target.value.split('\n').filter(Boolean),
+                  }))
+                }
+              />
+            </div>
+
+            <div className="grid grid-cols-3 gap-4">
+              <div>
+                <Label htmlFor="budgetMin">Budget min (€)</Label>
+                <Input
+                  id="budgetMin"
+                  type="number"
+                  onChange={(e) =>
+                    setCcfData((prev) => ({
+                      ...prev,
+                      budgetRange: {
+                        ...prev.budgetRange,
+                        min: parseFloat(e.target.value) || 0,
+                      },
+                    }))
+                  }
+                />
+              </div>
+              <div>
+                <Label htmlFor="budgetMax">Budget max (€)</Label>
+                <Input
+                  id="budgetMax"
+                  type="number"
+                  onChange={(e) =>
+                    setCcfData((prev) => ({
+                      ...prev,
+                      budgetRange: {
+                        ...prev.budgetRange,
+                        max: parseFloat(e.target.value) || 0,
+                      },
+                    }))
+                  }
+                />
+              </div>
+              <div>
+                <Label htmlFor="budgetPreferred">Budget idéal (€)</Label>
+                <Input
+                  id="budgetPreferred"
+                  type="number"
+                  onChange={(e) =>
+                    setCcfData((prev) => ({
+                      ...prev,
+                      budgetRange: {
+                        ...prev.budgetRange,
+                        preferred: parseFloat(e.target.value) || undefined,
+                      },
+                    }))
+                  }
+                />
+              </div>
+            </div>
+          </div>
+        )
+
+      case 5:
+        return (
+          <div className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Récapitulatif du CCF</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div>
+                  <strong>Type:</strong> {ccfData.projectType}
+                </div>
+                <div>
+                  <strong>Titre:</strong> {ccfData.projectTitle || 'Non renseigné'}
+                </div>
+                <div>
+                  <strong>Adresse:</strong> {ccfData.address || 'Non renseigné'}
+                </div>
+                <div>
+                  <strong>Budget:</strong> {ccfData.budgetRange.min}€ - {ccfData.budgetRange.max}€
+                </div>
+                {ccfData.buildingData && (
+                  <div className="mt-4 p-3 bg-gray-50 rounded">
+                    <strong>Données bâti:</strong> Disponibles
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        )
+
+      default:
+        return null
+    }
+  }
+
+  return (
+    <div className="max-w-3xl mx-auto">
+      {/* Progress Steps */}
+      <div className="mb-8">
+        <div className="flex items-center justify-between">
+          {steps.map((step, idx) => {
+            const Icon = step.icon
+            const isActive = currentStep === step.id
+            const isCompleted = currentStep > step.id
+
+            return (
+              <div key={step.id} className="flex items-center flex-1">
+                <div className="flex flex-col items-center flex-1">
+                  <div
+                    className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                      isActive
+                        ? 'bg-blue-600 text-white'
+                        : isCompleted
+                        ? 'bg-green-600 text-white'
+                        : 'bg-gray-200 text-gray-600'
+                    }`}
+                  >
+                    <Icon className="w-5 h-5" />
+                  </div>
+                  <span
+                    className={`mt-2 text-xs ${
+                      isActive ? 'font-semibold text-blue-600' : 'text-gray-500'
+                    }`}
+                  >
+                    {step.title}
+                  </span>
+                </div>
+                {idx < steps.length - 1 && (
+                  <div
+                    className={`h-1 flex-1 mx-2 ${
+                      isCompleted ? 'bg-green-600' : 'bg-gray-200'
+                    }`}
+                  />
+                )}
+              </div>
+            )
+          })}
+        </div>
+      </div>
+
+      {/* Step Content */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Étape {currentStep} sur {steps.length}</CardTitle>
+          <CardDescription>{steps[currentStep - 1].title}</CardDescription>
+        </CardHeader>
+        <CardContent>{renderStepContent()}</CardContent>
+      </Card>
+
+      {/* Navigation */}
+      <div className="mt-6 flex justify-between">
+        <div>
+          {onCancel && (
+            <Button variant="outline" onClick={onCancel}>
+              Annuler
+            </Button>
+          )}
+        </div>
+        <div className="flex gap-4">
+          {currentStep > 1 && (
+            <Button variant="outline" onClick={prevStep}>
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Précédent
+            </Button>
+          )}
+          {currentStep < steps.length ? (
+            <Button onClick={nextStep}>
+              Suivant
+              <ArrowRight className="w-4 h-4 ml-2" />
+            </Button>
+          ) : (
+            <Button onClick={handleSubmit}>
+              <CheckCircle2 className="w-4 h-4 mr-2" />
+              Compléter et continuer
+            </Button>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+

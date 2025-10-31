@@ -25,15 +25,19 @@ model User {
   deletedAt    DateTime? @map("deleted_at")
 
   // Relations
-  profile        UserProfile?
-  companyProfile CompanyProfile?
-  documents      Document[]
-  devis          Devis[]
-  torpScores     TORPScore[]
-  comparisons    Comparison[]
-  subscriptions  Subscription[]
-  payments       Payment[]
-  analyticsEvents AnalyticsEvent[]
+  profile                 UserProfile?
+  companyProfile          CompanyProfile?
+  documents               Document[]
+  devis                   Devis[]
+  torpScores              TORPScore[]
+  comparisons             Comparison[]
+  subscriptions           Subscription[]
+  payments                Payment[]
+  analyticsEvents         AnalyticsEvent[]
+  projectCCFs             ProjectCCF[]
+  chatMessages            ChatMessage[]
+  complementaryDocuments  ComplementaryDocument[]
+  recommendationFeedbacks RecommendationFeedback[]
 
   @@index([email])
   @@map("users")
@@ -65,16 +69,16 @@ model UserProfile {
 }
 
 model CompanyProfile {
-  id                      String   @id @default(uuid())
-  userId                  String   @unique @map("user_id")
-  companyName             String   @map("company_name")
-  siret                   String?  @unique
-  activitySectors         String[] @map("activity_sectors")
-  certifications          String[]
-  torpCertificationLevel  String?  @map("torp_certification_level")
-  insurancePolicy         Json?    @map("insurance_policy")
-  createdAt               DateTime @default(now()) @map("created_at")
-  updatedAt               DateTime @updatedAt @map("updated_at")
+  id                     String   @id @default(uuid())
+  userId                 String   @unique @map("user_id")
+  companyName            String   @map("company_name")
+  siret                  String?  @unique
+  activitySectors        String[] @map("activity_sectors")
+  certifications         String[]
+  torpCertificationLevel String?  @map("torp_certification_level")
+  insurancePolicy        Json?    @map("insurance_policy")
+  createdAt              DateTime @default(now()) @map("created_at")
+  updatedAt              DateTime @updatedAt @map("updated_at")
 
   // Relations
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -134,9 +138,13 @@ model Devis {
   updatedAt        DateTime       @updatedAt @map("updated_at")
 
   // Relations
-  document   Document    @relation(fields: [documentId], references: [id], onDelete: Cascade)
-  user       User        @relation(fields: [userId], references: [id], onDelete: Cascade)
-  torpScores TORPScore[]
+  document                Document                 @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  user                    User                     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  torpScores              TORPScore[]
+  projectCCF              ProjectCCF?
+  chatMessages            ChatMessage[]
+  complementaryDocuments  ComplementaryDocument[]
+  recommendationFeedbacks RecommendationFeedback[]
 
   @@index([userId])
   @@index([documentId])
@@ -162,8 +170,8 @@ model TORPScore {
   updatedAt         DateTime @updatedAt @map("updated_at")
 
   // Relations
-  devis Devis @relation(fields: [devisId], references: [id], onDelete: Cascade)
-  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  devis  Devis  @relation(fields: [devisId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId String @map("user_id")
 
   @@index([devisId])
@@ -290,4 +298,137 @@ enum EventCategory {
   FEATURE_USAGE
 
   @@map("event_category")
+}
+
+// ============================================================================
+// CCF (Cahier des Charges Fonctionnel) Models
+// ============================================================================
+
+model ProjectCCF {
+  id                 String   @id @default(uuid())
+  userId             String   @map("user_id")
+  devisId            String?  @unique @map("devis_id")
+  projectType        String   @map("project_type")
+  projectTitle       String?  @map("project_title")
+  projectDescription String?  @map("project_description")
+  address            String?
+  postalCode         String?  @map("postal_code")
+  city               String?
+  region             String?
+  coordinates        Json?
+  buildingData       Json?    @map("building_data")
+  urbanismData       Json?    @map("urbanism_data")
+  energyData         Json?    @map("energy_data")
+  constraints        Json?
+  requirements       Json?
+  budgetRange        Json?    @map("budget_range")
+  status             String   @default("draft")
+  createdAt          DateTime @default(now()) @map("created_at")
+  updatedAt          DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  user  User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  devis Devis? @relation(fields: [devisId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([devisId])
+  @@map("project_ccf")
+}
+
+// ============================================================================
+// Chat Models
+// ============================================================================
+
+model ChatMessage {
+  id               String   @id @default(uuid())
+  devisId          String   @map("devis_id")
+  userId           String   @map("user_id")
+  role             String
+  content          String
+  metadata         Json?
+  recommendationId String?  @map("recommendation_id")
+  documentId       String?  @map("document_id")
+  createdAt        DateTime @default(now()) @map("created_at")
+
+  // Relations
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  devis Devis @relation(fields: [devisId], references: [id], onDelete: Cascade)
+
+  @@index([devisId])
+  @@index([userId])
+  @@map("chat_messages")
+}
+
+// ============================================================================
+// Complementary Documents Models
+// ============================================================================
+
+model ComplementaryDocument {
+  id                 String   @id @default(uuid())
+  devisId            String   @map("devis_id")
+  userId             String   @map("user_id")
+  recommendationId   String?  @map("recommendation_id")
+  recommendationType String?  @map("recommendation_type")
+  fileName           String   @map("file_name")
+  fileType           String   @map("file_type")
+  fileSize           Int      @map("file_size")
+  fileUrl            String   @map("file_url")
+  documentType       String?  @map("document_type")
+  status             String   @default("pending")
+  validationNotes    String?  @map("validation_notes")
+  createdAt          DateTime @default(now()) @map("created_at")
+  updatedAt          DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  devis Devis @relation(fields: [devisId], references: [id], onDelete: Cascade)
+
+  @@index([devisId])
+  @@index([userId])
+  @@index([recommendationId])
+  @@map("complementary_documents")
+}
+
+// ============================================================================
+// Recommendation Feedback Models
+// ============================================================================
+
+model RecommendationFeedback {
+  id               String   @id @default(uuid())
+  devisId          String   @map("devis_id")
+  userId           String   @map("user_id")
+  recommendationId String   @map("recommendation_id")
+  rating           Int?
+  useful           Boolean?
+  actionTaken      Boolean? @map("action_taken")
+  feedbackText     String?  @map("feedback_text")
+  documentsAdded   String[] @map("documents_added")
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  devis Devis @relation(fields: [devisId], references: [id], onDelete: Cascade)
+
+  @@unique([devisId, recommendationId])
+  @@index([devisId])
+  @@index([userId])
+  @@map("recommendation_feedback")
+}
+
+// ============================================================================
+// External Data Cache Models
+// ============================================================================
+
+model ExternalDataCache {
+  id        String   @id @default(uuid())
+  cacheKey  String   @unique @map("cache_key")
+  dataType  String   @map("data_type")
+  data      Json
+  expiresAt DateTime @map("expires_at")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([cacheKey])
+  @@index([expiresAt])
+  @@map("external_data_cache")
 }
