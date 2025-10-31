@@ -20,7 +20,6 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import {
-  Home,
   MapPin,
   FileText,
   Upload,
@@ -33,7 +32,6 @@ import {
   Building2,
   Leaf,
   Zap,
-  Shield,
   FileCheck,
 } from 'lucide-react'
 import { AppHeader } from '@/components/app-header'
@@ -59,6 +57,9 @@ interface BuildingProfile {
   lastEnrichedAt?: string
   customFields?: any
   notes?: string
+  parcelleNumber?: string | null
+  sectionCadastrale?: string | null
+  codeINSEE?: string | null
   buildingDocuments: BuildingDocument[]
   createdAt: string
   updatedAt: string

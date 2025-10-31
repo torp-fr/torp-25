@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import {
   Card,
@@ -50,7 +49,6 @@ interface BuildingProfile {
 }
 
 export default function BuildingsPage() {
-  const router = useRouter()
   const [profiles, setProfiles] = useState<BuildingProfile[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)

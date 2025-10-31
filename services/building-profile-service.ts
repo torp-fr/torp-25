@@ -63,7 +63,7 @@ export class BuildingProfileService {
         addressData = reverseGeocode
       } else {
         // Recherche depuis texte
-        const addresses = await this.addressService.searchAddress(input.address, 1)
+        const addresses = await this.addressService.searchAddress(input.address)
         if (addresses.length === 0) {
           throw new Error('Adresse non trouvée')
         }
@@ -77,7 +77,7 @@ export class BuildingProfileService {
           userId: input.userId,
           name: input.name || null,
           address: addressData as any,
-          coordinates: coordinates || null,
+          coordinates: coordinates ? (coordinates as any) : null,
           parcelleNumber: null,
           sectionCadastrale: null,
           codeINSEE: addressData.department ? undefined : null,
@@ -131,10 +131,10 @@ export class BuildingProfileService {
             where: { id: profileId },
             data: {
               enrichedData: aggregatedData as any,
-              pluData: aggregatedData.plu || null,
-              rnbData: aggregatedData.rnb || null,
-              dpeData: aggregatedData.energy || null,
-              urbanismData: aggregatedData.urbanism || null,
+              pluData: aggregatedData.plu ? (aggregatedData.plu as any) : null,
+              rnbData: aggregatedData.rnb ? (aggregatedData.rnb as any) : null,
+              dpeData: aggregatedData.energy ? (aggregatedData.energy as any) : null,
+              urbanismData: aggregatedData.urbanism ? (aggregatedData.urbanism as any) : null,
             },
           })
         }
@@ -173,7 +173,7 @@ export class BuildingProfileService {
         data: {
           enrichmentStatus: errors.length > 0 && uniqueSources.length === 0 ? 'failed' : 'completed',
           enrichmentSources: uniqueSources,
-          enrichmentErrors: errors.length > 0 ? errors : null,
+          enrichmentErrors: errors.length > 0 ? (errors as any) : null,
           lastEnrichedAt: new Date(),
         },
       })

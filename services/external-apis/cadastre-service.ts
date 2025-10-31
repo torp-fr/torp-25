@@ -285,6 +285,12 @@ export class CadastreService {
           // Pour l'instant, on garde la surface existante
         }
 
+        // Extraire codeCom depuis l'ID ou les propriétés
+        const codeComFromId = parcelle.id && parcelle.id.includes('-') 
+          ? parcelle.id.split('-')[0] 
+          : undefined
+        const codeCom = codeComFromId || props.code_com || ''
+
         return {
           id: parcelle.id || `${codeCom}-${parcelle.section}-${parcelle.numero}`,
           numero: parcelle.numero || props.numero,
