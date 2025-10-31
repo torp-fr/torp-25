@@ -136,6 +136,7 @@ export class AdvancedEnrichmentService {
 
         // Source 5: Certifications (RGE, Qualibat, etc.)
         try {
+          console.log(`[AdvancedEnrichment] 🔍 Recherche certifications pour SIRET: ${extractedData.company.siret}`)
           const certifications = await this.certificationsService.getCompanyCertifications(
             extractedData.company.siret
           )
@@ -152,13 +153,15 @@ export class AdvancedEnrichmentService {
             sources.push(`Certifications (${certifications.certifications.length})`)
             confidence += 8
             
-            // Log des certifications trouvées
-            console.log('[AdvancedEnrichment] Certifications trouvées:', 
-              certifications.certifications.map(c => `${c.type}: ${c.name}`).join(', ')
+            // Log détaillé des certifications trouvées
+            console.log(`[AdvancedEnrichment] ✅ ${certifications.certifications.length} certification(s) trouvée(s):`, 
+              certifications.certifications.map(c => `${c.type}: ${c.name} (valide: ${c.valid})`).join(', ')
             )
+          } else {
+            console.log('[AdvancedEnrichment] ℹ️ Aucune certification trouvée pour cette entreprise')
           }
         } catch (error) {
-          console.warn('[AdvancedEnrichment] Erreur certifications:', error)
+          console.error('[AdvancedEnrichment] ❌ Erreur certifications:', error)
           confidence -= 2
         }
       } catch (error) {
@@ -228,6 +231,7 @@ export class AdvancedEnrichmentService {
     
     if (extractedData.company.siret) {
       try {
+        console.log(`[AdvancedEnrichment] 🔍 Recherche certifications entreprise pour SIRET: ${extractedData.company.siret}`)
         const certifications = await this.certificationsService.getCompanyCertifications(
           extractedData.company.siret
         )
@@ -245,14 +249,18 @@ export class AdvancedEnrichmentService {
           
           if (companyCertifications.length > 0) {
             sources.push(`Certifications entreprise (${companyCertifications.length})`)
-            console.log('[AdvancedEnrichment] Certifications réelles trouvées:', 
-              companyCertifications.map(c => `${c.type}: ${c.name}`).join(', ')
+            console.log(`[AdvancedEnrichment] ✅ ${companyCertifications.length} certification(s) entreprise trouvée(s):`, 
+              companyCertifications.map(c => `${c.type}: ${c.name} (valide: ${c.valid})`).join(', ')
             )
           }
+        } else {
+          console.log('[AdvancedEnrichment] ℹ️ Aucune certification entreprise trouvée')
         }
       } catch (error) {
-        console.warn('[AdvancedEnrichment] Erreur certifications entreprise:', error)
+        console.error('[AdvancedEnrichment] ❌ Erreur certifications entreprise:', error)
       }
+    } else {
+      console.log('[AdvancedEnrichment] ⚠️ Pas de SIRET disponible pour recherche certifications')
     }
 
     // 5. Météo
@@ -269,7 +277,7 @@ export class AdvancedEnrichmentService {
       confidence -= 2
     }
 
-    return {
+    const result = {
       company: enrichedCompany || {
         siret: extractedData.company.siret || '',
         siren: extractedData.company.siret?.substring(0, 9) || '',
@@ -285,6 +293,13 @@ export class AdvancedEnrichmentService {
         ? companyCertifications 
         : (complianceData?.certifications || []),
     }
+
+    console.log('[AdvancedEnrichment] ✅ Enrichissement terminé')
+    console.log(`[AdvancedEnrichment] 📊 Sources utilisées: ${sources.join(', ') || 'Aucune'}`)
+    console.log(`[AdvancedEnrichment] 📈 Confiance finale: ${confidence}%`)
+    console.log(`[AdvancedEnrichment] 🏅 Certifications: ${result.certifications.length} trouvée(s)`)
+    
+    return result
   }
 
   /**

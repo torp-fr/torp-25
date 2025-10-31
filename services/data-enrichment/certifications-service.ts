@@ -80,12 +80,18 @@ export class CertificationsEnrichmentService {
    */
   private async getRGECertification(siret: string): Promise<CertificationData | null> {
     try {
+      console.log(`[CertificationsService] 🔍 Début recherche certification RGE pour SIRET: ${siret}`)
       const rgeCert = await this.rgeService.getRGECertification(siret)
       
-      if (!rgeCert || !rgeCert.isValid) {
+      if (!rgeCert) {
+        console.log('[CertificationsService] ℹ️ Aucune certification RGE trouvée')
         return null
       }
 
+      console.log(`[CertificationsService] ${rgeCert.isValid ? '✅' : '⚠️'} Certification RGE trouvée (valide: ${rgeCert.isValid})`)
+
+      // Retourner la certification même si isValid est false pour traçabilité
+      // Le scoring pourra décider comment l'utiliser
       return {
         type: 'RGE',
         name: 'RGE (Reconnu Garant de l\'Environnement)',
@@ -98,7 +104,7 @@ export class CertificationsEnrichmentService {
         verifiedAt: rgeCert.verifiedAt,
       }
     } catch (error) {
-      console.error('[CertificationsService] Erreur récupération RGE:', error)
+      console.error('[CertificationsService] ❌ Erreur récupération RGE:', error)
       return null
     }
   }
