@@ -71,7 +71,7 @@ export class RNBImporter {
         // const buildings: RNBBuildingData[] = []
         // 
         // for await (const row of csvStream) {
-        //   const buildingData = this.parseCSVRow(row, department)
+        //   const buildingData = this._parseCSVRow(row, department)
         //   if (buildingData) {
         //     buildings.push(buildingData)
         //     
@@ -152,8 +152,9 @@ export class RNBImporter {
   /**
    * Parse une ligne CSV RNB en RNBBuildingData
    * À adapter selon le format réel du CSV RNB
+   * Réservé pour usage futur lors de l'implémentation du parsing CSV
    */
-  private parseCSVRow(row: any, department: string): RNBBuildingData | null {
+  private _parseCSVRow(row: any, department: string): RNBBuildingData | null {
     try {
       // Exemple de structure (à adapter selon le format réel du CSV RNB)
       return {
