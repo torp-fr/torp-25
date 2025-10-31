@@ -22,9 +22,19 @@ ALTER TABLE "building_profiles"
 
 -- ÉTAPE 3: CRÉATION DE LA CONTRAINTE UNIQUE
 -- Une seule carte PROPRIETAIRE par combinaison (parcelle + section + lot)
+-- Note: Utilisation de COALESCE pour gérer les valeurs NULL du lot_number
 DO $$ BEGIN
-  CREATE UNIQUE INDEX IF NOT EXISTS "building_profiles_unique_proprietaire_per_bien_idx"
-  ON "building_profiles" ("parcelle_number", "section_cadastrale", "lot_number", "role")
+  -- Supprimer l'index s'il existe déjà
+  DROP INDEX IF EXISTS "building_profiles_unique_proprietaire_per_bien_idx";
+  
+  -- Créer l'index unique partiel
+  CREATE UNIQUE INDEX "building_profiles_unique_proprietaire_per_bien_idx"
+  ON "building_profiles" (
+    "parcelle_number", 
+    "section_cadastrale", 
+    COALESCE("lot_number", ''),
+    "role"
+  )
   WHERE "role" = 'PROPRIETAIRE'
     AND "parcelle_number" IS NOT NULL
     AND "section_cadastrale" IS NOT NULL;
