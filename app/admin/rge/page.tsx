@@ -11,10 +11,7 @@ import {
 } from '@/components/ui/card'
 import { Progress } from '@/components/ui/progress'
 import { Badge } from '@/components/ui/badge'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
 import {
-  Play,
   RefreshCw,
   XCircle,
   CheckCircle2,
@@ -51,140 +48,45 @@ interface RGEImportJob {
   updatedAt: string
 }
 
-interface DatasetResource {
-  id: string
-  title: string
-  format: string
-  url: string
-  filesize: number
-  last_modified: string
-}
-
 export default function RGEAdminPage() {
   const [stats, setStats] = useState<RGEStats | null>(null)
   const [jobs, setJobs] = useState<RGEImportJob[]>([])
-  const [resources, setResources] = useState<DatasetResource[]>([])
   const [loading, setLoading] = useState(true)
-  const [importing, setImporting] = useState(false)
-  const [selectedResourceUrl, setSelectedResourceUrl] = useState<string>('')
-  const [maxRows, setMaxRows] = useState<string>('')
-  const [batchSize, setBatchSize] = useState<string>('1000')
   const [error, setError] = useState<string | null>(null)
-  const [success, setSuccess] = useState<string | null>(null)
 
   // Charger les données
   const loadData = useCallback(async () => {
     try {
       setLoading(true)
+      setError(null)
       const response = await fetch('/api/rge/import?allJobs=true')
       const data = await response.json()
 
       if (data.success) {
         setStats(data.data.stats)
-        // Utiliser jobs au lieu de activeJobs pour avoir tous les jobs
         setJobs(data.data.jobs || data.data.activeJobs || [])
-      }
-
-      // Charger les ressources disponibles
-      const rgeResponse = await fetch('/api/rge?resources=true')
-      if (rgeResponse.ok) {
-        const rgeData = await rgeResponse.json()
-        if (rgeData.resources) {
-          setResources(rgeData.resources)
-          if (rgeData.resources.length > 0 && !selectedResourceUrl) {
-            setSelectedResourceUrl(rgeData.resources[0].url)
-          }
-        }
+      } else {
+        setError(data.error || 'Erreur lors du chargement des statistiques')
       }
     } catch (err: any) {
-      console.error('Erreur chargement données:', err)
-      setError(err.message || 'Erreur de chargement')
+      console.error('[Admin RGE] Erreur chargement données:', err)
+      setError(err.message || 'Erreur de connexion')
     } finally {
       setLoading(false)
     }
-  }, [selectedResourceUrl])
+  }, [])
 
-  // Charger au montage et toutes les 5 secondes si des jobs sont actifs
+  // Charger au montage et actualiser périodiquement
   useEffect(() => {
     loadData()
     
+    // Actualiser toutes les 30 secondes pour mettre à jour les stats
     const interval = setInterval(() => {
-      const hasActiveJobs = jobs.some(
-        (job) => job.status === 'PENDING' || job.status === 'IN_PROGRESS'
-      )
-      if (hasActiveJobs || jobs.length === 0) {
-        loadData()
-      }
-    }, 5000)
+      loadData()
+    }, 30000)
 
     return () => clearInterval(interval)
-  }, [loadData, jobs.length])
-
-  // Lancer un import
-  const handleImport = async () => {
-    setImporting(true)
-    setError(null)
-    setSuccess(null)
-
-    try {
-      const body: any = {
-        autoDetect: !selectedResourceUrl,
-      }
-
-      if (selectedResourceUrl) {
-        body.resourceUrl = selectedResourceUrl
-      }
-
-      if (maxRows) {
-        body.maxRows = parseInt(maxRows)
-      }
-
-      if (batchSize) {
-        body.batchSize = parseInt(batchSize)
-      }
-
-      const response = await fetch('/api/rge/import', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(body),
-      })
-
-      const data = await response.json()
-
-      if (response.ok) {
-        setSuccess('Import démarré avec succès!')
-        setTimeout(() => {
-          loadData()
-        }, 2000)
-      } else {
-        const errorMessage = data.error || data.details || 'Erreur lors du démarrage de l\'import'
-        setError(errorMessage)
-        
-        // Log supplémentaire pour debug
-        console.error('[Admin RGE] Erreur import:', {
-          error: data.error,
-          details: data.details,
-          fullResponse: data,
-        })
-      }
-    } catch (err: any) {
-      console.error('[Admin RGE] Erreur technique:', err)
-      setError(err.message || 'Erreur de connexion. Vérifiez votre connexion internet et réessayez.')
-    } finally {
-      setImporting(false)
-    }
-  }
-
-  // Format bytes
-  const formatBytes = (bytes: number) => {
-    if (bytes === 0) return '0 Bytes'
-    const k = 1024
-    const sizes = ['Bytes', 'KB', 'MB', 'GB']
-    const i = Math.floor(Math.log(bytes) / Math.log(k))
-    return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i]
-  }
+  }, [loadData])
 
   // Format date
   const formatDate = (dateString?: string) => {
@@ -236,7 +138,7 @@ export default function RGEAdminPage() {
               🏅 Administration RGE
             </h1>
             <p className="text-gray-600 mt-1">
-              Gestion de l'indexation des certifications RGE
+              Monitoring et statistiques de l&apos;index RGE
             </p>
           </div>
           <Button onClick={loadData} variant="outline" size="lg">
@@ -244,6 +146,43 @@ export default function RGEAdminPage() {
             Actualiser
           </Button>
         </div>
+
+        {/* Info Box */}
+        <Card className="bg-blue-50 border-blue-200">
+          <CardHeader>
+            <CardTitle className="text-blue-900">ℹ️ Fonctionnement automatique</CardTitle>
+            <CardDescription className="text-blue-700">
+              L&apos;index RGE se construit automatiquement lors de l&apos;analyse de devis
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ul className="list-disc list-inside space-y-2 text-sm text-blue-800">
+              <li>Chaque SIRET analysé dans un devis déclenche une recherche RGE</li>
+              <li>Les certifications trouvées sont <strong>automatiquement indexées</strong> dans la base locale</li>
+              <li>L&apos;index grandit progressivement avec chaque nouvelle analyse</li>
+              <li>Les recherches futures utilisent l&apos;index local (plus rapide que l&apos;API)</li>
+            </ul>
+            
+            <div className="mt-4 pt-4 border-t border-blue-300">
+              <p className="font-medium text-blue-900 mb-1">💡 Astuce :</p>
+              <p className="text-sm text-blue-700">
+                Pour enrichir l&apos;index plus rapidement, analysez des devis contenant différents SIRET d&apos;entreprises du bâtiment.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Error Message */}
+        {error && (
+          <Card className="bg-red-50 border-red-200">
+            <CardHeader>
+              <CardTitle className="text-red-900">❌ Erreur</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-red-800">{error}</p>
+            </CardContent>
+          </Card>
+        )}
 
         {/* KPI Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -312,152 +251,27 @@ export default function RGEAdminPage() {
           </Card>
         </div>
 
-        {/* Import Section */}
-        <Card>
-          <CardHeader>
-            <CardTitle>🚀 Lancer un Import</CardTitle>
-            <CardDescription>
-              Importe les certifications RGE depuis data.gouv.fr (si fichiers disponibles) ou depuis l&apos;API ADEME
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="resource">Ressource</Label>
-                <select
-                  id="resource"
-                  className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                  value={selectedResourceUrl}
-                  onChange={(e) => setSelectedResourceUrl(e.target.value)}
-                >
-                  <option value="">Auto-détection (recommandé)</option>
-                  {resources.map((res) => (
-                    <option key={res.id} value={res.url}>
-                      {res.title} ({res.format.toUpperCase()},{' '}
-                      {formatBytes(res.filesize)})
-                    </option>
-                  ))}
-                </select>
-              </div>
+        {/* Empty State */}
+        {stats && stats.total === 0 && (
+          <Card className="bg-yellow-50 border-yellow-200">
+            <CardHeader>
+              <CardTitle className="text-yellow-900">📝 Index vide</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-yellow-800 text-sm">
+                L&apos;index RGE est actuellement vide. Il se remplira automatiquement lors des prochaines analyses de devis contenant des SIRET d&apos;entreprises.
+              </p>
+            </CardContent>
+          </Card>
+        )}
 
-              <div className="space-y-2">
-                <Label htmlFor="maxRows">Lignes max (optionnel)</Label>
-                <Input
-                  id="maxRows"
-                  type="number"
-                  placeholder="Laisser vide pour import complet"
-                  value={maxRows}
-                  onChange={(e) => setMaxRows(e.target.value)}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="batchSize">Taille batch</Label>
-                <Input
-                  id="batchSize"
-                  type="number"
-                  value={batchSize}
-                  onChange={(e) => setBatchSize(e.target.value)}
-                />
-              </div>
-            </div>
-
-            {error && (
-              <div className="p-4 bg-red-50 border border-red-200 rounded-md space-y-3">
-                <div>
-                  <p className="text-red-800 font-semibold">❌ Erreur</p>
-                  <p className="text-red-600">{error}</p>
-                </div>
-                
-                {(error.includes('Aucune ressource disponible') || error.includes('Aucune ressource CSV/JSON')) && (
-                  <div className="mt-3 p-4 bg-blue-50 border border-blue-200 rounded-md">
-                    <p className="font-semibold text-blue-900 mb-2">💡 Situation actuelle :</p>
-                    <p className="text-blue-800 text-sm mb-3">
-                      Le dataset RGE sur data.gouv.fr (<strong>ID: 62bd63b70ff1edf452b83a6b</strong>) ne contient pas de fichiers CSV/JSON directement téléchargeables. 
-                      Il référence uniquement des liens vers l&apos;API ADEME.
-                    </p>
-                    
-                    <div className="space-y-2 text-sm text-blue-700">
-                      <p className="font-medium">📌 Comment fonctionne actuellement TORP :</p>
-                      <ul className="list-disc list-inside space-y-1 ml-2">
-                        <li>Les certifications RGE sont recherchées <strong>à la demande</strong> lors de l&apos;analyse de devis</li>
-                        <li>Chaque certification trouvée est <strong>automatiquement indexée</strong> dans la base locale</li>
-                        <li>L&apos;index se construit progressivement avec chaque analyse</li>
-                      </ul>
-                      
-                      <p className="font-medium mt-3">🚀 Pour accélérer l&apos;indexation :</p>
-                      <ul className="list-disc list-inside space-y-1 ml-2">
-                        <li>Analyser plusieurs devis contenant des SIRET différents</li>
-                        <li>Chaque nouvelle certification est ajoutée à l&apos;index automatiquement</li>
-                        <li>Les recherches futures utiliseront l&apos;index local (plus rapide)</li>
-                      </ul>
-                      
-                      <div className="mt-3 pt-3 border-t border-blue-300">
-                        <p className="font-medium text-blue-900">🔗 Ressources :</p>
-                        <ul className="list-disc list-inside space-y-1 ml-2">
-                          <li>
-                            <a 
-                              href="https://data.ademe.fr/datasets/liste-des-entreprises-rge-2" 
-                              target="_blank" 
-                              rel="noopener noreferrer" 
-                              className="underline hover:text-blue-900"
-                            >
-                              API ADEME - Liste des entreprises RGE
-                            </a>
-                          </li>
-                          <li>
-                            <a 
-                              href="https://www.data.gouv.fr/fr/datasets/liste-des-entreprises-rge/" 
-                              target="_blank" 
-                              rel="noopener noreferrer" 
-                              className="underline hover:text-blue-900"
-                            >
-                              Dataset data.gouv.fr
-                            </a>
-                          </li>
-                        </ul>
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {success && (
-              <div className="p-4 bg-green-50 border border-green-200 rounded-md">
-                <p className="text-green-800 font-semibold">✅ Succès</p>
-                <p className="text-green-600">{success}</p>
-              </div>
-            )}
-
-            <Button
-              onClick={handleImport}
-              disabled={importing || loading}
-              className="w-full"
-              size="lg"
-            >
-              {importing ? (
-                <>
-                  <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                  Import en cours...
-                </>
-              ) : (
-                <>
-                  <Play className="h-4 w-4 mr-2" />
-                  Lancer l'Import
-                </>
-              )}
-            </Button>
-          </CardContent>
-        </Card>
-
-        {/* Jobs List */}
+        {/* Jobs List (historique uniquement) */}
         {jobs.length > 0 && (
           <Card>
             <CardHeader>
-              <CardTitle>📋 Jobs d'Import</CardTitle>
+              <CardTitle>📋 Historique des Imports</CardTitle>
               <CardDescription>
-                Liste des imports en cours et terminés
+                Liste des imports effectués (système automatique)
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -472,7 +286,7 @@ export default function RGEAdminPage() {
                         {getStatusBadge(job.status)}
                         <div>
                           <p className="font-semibold">
-                            {job.resourceTitle || 'Import RGE'}
+                            {job.resourceTitle || 'Import automatique'}
                           </p>
                           <p className="text-sm text-gray-500">
                             {job.resourceFormat?.toUpperCase() || 'AUTO'} •{' '}
@@ -527,7 +341,7 @@ export default function RGEAdminPage() {
         )}
 
         {/* Statistics */}
-        {stats && (
+        {stats && stats.total > 0 && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Top Departments */}
             <Card>
@@ -626,4 +440,3 @@ export default function RGEAdminPage() {
     </div>
   )
 }
-
