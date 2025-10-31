@@ -430,7 +430,6 @@ function inferTradeType(rawText: string): string {
  * Inférer le type de projet depuis les données extraites
  */
 function inferProjectType(extractedData: any): string {
-  const text = JSON.stringify(extractedData).toLowerCase()
   const projectTitle = extractedData.project?.title?.toLowerCase() || ''
   const projectDesc = extractedData.project?.description?.toLowerCase() || ''
 
