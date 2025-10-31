@@ -7,6 +7,7 @@
  */
 
 import { ApiClient } from './api-client'
+import { RGEService } from '../external-apis/rge-service'
 
 export interface CertificationData {
   type: 'RGE' | 'Qualibat' | 'Capeb' | 'FFB' | 'other'
@@ -28,6 +29,7 @@ export interface CompanyCertifications {
 
 export class CertificationsEnrichmentService {
   private qualibatClient: ApiClient
+  private rgeService: RGEService
 
   constructor() {
     // Qualibat - API officielle (nécessite clé API)
@@ -37,6 +39,7 @@ export class CertificationsEnrichmentService {
       retries: 2,
       apiKey: process.env.QUALIBAT_API_KEY,
     })
+    this.rgeService = new RGEService()
   }
 
   /**
@@ -73,34 +76,29 @@ export class CertificationsEnrichmentService {
 
   /**
    * Récupère la certification RGE depuis data.gouv.fr
+   * Utilise maintenant le service RGE dédié
    */
-  private async getRGECertification(_siret: string): Promise<CertificationData | null> {
+  private async getRGECertification(siret: string): Promise<CertificationData | null> {
     try {
-      // Dataset RGE sur data.gouv.fr
-      // Format : https://www.data.gouv.fr/fr/datasets/referentiel-entreprises-rge/
-      const response = await fetch(
-        `https://www.data.gouv.fr/api/1/datasets/referentiel-entreprises-rge/resources/`,
-        {
-          headers: { Accept: 'application/json' },
-        }
-      )
-
-      if (!response.ok) {
+      const rgeCert = await this.rgeService.getRGECertification(siret)
+      
+      if (!rgeCert || !rgeCert.isValid) {
         return null
       }
 
-      // Pour l'instant, retourner une structure basique
-      // En production, parser le CSV/JSON du référentiel RGE
-      // et chercher le SIRET dans les données
       return {
         type: 'RGE',
-        name: 'Reconnu Garant de l\'Environnement',
-        valid: true,
-        source: 'data.gouv.fr',
-        verifiedAt: new Date().toISOString(),
+        name: 'RGE (Reconnu Garant de l\'Environnement)',
+        number: rgeCert.certificationNumber,
+        valid: rgeCert.isValid,
+        expiryDate: rgeCert.expiryDate,
+        activities: rgeCert.activities.map(a => a.label),
+        level: rgeCert.activities.length > 0 ? 'CERTIFIED' : undefined,
+        source: rgeCert.source,
+        verifiedAt: rgeCert.verifiedAt,
       }
     } catch (error) {
-      console.warn('[CertificationsService] Erreur récupération RGE:', error)
+      console.error('[CertificationsService] Erreur récupération RGE:', error)
       return null
     }
   }
