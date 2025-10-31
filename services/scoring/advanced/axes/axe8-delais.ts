@@ -153,7 +153,7 @@ export class Axe8Delais {
    */
   private async scoreCoordinationMetiers(
     devis: Devis,
-    enrichmentData: ScoringEnrichmentData
+    _enrichmentData: ScoringEnrichmentData
   ): Promise<ControlPointScore> {
     let score = 0
     let justification = ''
