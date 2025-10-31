@@ -204,7 +204,7 @@ export class Axe1Conformite {
    */
   private async scoreRE2020(
     devis: Devis,
-    enrichmentData: ScoringEnrichmentData,
+    _enrichmentData: ScoringEnrichmentData,
     context: any
   ): Promise<ControlPointScore> {
     let score = 0
