@@ -214,7 +214,7 @@ export function UploadWizard({ onComplete, onCancel }: UploadWizardProps) {
   }
 
   // Génération de l'étude de faisabilité
-  const generateFeasibilityStudy = async (buildingData: any, projectType: string) => {
+  const generateFeasibilityStudy = async (_buildingData: any, projectType: string) => {
     try {
       setLoading(true)
       const response = await fetch('/api/external/feasibility', {
