@@ -27,7 +27,6 @@ import {
   Check,
   X,
 } from 'lucide-react'
-import { cn } from '@/lib/utils'
 
 const DEMO_USER_ID = 'demo-user-id'
 
@@ -44,7 +43,7 @@ export function UserProfileMenu() {
     email: 'demo@torp.fr',
     displayName: 'Utilisateur',
   })
-  const [loading, setLoading] = useState(true)
+  const [_loading, setLoading] = useState(true)
   const [isEditing, setIsEditing] = useState(false)
   const [editValue, setEditValue] = useState('')
 

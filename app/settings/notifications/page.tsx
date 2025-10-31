@@ -11,9 +11,6 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card'
-import {
-  DropdownMenuCheckboxItem,
-} from '@/components/ui/dropdown-menu'
 import { Bell, Save, Loader2 } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 
