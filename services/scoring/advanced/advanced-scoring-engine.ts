@@ -36,8 +36,8 @@ interface AxisConfig {
 
 export class AdvancedScoringEngine {
   private readonly version = '2.0.0'
-  private axesConfig: AxisConfig[]
-  private axeInstances: {
+  private axesConfig!: AxisConfig[]
+  private axeInstances!: {
     conformite: Axe1Conformite
     prix: Axe2Prix
     qualite: Axe3Qualite
