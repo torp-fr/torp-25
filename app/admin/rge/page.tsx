@@ -159,10 +159,19 @@ export default function RGEAdminPage() {
           loadData()
         }, 2000)
       } else {
-        setError(data.error || 'Erreur lors du démarrage de l\'import')
+        const errorMessage = data.error || data.details || 'Erreur lors du démarrage de l\'import'
+        setError(errorMessage)
+        
+        // Log supplémentaire pour debug
+        console.error('[Admin RGE] Erreur import:', {
+          error: data.error,
+          details: data.details,
+          fullResponse: data,
+        })
       }
     } catch (err: any) {
-      setError(err.message || 'Erreur de connexion')
+      console.error('[Admin RGE] Erreur technique:', err)
+      setError(err.message || 'Erreur de connexion. Vérifiez votre connexion internet et réessayez.')
     } finally {
       setImporting(false)
     }
@@ -308,7 +317,7 @@ export default function RGEAdminPage() {
           <CardHeader>
             <CardTitle>🚀 Lancer un Import</CardTitle>
             <CardDescription>
-              Télécharge et indexe les certifications RGE depuis data.gouv.fr
+              Importe les certifications RGE depuis data.gouv.fr (si fichiers disponibles) ou depuis l&apos;API ADEME
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
