@@ -57,9 +57,9 @@ export class Axe3Qualite {
    * 3.1 Solidité Financière (80 points)
    */
   private async calculateSoliditeFinanciere(
-    _devis: Devis,
+    devis: Devis,
     enrichmentData: ScoringEnrichmentData,
-    _context: any
+    context: any
   ): Promise<SubCriteriaScore> {
     const controlPointScores: ControlPointScore[] = []
     let totalScore = 0
