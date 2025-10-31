@@ -31,8 +31,6 @@ export class BANIndexer {
    */
   async searchAddress(query: string, limit = 10): Promise<AddressData[]> {
     try {
-      const normalizedQuery = this.normalizeQuery(query)
-      
       // Recherche multi-critères : code postal, ville, rue
       const addresses = await prisma.bANAddress.findMany({
         where: {
@@ -49,7 +47,7 @@ export class BANIndexer {
         },
       })
 
-      return addresses.map((addr) => this.mapToAddressData(addr))
+      return addresses.map((addr: any) => this.mapToAddressData(addr))
     } catch (error) {
       console.error('[BANIndexer] Erreur recherche adresse:', error)
       return []
@@ -94,7 +92,7 @@ export class BANIndexer {
         },
       })
 
-      return addresses.map((addr) => this.mapToAddressData(addr))
+      return addresses.map((addr: any) => this.mapToAddressData(addr))
     } catch (error) {
       console.error('[BANIndexer] Erreur recherche adresses:', error)
       return []
@@ -104,7 +102,7 @@ export class BANIndexer {
   /**
    * Géocodage inverse depuis l'index local
    */
-  async reverseGeocode(lat: number, lng: number, radiusMeters = 100): Promise<AddressData | null> {
+  async reverseGeocode(lat: number, _lng: number, _radiusMeters = 100): Promise<AddressData | null> {
     try {
       // TODO: Implémenter recherche géographique avec PostGIS si disponible
       // Pour l'instant, recherche approximative par coordonnées stockées
@@ -339,14 +337,15 @@ export class BANIndexer {
 
   /**
    * Normalise une requête de recherche
+   * Réservé pour usage futur (normalisation avancée)
    */
-  private normalizeQuery(query: string): string {
-    return query
-      .toLowerCase()
-      .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '')
-      .trim()
-  }
+  // private normalizeQuery(query: string): string {
+  //   return query
+  //     .toLowerCase()
+  //     .normalize('NFD')
+  //     .replace(/[\u0300-\u036f]/g, '')
+  //     .trim()
+  // }
 
   /**
    * Calcule un score de complétude
