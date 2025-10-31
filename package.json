@@ -18,6 +18,7 @@
     "db:diagnose": "tsx scripts/diagnose-migrations.ts",
     "db:quick-diagnose": "tsx scripts/quick-diagnose.ts",
     "db:fix-failed": "tsx scripts/fix-failed-migrations.ts",
+    "db:cleanup": "tsx scripts/railway-auto-cleanup.ts",
     "test": "vitest",
     "test:ui": "vitest --ui",
     "test:coverage": "vitest --coverage",
