@@ -211,7 +211,7 @@ export class Axe8Delais {
     totalScore += historique.score
 
     // Engagement Contractuel (10 points)
-    const engagement = await this.scoreEngagementContractuel(devis)
+    const engagement = await this.scoreEngagementContractuel(_devis)
     controlPointScores.push(engagement)
     totalScore += engagement.score
 
@@ -279,7 +279,7 @@ export class Axe8Delais {
     let score = 0
     let justification = ''
 
-    const text = JSON.stringify(devis.extractedData).toLowerCase()
+    const text = JSON.stringify(_devis.extractedData).toLowerCase()
 
     // Pénalités équilibrées (5 pts)
     const hasPenalties = text.includes('pénalité') ||
