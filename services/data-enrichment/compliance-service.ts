@@ -3,19 +3,12 @@
  * Utilise les bases de données publiques des normes BTP françaises
  */
 
-import { ApiClient } from './api-client'
 import type { ComplianceData } from './types'
 
 export class ComplianceEnrichmentService {
-  private dataGouvClient: ApiClient
-
   constructor() {
-    // API data.gouv.fr pour les normes et réglementations
-    this.dataGouvClient = new ApiClient({
-      baseUrl: 'https://www.data.gouv.fr/api/1',
-      timeout: 8000,
-      retries: 2,
-    })
+    // TODO: Intégrer API data.gouv.fr pour enrichir les données de conformité
+    // Pour l'instant, données statiques selon les normes BTP françaises
   }
 
   /**
