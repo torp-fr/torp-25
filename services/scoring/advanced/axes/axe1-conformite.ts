@@ -15,7 +15,7 @@ export class Axe1Conformite {
    */
   async calculate(
     devis: Devis,
-    _enrichmentData: ScoringEnrichmentData,
+    enrichmentData: ScoringEnrichmentData,
     context: { projectType: string; tradeType?: string; region: string }
   ): Promise<AxisScore> {
     const subCriteriaScores: SubCriteriaScore[] = []
@@ -54,7 +54,7 @@ export class Axe1Conformite {
    */
   private async calculateDTUStandards(
     devis: Devis,
-    _enrichmentData: ScoringEnrichmentData,
+    enrichmentData: ScoringEnrichmentData,
     context: any
   ): Promise<SubCriteriaScore> {
     const controlPointScores: ControlPointScore[] = []
@@ -88,7 +88,7 @@ export class Axe1Conformite {
    */
   private async scoreDTUSpecifiques(
     devis: Devis,
-    _enrichmentData: ScoringEnrichmentData,
+    enrichmentData: ScoringEnrichmentData,
     _context: any
   ): Promise<ControlPointScore> {
     let score = 0
@@ -154,7 +154,7 @@ export class Axe1Conformite {
    */
   private async scoreCertifications(
     devis: Devis,
-    _enrichmentData: ScoringEnrichmentData
+    enrichmentData: ScoringEnrichmentData
   ): Promise<ControlPointScore> {
     let score = 0
     let justification = ''
@@ -204,7 +204,7 @@ export class Axe1Conformite {
    */
   private async scoreRE2020(
     devis: Devis,
-    _enrichmentData: ScoringEnrichmentData,
+    enrichmentData: ScoringEnrichmentData,
     context: any
   ): Promise<ControlPointScore> {
     let score = 0
@@ -267,7 +267,7 @@ export class Axe1Conformite {
    */
   private async calculateQualifications(
     devis: Devis,
-    _enrichmentData: ScoringEnrichmentData,
+    enrichmentData: ScoringEnrichmentData,
     context: any
   ): Promise<SubCriteriaScore> {
     const controlPointScores: ControlPointScore[] = []
@@ -301,7 +301,7 @@ export class Axe1Conformite {
    */
   private async scoreQualificationsMetier(
     _devis: Devis,
-    _enrichmentData: ScoringEnrichmentData,
+    enrichmentData: ScoringEnrichmentData,
     context: any
   ): Promise<ControlPointScore> {
     let score = 0
@@ -360,7 +360,7 @@ export class Axe1Conformite {
    */
   private async scoreStatutJuridique(
     devis: Devis,
-    _enrichmentData: ScoringEnrichmentData
+    enrichmentData: ScoringEnrichmentData
   ): Promise<ControlPointScore> {
     let score = 0
     let justification = ''
@@ -414,7 +414,7 @@ export class Axe1Conformite {
    */
   private async scoreAssurances(
     devis: Devis,
-    _enrichmentData: ScoringEnrichmentData
+    enrichmentData: ScoringEnrichmentData
   ): Promise<ControlPointScore> {
     let score = 0
     let justification = ''
@@ -459,7 +459,7 @@ export class Axe1Conformite {
    */
   private async calculateSecuriteAccessibilite(
     devis: Devis,
-    _enrichmentData: ScoringEnrichmentData,
+    enrichmentData: ScoringEnrichmentData,
     context: any
   ): Promise<SubCriteriaScore> {
     const controlPointScores: ControlPointScore[] = []
@@ -493,7 +493,7 @@ export class Axe1Conformite {
    */
   private async scoreSecuriteIncendie(
     devis: Devis,
-    _enrichmentData: ScoringEnrichmentData,
+    enrichmentData: ScoringEnrichmentData,
     _context: any
   ): Promise<ControlPointScore> {
     let score = 0
@@ -540,7 +540,7 @@ export class Axe1Conformite {
    */
   private async scoreAccessibilitePMR(
     devis: Devis,
-    _enrichmentData: ScoringEnrichmentData,
+    enrichmentData: ScoringEnrichmentData,
     _context: any
   ): Promise<ControlPointScore> {
     let score = 0
@@ -588,7 +588,7 @@ export class Axe1Conformite {
    */
   private async scoreAcoustique(
     devis: Devis,
-    _enrichmentData: ScoringEnrichmentData
+    enrichmentData: ScoringEnrichmentData
   ): Promise<ControlPointScore> {
     let score = 0
     let justification = ''
