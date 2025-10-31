@@ -261,7 +261,6 @@ export class Axe2Prix {
     let justification = 'Aucune anomalie détectée. '
 
     const totalAmount = Number(devis.totalAmount) || 0
-    const items = (devis.extractedData as any)?.items || []
     const regionalData = enrichmentData.regionalData
 
     // Alertes prix aberrants (15 pts)
