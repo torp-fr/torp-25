@@ -9,9 +9,10 @@ export const dynamic = 'force-dynamic'
  */
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params
     const searchParams = request.nextUrl.searchParams
     const userId = searchParams.get('userId')
 
@@ -23,7 +24,7 @@ export async function POST(
     }
 
     const service = new BuildingProfileService()
-    const result = await service.refreshEnrichment(params.id, userId)
+    const result = await service.refreshEnrichment(id, userId)
 
     return NextResponse.json({
       success: true,

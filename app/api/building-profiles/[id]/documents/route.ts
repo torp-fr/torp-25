@@ -13,9 +13,10 @@ export const dynamic = 'force-dynamic'
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params
     const searchParams = request.nextUrl.searchParams
     const userId = searchParams.get('userId')
 
@@ -28,7 +29,7 @@ export async function GET(
 
     // Vérifier que le profil appartient à l'utilisateur
     const profile = await prisma.buildingProfile.findFirst({
-      where: { id: params.id, userId },
+      where: { id, userId },
     })
 
     if (!profile) {
@@ -39,7 +40,7 @@ export async function GET(
     }
 
     const documents = await prisma.buildingDocument.findMany({
-      where: { buildingProfileId: params.id },
+      where: { buildingProfileId: id },
       orderBy: { createdAt: 'desc' },
     })
 
@@ -62,9 +63,10 @@ export async function GET(
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params
     const searchParams = request.nextUrl.searchParams
     const userId = searchParams.get('userId')
 
@@ -77,7 +79,7 @@ export async function POST(
 
     // Vérifier que le profil appartient à l'utilisateur
     const profile = await prisma.buildingProfile.findFirst({
-      where: { id: params.id, userId },
+      where: { id, userId },
     })
 
     if (!profile) {
@@ -113,7 +115,7 @@ export async function POST(
     const uploadResult = await documentUploadService.upload({
       userId,
       file,
-      folder: `building-documents/${params.id}`,
+      folder: `building-documents/${id}`,
     })
 
     const fileUrl = uploadResult.fileUrl
@@ -121,7 +123,7 @@ export async function POST(
     // Créer l'enregistrement dans la base de données
     const document = await prisma.buildingDocument.create({
       data: {
-        buildingProfileId: params.id,
+        buildingProfileId: id,
         userId,
         fileName: file.name,
         fileType: file.type,

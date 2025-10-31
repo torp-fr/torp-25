@@ -99,7 +99,7 @@ const DOCUMENT_TYPES = [
 export default function BuildingDetailPage() {
   const params = useParams()
   const router = useRouter()
-  const profileId = params.id as string
+  const profileId = Array.isArray(params.id) ? params.id[0] : params.id
 
   const [profile, setProfile] = useState<BuildingProfile | null>(null)
   const [loading, setLoading] = useState(true)

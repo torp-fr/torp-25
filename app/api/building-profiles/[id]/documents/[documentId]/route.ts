@@ -16,9 +16,10 @@ export const dynamic = 'force-dynamic'
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string; documentId: string } }
+  { params }: { params: Promise<{ id: string; documentId: string }> }
 ) {
   try {
+    const { id, documentId } = await params
     const searchParams = request.nextUrl.searchParams
     const userId = searchParams.get('userId')
 
@@ -31,8 +32,8 @@ export async function GET(
 
     const document = await prisma.buildingDocument.findFirst({
       where: {
-        id: params.documentId,
-        buildingProfileId: params.id,
+        id: documentId,
+        buildingProfileId: id,
         userId,
       },
     })
@@ -62,9 +63,10 @@ export async function GET(
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string; documentId: string } }
+  { params }: { params: Promise<{ id: string; documentId: string }> }
 ) {
   try {
+    const { id, documentId } = await params
     const searchParams = request.nextUrl.searchParams
     const userId = searchParams.get('userId')
 
@@ -88,8 +90,8 @@ export async function PATCH(
 
     const document = await prisma.buildingDocument.findFirst({
       where: {
-        id: params.documentId,
-        buildingProfileId: params.id,
+        id: documentId,
+        buildingProfileId: id,
         userId,
       },
     })
@@ -102,7 +104,7 @@ export async function PATCH(
     }
 
     const updatedDocument = await prisma.buildingDocument.update({
-      where: { id: params.documentId },
+      where: { id: documentId },
       data: {
         ...(documentType && { documentType: documentType as any }),
         ...(documentCategory !== undefined && { documentCategory }),
@@ -132,9 +134,10 @@ export async function PATCH(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string; documentId: string } }
+  { params }: { params: Promise<{ id: string; documentId: string }> }
 ) {
   try {
+    const { id, documentId } = await params
     const searchParams = request.nextUrl.searchParams
     const userId = searchParams.get('userId')
 
@@ -147,8 +150,8 @@ export async function DELETE(
 
     const document = await prisma.buildingDocument.findFirst({
       where: {
-        id: params.documentId,
-        buildingProfileId: params.id,
+        id: documentId,
+        buildingProfileId: id,
         userId,
       },
     })
@@ -171,7 +174,7 @@ export async function DELETE(
 
     // Supprimer l'enregistrement en base
     await prisma.buildingDocument.delete({
-      where: { id: params.documentId },
+      where: { id: documentId },
     })
 
     return NextResponse.json({

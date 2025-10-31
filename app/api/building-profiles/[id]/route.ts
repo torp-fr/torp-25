@@ -15,9 +15,10 @@ export const dynamic = 'force-dynamic'
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params
     const searchParams = request.nextUrl.searchParams
     const userId = searchParams.get('userId')
 
@@ -29,7 +30,7 @@ export async function GET(
     }
 
     const service = new BuildingProfileService()
-    const profile = await service.getProfileById(params.id, userId)
+    const profile = await service.getProfileById(id, userId)
 
     return NextResponse.json({
       success: true,
@@ -49,9 +50,10 @@ export async function GET(
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params
     const body = await request.json()
     const searchParams = request.nextUrl.searchParams
     const userId = searchParams.get('userId')
@@ -64,7 +66,7 @@ export async function PATCH(
     }
 
     const service = new BuildingProfileService()
-    const profile = await service.updateProfile(params.id, userId, body)
+    const profile = await service.updateProfile(id, userId, body)
 
     return NextResponse.json({
       success: true,
@@ -84,9 +86,10 @@ export async function PATCH(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params
     const searchParams = request.nextUrl.searchParams
     const userId = searchParams.get('userId')
 
@@ -98,7 +101,7 @@ export async function DELETE(
     }
 
     const service = new BuildingProfileService()
-    await service.deleteProfile(params.id, userId)
+    await service.deleteProfile(id, userId)
 
     return NextResponse.json({
       success: true,
