@@ -46,38 +46,78 @@ export class RNBService {
 
   /**
    * Récupère les données RNB pour une adresse donnée
+   * Essaie d'abord l'index local, sinon lance un appel ponctuel
    * @param address - Adresse complète avec code postal
    */
   async getBuildingData(address: AddressData): Promise<RNBBuildingData | null> {
     try {
-      // 1. Extraire le département depuis le code postal
+      // 1. Essayer de récupérer depuis l'index local
+      const { RNBIndexer } = await import('./rnb-indexer')
+      const indexer = new RNBIndexer()
+      
+      const indexedData = await indexer.searchBuilding(
+        address.postalCode.substring(0, 5), // Code INSEE approximatif
+        address.formatted,
+        address.coordinates
+      )
+
+      if (indexedData) {
+        console.log('[RNBService] Données récupérées depuis l\'index local')
+        return indexedData
+      }
+
+      // 2. Si pas dans l'index, récupérer les métadonnées et proposer l'indexation
       const department = this.extractDepartment(address.postalCode)
       if (!department) {
         console.warn('[RNBService] Impossible d\'extraire le département depuis:', address.postalCode)
         return null
       }
 
-      // 2. Récupérer la ressource RNB pour ce département
       const resource = await this.getDepartmentResource(department)
       if (!resource) {
         console.warn('[RNBService] Aucune ressource RNB trouvée pour le département:', department)
         return null
       }
 
-      // 3. Pour l'instant, on retourne une structure basique avec les métadonnées
-      // TODO: Implémenter le parsing du CSV/JSON une fois téléchargé et indexé
-      // Les fichiers CSV sont volumineux (50-200MB), nécessitent un système de cache/index
-      
+      // 3. Retourner les métadonnées avec indication que l'indexation est nécessaire
       return {
-        id: `rnb-${department}-${Date.now()}`,
+        id: `rnb-${department}-metadata`,
         commune: address.city,
         codeINSEE: address.postalCode,
-        sources: ['RNB data.gouv.fr'],
+        sources: ['RNB data.gouv.fr (métadonnées)'],
         lastUpdated: resource.lastModified,
       }
     } catch (error) {
       console.error('[RNBService] Erreur récupération données RNB:', error)
       return null
+    }
+  }
+
+  /**
+   * Lance l'indexation progressive d'un département
+   */
+  async startIndexation(department: string): Promise<{ success: boolean; jobId?: string }> {
+    try {
+      const resource = await this.getDepartmentResource(department)
+      if (!resource) {
+        return { success: false }
+      }
+
+      const { RNBIndexer } = await import('./rnb-indexer')
+      const indexer = new RNBIndexer()
+      
+      const progress = await indexer.indexDepartment(
+        department,
+        resource.url,
+        resource.id
+      )
+
+      return {
+        success: progress.status !== 'failed',
+      }
+    } catch (error) {
+      console.error('[RNBService] Erreur démarrage indexation:', error)
+      return { success: false }
     }
   }
 

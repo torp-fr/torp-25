@@ -432,3 +432,73 @@ model ExternalDataCache {
   @@index([expiresAt])
   @@map("external_data_cache")
 }
+
+// ============================================================================
+// RNB (Référentiel National des Bâtiments) Models
+// ============================================================================
+
+model RNBBuilding {
+  id          String  @id @default(uuid())
+  rnbId       String? @unique @map("rnb_id") // Identifiant RNB original
+  department  String // Code département (01-95, 971-978)
+  codeINSEE   String? @map("code_insee")
+  commune     String?
+  address     String?
+  postalCode  String? @map("postal_code")
+  coordinates Json? // {lat, lng}
+
+  // Données bâti
+  constructionYear Int?    @map("construction_year")
+  buildingType     String? @map("building_type")
+  surface          Float? // Surface en m²
+
+  // Données énergétiques
+  dpeClass          String?   @map("dpe_class") // A-G, N/A
+  dpeDate           DateTime? @map("dpe_date")
+  energyConsumption Float?    @map("energy_consumption") // kWh/m²/an
+  ghgEmissions      Float?    @map("ghg_emissions") // kg CO2/m²/an
+  hvd               Boolean   @default(false) // Haute Valeur Déterminante
+
+  // Métadonnées
+  sourceUrl   String?  @map("source_url")
+  indexedAt   DateTime @default(now()) @map("indexed_at")
+  lastUpdated DateTime @updatedAt @map("last_updated")
+
+  @@index([department])
+  @@index([codeINSEE])
+  @@index([postalCode])
+  @@index([dpeClass])
+  @@index([indexedAt])
+  @@map("rnb_buildings")
+}
+
+model RNBImportJob {
+  id            String          @id @default(uuid())
+  department    String // Code département
+  resourceId    String?         @map("resource_id") // ID ressource data.gouv.fr
+  resourceUrl   String          @map("resource_url")
+  status        RNBImportStatus @default(PENDING)
+  progress      Float           @default(0) // 0-100
+  totalRows     Int?            @map("total_rows")
+  processedRows Int             @default(0) @map("processed_rows")
+  errorMessage  String?         @map("error_message")
+  startedAt     DateTime?       @map("started_at")
+  completedAt   DateTime?       @map("completed_at")
+  createdAt     DateTime        @default(now()) @map("created_at")
+  updatedAt     DateTime        @updatedAt @map("updated_at")
+
+  @@index([department])
+  @@index([status])
+  @@index([createdAt])
+  @@map("rnb_import_jobs")
+}
+
+enum RNBImportStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  FAILED
+  CANCELLED
+
+  @@map("rnb_import_status")
+}

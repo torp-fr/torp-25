@@ -14,6 +14,7 @@
     "check-errors": "tsx scripts/check-all-errors.ts",
     "validate": "npm run typecheck && npm run check-errors",
     "test:scoring": "tsx scripts/test-scoring-system.ts",
+    "index-rnb": "tsx scripts/index-rnb.ts",
     "test": "vitest",
     "test:ui": "vitest --ui",
     "test:coverage": "vitest --coverage",
