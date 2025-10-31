@@ -154,7 +154,7 @@ export class Axe1Conformite {
    */
   private async scoreCertifications(
     devis: Devis,
-    enrichmentData: ScoringEnrichmentData
+    _enrichmentData: ScoringEnrichmentData
   ): Promise<ControlPointScore> {
     let score = 0
     let justification = ''
