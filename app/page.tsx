@@ -43,7 +43,7 @@ export default function HomePage() {
       setShowB2BMessage(true)
       setTimeout(() => setShowB2BMessage(false), 3000)
     } else if (profile === 'admin') {
-      router.push('/admin/rge')
+      router.push('/admin')
     }
   }
 

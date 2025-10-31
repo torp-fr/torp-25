@@ -21,17 +21,18 @@ import {
   MapPin,
   BarChart3,
   PieChart,
+  Settings,
 } from 'lucide-react'
 import { AppHeader } from '@/components/app-header'
 
-interface RGEStats {
+interface CertificationStats {
   total: number
   valid: number
   expired: number
   byDepartment: Record<string, number>
 }
 
-interface RGEImportJob {
+interface ImportJob {
   id: string
   resourceId?: string
   resourceUrl: string
@@ -48,9 +49,9 @@ interface RGEImportJob {
   updatedAt: string
 }
 
-export default function RGEAdminPage() {
-  const [stats, setStats] = useState<RGEStats | null>(null)
-  const [jobs, setJobs] = useState<RGEImportJob[]>([])
+export default function AdminPage() {
+  const [stats, setStats] = useState<CertificationStats | null>(null)
+  const [jobs, setJobs] = useState<ImportJob[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -69,7 +70,7 @@ export default function RGEAdminPage() {
         setError(data.error || 'Erreur lors du chargement des statistiques')
       }
     } catch (err: any) {
-      console.error('[Admin RGE] Erreur chargement données:', err)
+      console.error('[Admin] Erreur chargement données:', err)
       setError(err.message || 'Erreur de connexion')
     } finally {
       setLoading(false)
@@ -135,10 +136,10 @@ export default function RGEAdminPage() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold text-gray-900">
-              🏅 Administration RGE
+              ⚙️ Administration TORP
             </h1>
             <p className="text-gray-600 mt-1">
-              Monitoring et statistiques de l&apos;index RGE
+              Tableau de bord et monitoring de la plateforme
             </p>
           </div>
           <Button onClick={loadData} variant="outline" size="lg">
@@ -150,25 +151,18 @@ export default function RGEAdminPage() {
         {/* Info Box */}
         <Card className="bg-blue-50 border-blue-200">
           <CardHeader>
-            <CardTitle className="text-blue-900">ℹ️ Fonctionnement automatique</CardTitle>
+            <CardTitle className="text-blue-900">ℹ️ Indexation automatique</CardTitle>
             <CardDescription className="text-blue-700">
-              L&apos;index RGE se construit automatiquement lors de l&apos;analyse de devis
+              Les données sont indexées automatiquement lors de l&apos;analyse de devis
             </CardDescription>
           </CardHeader>
           <CardContent>
             <ul className="list-disc list-inside space-y-2 text-sm text-blue-800">
-              <li>Chaque SIRET analysé dans un devis déclenche une recherche RGE</li>
-              <li>Les certifications trouvées sont <strong>automatiquement indexées</strong> dans la base locale</li>
+              <li>Chaque SIRET analysé dans un devis déclenche une recherche de certification</li>
+              <li>Les données trouvées sont <strong>automatiquement indexées</strong> dans la base locale</li>
               <li>L&apos;index grandit progressivement avec chaque nouvelle analyse</li>
               <li>Les recherches futures utilisent l&apos;index local (plus rapide que l&apos;API)</li>
             </ul>
-            
-            <div className="mt-4 pt-4 border-t border-blue-300">
-              <p className="font-medium text-blue-900 mb-1">💡 Astuce :</p>
-              <p className="text-sm text-blue-700">
-                Pour enrichir l&apos;index plus rapidement, analysez des devis contenant différents SIRET d&apos;entreprises du bâtiment.
-              </p>
-            </div>
           </CardContent>
         </Card>
 
@@ -259,7 +253,7 @@ export default function RGEAdminPage() {
             </CardHeader>
             <CardContent>
               <p className="text-yellow-800 text-sm">
-                L&apos;index RGE est actuellement vide. Il se remplira automatiquement lors des prochaines analyses de devis contenant des SIRET d&apos;entreprises.
+                L&apos;index est actuellement vide. Il se remplira automatiquement lors des prochaines analyses de devis contenant des SIRET d&apos;entreprises.
               </p>
             </CardContent>
           </Card>
@@ -440,3 +434,4 @@ export default function RGEAdminPage() {
     </div>
   )
 }
+
