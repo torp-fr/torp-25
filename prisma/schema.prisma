@@ -38,6 +38,8 @@ model User {
   chatMessages            ChatMessage[]
   complementaryDocuments  ComplementaryDocument[]
   recommendationFeedbacks RecommendationFeedback[]
+  buildingProfiles        BuildingProfile[]
+  buildingDocuments       BuildingDocument[]
 
   @@index([email])
   @@map("users")
@@ -574,4 +576,115 @@ enum BANImportStatus {
   CANCELLED
 
   @@map("ban_import_status")
+}
+
+// ============================================================================
+// Building Profile Models (Carte d'identité du logement)
+// ============================================================================
+
+model BuildingProfile {
+  id        String   @id @default(uuid())
+  userId   String   @map("user_id")
+  name     String? // Nom personnalisé (ex: "Maison principale", "Résidence secondaire")
+  
+  // Adresse et localisation
+  address  Json     // Données complètes d'adresse (AddressData)
+  coordinates Json? // {lat, lng}
+  
+  // Données cadastrales
+  cadastralData Json? @map("cadastral_data") // Données complètes cadastrales
+  parcelleNumber String? @map("parcelle_number") // Numéro parcelle
+  sectionCadastrale String? @map("section_cadastrale")
+  codeINSEE String? @map("code_insee")
+  
+  // Données enrichies automatiquement
+  enrichedData Json? @map("enriched_data") // AggregatedBuildingData
+  pluData      Json? @map("plu_data")
+  rnbData      Json? @map("rnb_data")
+  dpeData      Json? @map("dpe_data")
+  urbanismData Json? @map("urbanism_data")
+  
+  // Métadonnées enrichissement
+  enrichmentStatus String @default("pending") @map("enrichment_status") // pending, in_progress, completed, failed
+  enrichmentSources String[] @map("enrichment_sources") // Liste des sources utilisées
+  enrichmentErrors Json? @map("enrichment_errors")
+  lastEnrichedAt DateTime? @map("last_enriched_at")
+  
+  // Données complémentaires utilisateur
+  customFields Json? @map("custom_fields") // Champs personnalisables par l'utilisateur
+  notes       String? // Notes libres
+  
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  user              User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  buildingDocuments BuildingDocument[]
+
+  @@index([userId])
+  @@index([codeINSEE])
+  @@index([parcelleNumber])
+  @@map("building_profiles")
+}
+
+enum BuildingDocumentType {
+  TITLE_DEED         // Titre de propriété
+  INSURANCE_HOME     // Assurance habitation
+  INSURANCE_LIFE     // Assurance vie
+  PROPERTY_TAX       // Taxe foncière
+  NOTARY_ACT         // Acte notarié
+  CONSTRUCTION_PERMIT // Permis de construire
+  DPE_CERTIFICATE    // Certificat DPE
+  TECHNICAL_REPORT   // Rapport technique
+  WARRANTY           // Garantie
+  MAINTENANCE_LOG    // Carnet d'entretien
+  ENERGY_CERTIFICATE // Certificat énergétique
+  RGE_CERTIFICATE    // Certificat RGE
+  OTHER               // Autre
+
+  @@map("building_document_type")
+}
+
+model BuildingDocument {
+  id               String                @id @default(uuid())
+  buildingProfileId String                @map("building_profile_id")
+  userId           String                 @map("user_id")
+  
+  // Métadonnées fichier
+  fileName         String                 @map("file_name")
+  fileType         String                 @map("file_type")
+  fileSize         Int                    @map("file_size")
+  fileUrl          String                 @map("file_url")
+  
+  // Classification
+  documentType     BuildingDocumentType   @map("document_type")
+  documentCategory String?                @map("document_category") // Propriété, Assurance, Fiscalité, etc.
+  description      String?                // Description libre
+  
+  // Métadonnées extraites (OCR)
+  extractedData    Json?                  @map("extracted_data")
+  ocrStatus        DocumentStatus         @default(PENDING) @map("ocr_status")
+  ocrData          Json?                  @map("ocr_data")
+  
+  // Validation et tags
+  isValidated      Boolean                @default(false) @map("is_validated")
+  tags             String[]               // Tags personnalisés
+  
+  // Dates importantes
+  documentDate     DateTime?              @map("document_date") // Date du document (ex: date échéance assurance)
+  expirationDate   DateTime?              @map("expiration_date") // Date d'expiration si applicable
+  
+  createdAt        DateTime               @default(now()) @map("created_at")
+  updatedAt        DateTime               @updatedAt @map("updated_at")
+
+  // Relations
+  user            User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  buildingProfile BuildingProfile @relation(fields: [buildingProfileId], references: [id], onDelete: Cascade)
+
+  @@index([buildingProfileId])
+  @@index([userId])
+  @@index([documentType])
+  @@index([documentDate])
+  @@index([expirationDate])
+  @@map("building_documents")
 }
