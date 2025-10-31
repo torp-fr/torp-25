@@ -108,14 +108,16 @@ export class RNBService {
       const { RNBIndexer } = await import('./rnb-indexer')
       const indexer = new RNBIndexer()
       
-      const progress = await indexer.indexDepartment(
+      // Créer un job d'import (l'import réel sera géré par RNBImporter)
+      const jobId = await indexer.createImportJob(
         department,
         resource.url,
         resource.id
       )
 
       return {
-        success: progress.status !== 'failed',
+        success: true,
+        jobId,
       }
     } catch (error) {
       console.error('[RNBService] Erreur démarrage indexation:', error)
