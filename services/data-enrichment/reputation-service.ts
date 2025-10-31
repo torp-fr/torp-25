@@ -41,16 +41,23 @@ export class ReputationEnrichmentService {
       // Si une API de réputation est configurée, l'utiliser
       if (process.env.REPUTATION_API_KEY) {
         try {
+          // Construire les paramètres uniquement avec les valeurs définies
+          const params: Record<string, string> = {
+            name: companyName,
+          }
+          if (address?.city) {
+            params.city = address.city
+          }
+          if (address?.postalCode) {
+            params.postalCode = address.postalCode
+          }
+
           const data = await this.apiClient.get<{
             rating: number
             reviews: number
             sources: string[]
             nps?: number
-          }>(`/reputation`, {
-            name: companyName,
-            city: address?.city,
-            postalCode: address?.postalCode,
-          })
+          }>(`/reputation`, params)
 
           return {
             averageRating: data.rating,
