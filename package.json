@@ -15,6 +15,8 @@
     "validate": "npm run typecheck && npm run check-errors",
     "test:scoring": "tsx scripts/test-scoring-system.ts",
     "index-rnb": "tsx scripts/index-rnb.ts",
+    "import-rge": "tsx scripts/import-rge.ts",
+    "import-rge:test": "tsx scripts/import-rge.ts --max-rows=1000",
     "db:diagnose": "tsx scripts/diagnose-migrations.ts",
     "db:quick-diagnose": "tsx scripts/quick-diagnose.ts",
     "db:fix-failed": "tsx scripts/fix-failed-migrations.ts",
