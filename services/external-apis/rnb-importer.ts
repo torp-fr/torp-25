@@ -71,7 +71,7 @@ export class RNBImporter {
         // const buildings: RNBBuildingData[] = []
         // 
         // for await (const row of csvStream) {
-        //   const buildingData = this._parseCSVRow(row, department)
+        //   const buildingData = this.parseCSVRow(row, department) // TODO: Réimplémenter parseCSVRow
         //   if (buildingData) {
         //     buildings.push(buildingData)
         //     
@@ -153,39 +153,37 @@ export class RNBImporter {
    * Parse une ligne CSV RNB en RNBBuildingData
    * À adapter selon le format réel du CSV RNB
    * Réservé pour usage futur lors de l'implémentation du parsing CSV
+   * 
+   * TODO: Réimplémenter lors de l'ajout du parsing CSV
+   * private parseCSVRow(row: any, department: string): RNBBuildingData | null {
+   *   try {
+   *     return {
+   *       id: row.id_rnb || row.id || `rnb-${department}-${row.index}`,
+   *       department,
+   *       codeINSEE: row.code_insee || row.code_insee_com,
+   *       commune: row.nom_commune || row.commune,
+   *       address: row.adresse || row.adresse_complete,
+   *       postalCode: row.code_postal || row.cp,
+   *       coordinates: row.latitude && row.longitude
+   *         ? { lat: parseFloat(row.latitude), lng: parseFloat(row.longitude) }
+   *         : undefined,
+   *       constructionYear: row.annee_construction ? parseInt(row.annee_construction) : undefined,
+   *       buildingType: row.type_batiment || row.nature_logement,
+   *       surface: row.surface ? parseFloat(row.surface) : undefined,
+   *       dpeClass: row.classe_dpe || row.dpe_classe,
+   *       dpeDate: row.date_dpe ? new Date(row.date_dpe) : undefined,
+   *       energyConsumption: row.conso_energie ? parseFloat(row.conso_energie) : undefined,
+   *       ghgEmissions: row.emission_ges ? parseFloat(row.emission_ges) : undefined,
+   *       hvd: row.hvd === '1' || row.hvd === 'true' || row.haute_valeur_determinante === '1',
+   *       sources: ['RNB data.gouv.fr'],
+   *       lastUpdated: new Date().toISOString(),
+   *     }
+   *   } catch (error) {
+   *     console.error('[RNBImporter] Erreur parsing ligne CSV:', error)
+   *     return null
+   *   }
+   * }
    */
-  private _parseCSVRow(row: any, department: string): RNBBuildingData | null {
-    try {
-      // Exemple de structure (à adapter selon le format réel du CSV RNB)
-      return {
-        id: row.id_rnb || row.id || `rnb-${department}-${row.index}`,
-        department,
-        codeINSEE: row.code_insee || row.code_insee_com,
-        commune: row.nom_commune || row.commune,
-        address: row.adresse || row.adresse_complete,
-        postalCode: row.code_postal || row.cp,
-        coordinates: row.latitude && row.longitude
-          ? {
-              lat: parseFloat(row.latitude),
-              lng: parseFloat(row.longitude),
-            }
-          : undefined,
-        constructionYear: row.annee_construction ? parseInt(row.annee_construction) : undefined,
-        buildingType: row.type_batiment || row.nature_logement,
-        surface: row.surface ? parseFloat(row.surface) : undefined,
-        dpeClass: row.classe_dpe || row.dpe_classe,
-        dpeDate: row.date_dpe ? new Date(row.date_dpe) : undefined,
-        energyConsumption: row.conso_energie ? parseFloat(row.conso_energie) : undefined,
-        ghgEmissions: row.emission_ges ? parseFloat(row.emission_ges) : undefined,
-        hvd: row.hvd === '1' || row.hvd === 'true' || row.haute_valeur_determinante === '1',
-        sources: ['RNB data.gouv.fr'],
-        lastUpdated: new Date().toISOString(),
-      }
-    } catch (error) {
-      console.error('[RNBImporter] Erreur parsing ligne CSV:', error)
-      return null
-    }
-  }
 
   /**
    * Lance l'import progressif de plusieurs départements
