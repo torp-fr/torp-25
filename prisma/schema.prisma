@@ -495,6 +495,77 @@ model RNBImportJob {
   @@map("rnb_import_jobs")
 }
 
+// ============================================================================
+// RGE (Reconnu Garant de l'Environnement) Models
+// ============================================================================
+
+model RGECertification {
+  id                 String   @id @default(uuid())
+  siret              String   @unique // SIRET de l'entreprise (14 chiffres)
+  siren              String   // SIREN (9 premiers chiffres du SIRET)
+  companyName        String?  @map("company_name")
+  
+  // Adresse
+  address            String?
+  postalCode         String?  @map("postal_code")
+  city               String?
+  department         String? // Code département pour indexation
+  region             String?
+  
+  // Certification
+  certificationNumber String?  @map("certification_number")
+  certificationDate   DateTime? @map("certification_date")
+  expiryDate          DateTime? @map("expiry_date")
+  isValid             Boolean   @default(true) @map("is_valid")
+  
+  // Domaines d'activité (JSON array)
+  activities         Json? // Array<{code: string, label: string, validUntil?: string}>
+  
+  // Métadonnées
+  sourceUrl          String?  @map("source_url")
+  indexedAt          DateTime @default(now()) @map("indexed_at")
+  lastUpdated        DateTime @updatedAt @map("last_updated")
+
+  @@index([siret])
+  @@index([siren])
+  @@index([department])
+  @@index([postalCode])
+  @@index([isValid])
+  @@index([indexedAt])
+  @@map("rge_certifications")
+}
+
+model RGEImportJob {
+  id            String         @id @default(uuid())
+  resourceId    String?        @map("resource_id") // ID ressource data.gouv.fr
+  resourceUrl   String         @map("resource_url")
+  resourceTitle String?        @map("resource_title")
+  resourceFormat String?       @map("resource_format") // csv, json, etc.
+  status        RGEImportStatus @default(PENDING)
+  progress      Float          @default(0) // 0-100
+  totalRows     Int?           @map("total_rows")
+  processedRows Int            @default(0) @map("processed_rows")
+  errorMessage  String?        @map("error_message")
+  startedAt     DateTime?      @map("started_at")
+  completedAt   DateTime?      @map("completed_at")
+  createdAt     DateTime       @default(now()) @map("created_at")
+  updatedAt     DateTime       @updatedAt @map("updated_at")
+
+  @@index([status])
+  @@index([createdAt])
+  @@map("rge_import_jobs")
+}
+
+enum RGEImportStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  FAILED
+  CANCELLED
+
+  @@map("rge_import_status")
+}
+
 enum RNBImportStatus {
   PENDING
   IN_PROGRESS

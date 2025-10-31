@@ -65,6 +65,7 @@ export class RGEService {
   private readonly datasetId = '62bd63b70ff1edf452b83a6b'
   private readonly baseUrl = 'https://www.data.gouv.fr/api/1'
   private client: ApiClient
+  private indexer: any // Lazy import pour éviter dépendance circulaire
 
   constructor() {
     this.client = new ApiClient({
@@ -86,15 +87,51 @@ export class RGEService {
         return null
       }
 
-      // 1. Essayer de récupérer depuis un index local (si implémenté)
-      // TODO: Implémenter RGEIndexer similaire à RNBIndexer si nécessaire
+      // 1. PRIORITÉ: Rechercher dans l'index local (si indexation effectuée)
+      try {
+        if (!this.indexer) {
+          const { RGEIndexer } = await import('./rge-indexer')
+          this.indexer = new RGEIndexer()
+        }
+        
+        console.log('[RGEService] 🔍 Recherche dans l\'index local...')
+        const indexedCert = await this.indexer.searchCertification(normalizedSiret)
+        if (indexedCert && indexedCert.isValid) {
+          console.log('[RGEService] ✅ Certification RGE trouvée dans l\'index local')
+          return indexedCert
+        } else if (indexedCert) {
+          console.log('[RGEService] ⚠️ Certification trouvée mais non valide dans l\'index')
+          // On continue quand même pour vérifier via API
+        } else {
+          console.log('[RGEService] ℹ️ Aucune certification trouvée dans l\'index local')
+        }
+      } catch (error) {
+        console.warn('[RGEService] ⚠️ Erreur accès index local (continuation avec recherche API):', error)
+      }
 
-      // 2. Recherche directe via API data.gouv.fr ou ressources du dataset
+      // 2. Fallback: Recherche directe via API data.gouv.fr ou ressources du dataset
+      console.log('[RGEService] 🔍 Recherche via API data.gouv.fr...')
       const rgeData = await this.searchRGEBySiret(normalizedSiret)
+      
+      if (rgeData && rgeData.isValid) {
+        // Si trouvée via API et valide, indexer pour usage futur
+        try {
+          if (!this.indexer) {
+            const { RGEIndexer } = await import('./rge-indexer')
+            this.indexer = new RGEIndexer()
+          }
+          console.log('[RGEService] 💾 Indexation de la certification trouvée...')
+          await this.indexer.indexCertification(rgeData).catch((err: any) => {
+            console.warn('[RGEService] ⚠️ Erreur indexation:', err)
+          })
+        } catch (error) {
+          console.warn('[RGEService] ⚠️ Erreur indexation automatique:', error)
+        }
+      }
       
       return rgeData
     } catch (error) {
-      console.error('[RGEService] Erreur récupération certification RGE:', error)
+      console.error('[RGEService] ❌ Erreur récupération certification RGE:', error)
       return null
     }
   }
@@ -307,7 +344,7 @@ export class RGEService {
   /**
    * Récupère les informations du dataset depuis data.gouv.fr
    */
-  private async getDatasetInfo(): Promise<DataGouvRGEDataset | null> {
+  async getDatasetInfo(): Promise<DataGouvRGEDataset | null> {
     try {
       const response = await this.client.get<DataGouvRGEDataset>(
         `/datasets/${this.datasetId}/`
