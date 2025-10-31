@@ -67,7 +67,7 @@ export class BuildingService {
           constructionYear: enrichedBuilding?.constructionYear || rnb.constructionYear,
           buildingType: enrichedBuilding?.buildingType || rnb.buildingType,
           surface: enrichedBuilding?.surface || rnb.surface,
-          energyClass: enrichedBuilding?.energyClass || rnb.dpeClass,
+          energyClass: (enrichedBuilding?.energyClass || (rnb.dpeClass && rnb.dpeClass !== 'N/A' ? rnb.dpeClass : undefined)) as 'A' | 'B' | 'C' | 'D' | 'E' | 'F' | 'G' | undefined,
           energyConsumption: enrichedBuilding?.energyConsumption || rnb.energyConsumption,
         }
       }
@@ -78,7 +78,7 @@ export class BuildingService {
         enrichedEnergy = {
           ...enrichedEnergy,
           dpeDate: enrichedEnergy?.dpeDate || rnb.dpeDate,
-          dpeClass: enrichedEnergy?.dpeClass || rnb.dpeClass,
+          dpeClass: (enrichedEnergy?.dpeClass || (rnb.dpeClass && rnb.dpeClass !== 'N/A' ? rnb.dpeClass : undefined)) as 'A' | 'B' | 'C' | 'D' | 'E' | 'F' | 'G' | undefined,
           energyConsumption: enrichedEnergy?.energyConsumption || rnb.energyConsumption,
           ghgEmissions: enrichedEnergy?.ghgEmissions || rnb.ghgEmissions,
         }

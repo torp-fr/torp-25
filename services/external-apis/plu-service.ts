@@ -7,7 +7,6 @@
  */
 
 import type { AddressData } from './types'
-import { ApiClient } from '@/services/data-enrichment/api-client'
 
 export interface PLUData {
   commune: string
@@ -34,14 +33,8 @@ export interface PLUData {
 }
 
 export class PLUService {
-  private client: ApiClient
-
   constructor() {
-    this.client = new ApiClient({
-      baseUrl: 'https://www.data.gouv.fr/api/1',
-      timeout: 10000,
-      retries: 2,
-    })
+    // Service PLU - Utilise fetch directement pour data.gouv.fr
   }
 
   /**
@@ -114,7 +107,16 @@ export class PLUService {
     try {
       // Rechercher les datasets PLU pour cette commune
       // Format : https://www.data.gouv.fr/api/1/datasets/?q=PLU+{commune}
-      const searchResponse = await this.client.get<{
+      const response = await fetch(
+        `https://www.data.gouv.fr/api/1/datasets/?q=PLU+${codeINSEE}&page_size=5`,
+        { headers: { Accept: 'application/json' } }
+      )
+
+      if (!response.ok) {
+        return null
+      }
+
+      const searchResponse = await response.json() as {
         data: Array<{
           id: string
           title: string
@@ -124,10 +126,7 @@ export class PLUService {
             title: string
           }>
         }>
-      }>('/datasets/', {
-        q: `PLU ${codeINSEE}`,
-        page_size: '5',
-      })
+      }
 
       if (!searchResponse || !searchResponse.data || searchResponse.data.length === 0) {
         return null
