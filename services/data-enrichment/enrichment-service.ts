@@ -7,9 +7,6 @@ import { CompanyEnrichmentService } from './company-service'
 import { PriceEnrichmentService } from './price-service'
 import { ComplianceEnrichmentService } from './compliance-service'
 import { WeatherEnrichmentService } from './weather-service'
-import { InfogreffeEnrichmentService } from './infogreffe-service'
-import { PappersEnrichmentService } from './pappers-service'
-import { ReputationEnrichmentService } from './reputation-service'
 import type {
   DevisEnrichment,
   CompanyEnrichment,
@@ -19,7 +16,6 @@ import type {
   WeatherData,
 } from './types'
 import type { ExtractedDevisData } from '@/services/llm/document-analyzer'
-import type { EnrichedCompanyData, ScoringEnrichmentData } from '../scoring/advanced/types'
 
 export class DataEnrichmentService {
   private companyService: CompanyEnrichmentService
