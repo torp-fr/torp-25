@@ -93,8 +93,10 @@ export interface SireneVerificationResult {
 
 export class SireneService {
   private readonly inseeApiUrl = 'https://api.insee.fr/entreprises/sirene/v3'
-  private readonly dataGouvDatasetId = '5b7ffc618b4c4169d30727e0'
-  private readonly dataGouvBaseUrl = 'https://www.data.gouv.fr/api/1'
+  // Réserve pour future implémentation d'indexation data.gouv.fr
+  private readonly _dataGouvDatasetId = '5b7ffc618b4c4169d30727e0'
+  // Réserve pour future implémentation d'indexation data.gouv.fr
+  private readonly _dataGouvBaseUrl = 'https://www.data.gouv.fr/api/1'
   
   // Clé API INSEE (à définir via variable d'environnement)
   private get inseeApiKey(): string | undefined {
@@ -396,11 +398,12 @@ export class SireneService {
    * Cette méthode est un placeholder pour une future implémentation
    */
   private async fetchFromDataGouv(
-    identifier: string,
-    type: 'siren' | 'siret'
+    _identifier: string,
+    _type: 'siren' | 'siret'
   ): Promise<SireneCompany | null> {
     // TODO: Implémenter la recherche dans les exports data.gouv.fr
     // Pour l'instant, on retourne null et on suggère l'utilisation de l'API INSEE
+    // Référence: this._dataGouvDatasetId et this._dataGouvBaseUrl pour future implémentation
     console.warn(
       '[SireneService] data.gouv.fr nécessite l\'indexation des exports. Utilisez l\'API INSEE pour les requêtes temps réel.'
     )
@@ -410,7 +413,7 @@ export class SireneService {
   /**
    * Mappe la réponse INSEE vers notre interface SireneCompany
    */
-  private mapINSEEResponseToCompany(data: any, type: 'siren' | 'siret'): SireneCompany {
+  private mapINSEEResponseToCompany(data: any, _type: 'siren' | 'siret'): SireneCompany {
     const uniteLegale = data.uniteLegale || {}
     const etablissement = data.etablissement || {}
     const adresse = etablissement.adresseEtablissement || uniteLegale.periodesUniteLegale?.[0]?.adresseUniteLegale || {}
