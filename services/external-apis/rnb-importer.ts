@@ -124,7 +124,7 @@ export class RNBImporter {
    * Utile pour récupérer des données à la demande
    */
   async importSingleBuilding(
-    department: string,
+    _department: string, // Réservé pour usage futur (parsing CSV par département)
     searchCriteria: { postalCode?: string; address?: string; coordinates?: { lat: number; lng: number } }
   ): Promise<RNBBuildingData | null> {
     try {
