@@ -227,7 +227,7 @@ export class Axe8Delais {
    * Historique Performance (20 points)
    */
   private async scoreHistoriquePerformance(
-    devis: Devis,
+    _devis: Devis,
     enrichmentData: ScoringEnrichmentData
   ): Promise<ControlPointScore> {
     let score = 0
