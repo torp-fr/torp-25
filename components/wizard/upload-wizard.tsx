@@ -50,6 +50,9 @@ interface CCFData {
   buildingData?: any
   urbanismData?: any
   energyData?: any
+  pluData?: any
+  cadastreData?: any
+  feasibilityStudy?: any
 
   // Étape 4: Contraintes et besoins
   constraints: string[]
@@ -159,8 +162,14 @@ export function UploadWizard({ onComplete, onCancel }: UploadWizardProps) {
           urbanismData: data.data.urbanism,
           energyData: data.data.energy,
           pluData: data.data.plu,
+          cadastreData: data.data.cadastre,
           autoDetectedConstraints: autoConstraints,
         }))
+
+        // Générer l'étude de faisabilité automatiquement
+        if (data.data && ccfData.projectType) {
+          await generateFeasibilityStudy(data.data, ccfData.projectType)
+        }
       }
     } catch (error) {
       console.error('Erreur récupération données bâti:', error)
@@ -202,6 +211,36 @@ export function UploadWizard({ onComplete, onCancel }: UploadWizardProps) {
 
   const handleSubmit = () => {
     onComplete(ccfData)
+  }
+
+  // Génération de l'étude de faisabilité
+  const generateFeasibilityStudy = async (buildingData: any, projectType: string) => {
+    try {
+      setLoading(true)
+      const response = await fetch('/api/external/feasibility', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          address: ccfData.address,
+          projectType,
+          constraints: ccfData.constraints,
+          accessConditions: ccfData.accessConditions,
+          rooms: ccfData.rooms,
+        }),
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        setCcfData((prev) => ({
+          ...prev,
+          feasibilityStudy: data.data,
+        }))
+      }
+    } catch (error) {
+      console.error('Erreur génération étude de faisabilité:', error)
+    } finally {
+      setLoading(false)
+    }
   }
 
   // Fonction pour détecter automatiquement les contraintes depuis les données bâti
@@ -402,6 +441,53 @@ export function UploadWizard({ onComplete, onCancel }: UploadWizardProps) {
                     </p>
                   </div>
                 )}
+                {ccfData.cadastreData && (
+                  <div className="p-4 bg-purple-50 border border-purple-200 rounded-md">
+                    <h4 className="font-semibold mb-2">Données cadastrales</h4>
+                    {ccfData.cadastreData.parcelle && (
+                      <div className="text-sm space-y-1">
+                        <p>
+                          <strong>Parcelle:</strong> {ccfData.cadastreData.parcelle.numero} - Section {ccfData.cadastreData.parcelle.section}
+                        </p>
+                        {ccfData.cadastreData.parcelle.surface && (
+                          <p>
+                            <strong>Surface:</strong> {ccfData.cadastreData.parcelle.surface}m²
+                          </p>
+                        )}
+                      </div>
+                    )}
+                    {ccfData.cadastreData.constraints?.isProtected && (
+                      <p className="text-xs text-purple-600 mt-2">⚠️ Zone protégée identifiée</p>
+                    )}
+                  </div>
+                )}
+
+                {ccfData.feasibilityStudy && (
+                  <div className="p-4 bg-indigo-50 border border-indigo-200 rounded-md">
+                    <h4 className="font-semibold mb-2">Étude de faisabilité</h4>
+                    <div className="text-sm space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span>Faisabilité globale:</span>
+                        <span className={`font-bold ${
+                          ccfData.feasibilityStudy.overallFeasibility >= 70
+                            ? 'text-green-600'
+                            : ccfData.feasibilityStudy.overallFeasibility >= 50
+                            ? 'text-yellow-600'
+                            : 'text-red-600'
+                        }`}>
+                          {ccfData.feasibilityStudy.overallFeasibility}/100
+                        </span>
+                      </div>
+                      <p className="text-xs text-gray-600">
+                        {ccfData.feasibilityStudy.conclusion.summary}
+                      </p>
+                      {ccfData.feasibilityStudy.conclusion.feasible && (
+                        <p className="text-xs text-green-600">✓ Projet faisable</p>
+                      )}
+                    </div>
+                  </div>
+                )}
+
                 <div className="text-sm text-gray-600">
                   Ces données seront utilisées pour enrichir l'analyse du devis et
                   vérifier la cohérence avec les contraintes réglementaires.
