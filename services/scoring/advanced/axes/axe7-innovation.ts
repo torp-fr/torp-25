@@ -256,7 +256,7 @@ export class Axe7Innovation {
     const certificationsPro = enrichmentData.certifications || []
 
     // Formation continue équipes (3 pts)
-    const recentCerts = [...certifications, ...certificationsPro].filter((c) => {
+    const recentCerts = [...certifications, ...certificationsPro].filter((_c) => {
       // Vérifier si certification récente (dans les 3 dernières années)
       return true // Placeholder - nécessiterait dates de certification
     })
