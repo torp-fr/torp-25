@@ -189,7 +189,7 @@ export class Axe5Transparence {
     let totalScore = 0
 
     // Professionnalisme (20 points)
-    const professionnalisme = await this.scoreProfessionnalisme(devis, enrichmentData)
+    const professionnalisme = await this.scoreProfessionnalisme(devis, _enrichmentData)
     controlPointScores.push(professionnalisme)
     totalScore += professionnalisme.score
 
