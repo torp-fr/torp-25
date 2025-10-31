@@ -316,6 +316,7 @@ export class RNBIndexer {
       hvd: building.hvd || false,
       commune: building.commune || undefined,
       codeINSEE: building.codeINSEE || undefined,
+      address: building.address || undefined,
       coordinates: building.coordinates
         ? {
             lat: building.coordinates.lat,
