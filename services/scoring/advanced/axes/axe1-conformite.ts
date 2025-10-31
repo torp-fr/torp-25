@@ -15,7 +15,7 @@ export class Axe1Conformite {
    */
   async calculate(
     devis: Devis,
-    _enrichmentData: ScoringEnrichmentData,
+    enrichmentData: ScoringEnrichmentData,
     context: { projectType: string; tradeType?: string; region: string }
   ): Promise<AxisScore> {
     const subCriteriaScores: SubCriteriaScore[] = []
