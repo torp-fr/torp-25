@@ -121,7 +121,7 @@ export class AdvancedEnrichmentService {
             extractedData.company.name,
             enrichedCompany?.address
           )
-          if (reputation) {
+          if (reputation && enrichedCompany) {
             enrichedCompany.reputation = reputation
             sources.push('Service réputation')
             confidence += 3
