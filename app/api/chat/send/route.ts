@@ -5,7 +5,6 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
-import { DocumentAnalyzer } from '@/services/llm/document-analyzer'
 import { z } from 'zod'
 
 export const runtime = 'nodejs'
