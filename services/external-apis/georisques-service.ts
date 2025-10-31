@@ -375,7 +375,7 @@ export class GeorisquesService {
       )
 
       if (!response.ok) {
-        return null
+        return undefined
       }
 
       const data = await response.json()
