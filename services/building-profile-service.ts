@@ -117,7 +117,7 @@ export class BuildingProfileService {
         data: { enrichmentStatus: 'in_progress' },
       })
 
-      const addressData = profile.address as AddressData
+      const addressData = profile.address as unknown as AddressData
       const sources: string[] = []
       const errors: string[] = []
 
