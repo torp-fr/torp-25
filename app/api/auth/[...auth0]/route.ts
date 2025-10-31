@@ -8,6 +8,7 @@
  */
 
 import { handleAuth, handleLogin } from '@auth0/nextjs-auth0'
+import { NextRequest } from 'next/server'
 
 // Force dynamic rendering to ensure environment variables are available
 export const dynamic = 'force-dynamic'
@@ -15,7 +16,7 @@ export const runtime = 'nodejs'
 
 // Ensure baseURL always matches the current request origin to avoid redirect_uri mismatches
 const handler = handleAuth({
-  async login(request) {
+  async login(request: NextRequest) {
     const origin = new URL(request.url).origin
     return handleLogin(request, {
       returnTo: '/dashboard',
