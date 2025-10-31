@@ -1,5 +1,5 @@
 /**
- * Page simple pour déclencher le nettoyage via l'interface
+ * Page admin pour déclencher le nettoyage automatique Railway
  */
 
 'use client'
