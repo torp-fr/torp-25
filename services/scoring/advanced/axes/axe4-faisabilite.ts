@@ -12,7 +12,7 @@ import type { ScoringEnrichmentData, ControlPointScore, SubCriteriaScore, AxisSc
 export class Axe4Faisabilite {
   async calculate(
     devis: Devis,
-    enrichmentData: ScoringEnrichmentData,
+    _enrichmentData: ScoringEnrichmentData,
     context: { projectType: string }
   ): Promise<AxisScore> {
     const subCriteriaScores: SubCriteriaScore[] = []
@@ -47,7 +47,7 @@ export class Axe4Faisabilite {
    */
   private async calculatePertinence(
     devis: Devis,
-    enrichmentData: ScoringEnrichmentData,
+    _enrichmentData: ScoringEnrichmentData,
     context: any
   ): Promise<SubCriteriaScore> {
     const controlPointScores: ControlPointScore[] = []
@@ -76,7 +76,7 @@ export class Axe4Faisabilite {
    */
   private async scoreAdequationTechnique(
     devis: Devis,
-    enrichmentData: ScoringEnrichmentData,
+    _enrichmentData: ScoringEnrichmentData,
     _context: any
   ): Promise<ControlPointScore> {
     let score = 0
@@ -134,7 +134,7 @@ export class Axe4Faisabilite {
    */
   private async scoreInnovationMaitrisee(
     devis: Devis,
-    enrichmentData: ScoringEnrichmentData
+    _enrichmentData: ScoringEnrichmentData
   ): Promise<ControlPointScore> {
     let score = 0
     let justification = ''
@@ -178,7 +178,7 @@ export class Axe4Faisabilite {
    */
   private async calculateRealisme(
     devis: Devis,
-    enrichmentData: ScoringEnrichmentData,
+    _enrichmentData: ScoringEnrichmentData,
     context: any
   ): Promise<SubCriteriaScore> {
     const controlPointScores: ControlPointScore[] = []
@@ -207,7 +207,7 @@ export class Axe4Faisabilite {
    */
   private async scorePlanning(
     devis: Devis,
-    enrichmentData: ScoringEnrichmentData,
+    _enrichmentData: ScoringEnrichmentData,
     context: any
   ): Promise<ControlPointScore> {
     let score = 0
@@ -318,18 +318,18 @@ export class Axe4Faisabilite {
    */
   private async calculateGestionRisques(
     devis: Devis,
-    enrichmentData: ScoringEnrichmentData
+    _enrichmentData: ScoringEnrichmentData
   ): Promise<SubCriteriaScore> {
     const controlPointScores: ControlPointScore[] = []
     let totalScore = 0
 
     // Identification Risques (20 points)
-    const identification = await this.scoreIdentificationRisques(devis, enrichmentData)
+    const identification = await this.scoreIdentificationRisques(devis, _enrichmentData)
     controlPointScores.push(identification)
     totalScore += identification.score
 
     // Mesures Préventives (10 points)
-    const preventives = await this.scoreMesuresPreventives(devis, enrichmentData)
+    const preventives = await this.scoreMesuresPreventives(devis, _enrichmentData)
     controlPointScores.push(preventives)
     totalScore += preventives.score
 
@@ -346,7 +346,7 @@ export class Axe4Faisabilite {
    */
   private async scoreIdentificationRisques(
     devis: Devis,
-    enrichmentData: ScoringEnrichmentData
+    _enrichmentData: ScoringEnrichmentData
   ): Promise<ControlPointScore> {
     let score = 0
     let justification = ''
@@ -367,7 +367,7 @@ export class Axe4Faisabilite {
     }
 
     // Risques planning (10 pts)
-    const weatherData = enrichmentData.weatherData
+    const weatherData = _enrichmentData.weatherData
     if (weatherData) {
       score += 8
       justification += `Risques météo pris en compte (${weatherData.averageWeatherDays} jours défavorables en moyenne). `

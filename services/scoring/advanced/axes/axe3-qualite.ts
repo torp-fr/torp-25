@@ -11,9 +11,9 @@ import type { ScoringEnrichmentData, ControlPointScore, SubCriteriaScore, AxisSc
 
 export class Axe3Qualite {
   async calculate(
-    devis: Devis,
+    _devis: Devis,
     enrichmentData: ScoringEnrichmentData,
-    context: { projectType: string; projectAmount: string }
+    _context: { projectType: string; projectAmount: string }
   ): Promise<AxisScore> {
     const subCriteriaScores: SubCriteriaScore[] = []
     const alerts: any[] = []
@@ -57,9 +57,9 @@ export class Axe3Qualite {
    * 3.1 Solidité Financière (80 points)
    */
   private async calculateSoliditeFinanciere(
-    devis: Devis,
+    _devis: Devis,
     enrichmentData: ScoringEnrichmentData,
-    context: any
+    _context: any
   ): Promise<SubCriteriaScore> {
     const controlPointScores: ControlPointScore[] = []
     let totalScore = 0
@@ -88,7 +88,7 @@ export class Axe3Qualite {
   private async scoreSanteEconomique(
     devis: Devis,
     enrichmentData: ScoringEnrichmentData,
-    context: any
+    _context: any
   ): Promise<ControlPointScore> {
     let score = 0
     let justification = ''
@@ -186,7 +186,7 @@ export class Axe3Qualite {
    * Prédiction Défaillance (30 points)
    */
   private async scorePredictionDefaillance(
-    devis: Devis,
+    _devis: Devis,
     enrichmentData: ScoringEnrichmentData
   ): Promise<ControlPointScore> {
     let score = 30 // Score par défaut (pas de risque)
@@ -257,19 +257,19 @@ export class Axe3Qualite {
    * 3.2 Réputation & Références (70 points)
    */
   private async calculateReputation(
-    devis: Devis,
+    _devis: Devis,
     enrichmentData: ScoringEnrichmentData
   ): Promise<SubCriteriaScore> {
     const controlPointScores: ControlPointScore[] = []
     let totalScore = 0
 
     // Satisfaction Client (40 points)
-    const satisfaction = await this.scoreSatisfactionClient(devis, enrichmentData)
+    const satisfaction = await this.scoreSatisfactionClient(_devis, enrichmentData)
     controlPointScores.push(satisfaction)
     totalScore += satisfaction.score
 
     // Portfolio & Réalisations (30 points)
-    const portfolio = await this.scorePortfolio(devis, enrichmentData)
+    const portfolio = await this.scorePortfolio(_devis, enrichmentData)
     controlPointScores.push(portfolio)
     totalScore += portfolio.score
 
@@ -285,7 +285,7 @@ export class Axe3Qualite {
    * Satisfaction Client (40 points)
    */
   private async scoreSatisfactionClient(
-    devis: Devis,
+    _devis: Devis,
     enrichmentData: ScoringEnrichmentData
   ): Promise<ControlPointScore> {
     let score = 0
@@ -370,7 +370,7 @@ export class Axe3Qualite {
    * Portfolio & Réalisations (30 points)
    */
   private async scorePortfolio(
-    devis: Devis,
+    _devis: Devis,
     enrichmentData: ScoringEnrichmentData
   ): Promise<ControlPointScore> {
     let score = 0
@@ -427,7 +427,7 @@ export class Axe3Qualite {
    * 3.3 Capital Humain & Organisation (50 points)
    */
   private async calculateCapitalHumain(
-    devis: Devis,
+    _devis: Devis,
     enrichmentData: ScoringEnrichmentData,
     _context: any
   ): Promise<SubCriteriaScore> {
@@ -440,7 +440,7 @@ export class Axe3Qualite {
     totalScore += humains.score
 
     // Moyens Matériels (20 points)
-    const materiels = await this.scoreMoyensMateriels(devis, enrichmentData)
+    const materiels = await this.scoreMoyensMateriels(_devis, enrichmentData)
     controlPointScores.push(materiels)
     totalScore += materiels.score
 

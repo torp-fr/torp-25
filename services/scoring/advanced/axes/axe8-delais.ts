@@ -10,8 +10,8 @@ import type { ScoringEnrichmentData, ControlPointScore, SubCriteriaScore, AxisSc
 
 export class Axe8Delais {
   async calculate(
-    devis: Devis,
-    enrichmentData: ScoringEnrichmentData,
+    _devis: Devis,
+    _enrichmentData: ScoringEnrichmentData,
     context: { projectType: string; region: string }
   ): Promise<AxisScore> {
     const subCriteriaScores: SubCriteriaScore[] = []
@@ -50,8 +50,8 @@ export class Axe8Delais {
    * 8.1 Réalisme Planning (40 points)
    */
   private async calculateRealismePlanning(
-    devis: Devis,
-    enrichmentData: ScoringEnrichmentData,
+    _devis: Devis,
+    _enrichmentData: ScoringEnrichmentData,
     context: any
   ): Promise<SubCriteriaScore> {
     const controlPointScores: ControlPointScore[] = []
@@ -79,8 +79,8 @@ export class Axe8Delais {
    * Cohérence Temporelle (25 points)
    */
   private async scoreCoherenceTemporelle(
-    devis: Devis,
-    enrichmentData: ScoringEnrichmentData,
+    _devis: Devis,
+    _enrichmentData: ScoringEnrichmentData,
     context: any
   ): Promise<ControlPointScore> {
     let score = 0
@@ -152,8 +152,8 @@ export class Axe8Delais {
    * Coordination Métiers (15 points)
    */
   private async scoreCoordinationMetiers(
-    devis: Devis,
-    enrichmentData: ScoringEnrichmentData
+    _devis: Devis,
+    _enrichmentData: ScoringEnrichmentData
   ): Promise<ControlPointScore> {
     let score = 0
     let justification = ''
@@ -199,8 +199,8 @@ export class Axe8Delais {
    * 8.2 Capacité Respect Délais (30 points)
    */
   private async calculateCapaciteDelais(
-    devis: Devis,
-    enrichmentData: ScoringEnrichmentData
+    _devis: Devis,
+    _enrichmentData: ScoringEnrichmentData
   ): Promise<SubCriteriaScore> {
     const controlPointScores: ControlPointScore[] = []
     let totalScore = 0
@@ -227,8 +227,8 @@ export class Axe8Delais {
    * Historique Performance (20 points)
    */
   private async scoreHistoriquePerformance(
-    devis: Devis,
-    enrichmentData: ScoringEnrichmentData
+    _devis: Devis,
+    _enrichmentData: ScoringEnrichmentData
   ): Promise<ControlPointScore> {
     let score = 0
     let justification = ''
@@ -275,7 +275,7 @@ export class Axe8Delais {
   /**
    * Engagement Contractuel (10 points)
    */
-  private async scoreEngagementContractuel(devis: Devis): Promise<ControlPointScore> {
+  private async scoreEngagementContractuel(_devis: Devis): Promise<ControlPointScore> {
     let score = 0
     let justification = ''
 

@@ -12,7 +12,7 @@ import type { ScoringEnrichmentData, ControlPointScore, SubCriteriaScore, AxisSc
 export class Axe5Transparence {
   async calculate(
     devis: Devis,
-    enrichmentData: ScoringEnrichmentData
+    _enrichmentData: ScoringEnrichmentData
   ): Promise<AxisScore> {
     const subCriteriaScores: SubCriteriaScore[] = []
 
@@ -46,7 +46,7 @@ export class Axe5Transparence {
    */
   private async calculateDocumentation(
     devis: Devis,
-    enrichmentData: ScoringEnrichmentData
+    _enrichmentData: ScoringEnrichmentData
   ): Promise<SubCriteriaScore> {
     const controlPointScores: ControlPointScore[] = []
     let totalScore = 0
@@ -184,7 +184,7 @@ export class Axe5Transparence {
    */
   private async calculateRelationClient(
     devis: Devis,
-    enrichmentData: ScoringEnrichmentData
+    _enrichmentData: ScoringEnrichmentData
   ): Promise<SubCriteriaScore> {
     const controlPointScores: ControlPointScore[] = []
     let totalScore = 0

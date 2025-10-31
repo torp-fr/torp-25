@@ -10,8 +10,8 @@ import type { ScoringEnrichmentData, ControlPointScore, SubCriteriaScore, AxisSc
 
 export class Axe7Innovation {
   async calculate(
-    devis: Devis,
-    enrichmentData: ScoringEnrichmentData,
+    _devis: Devis,
+    _enrichmentData: ScoringEnrichmentData,
     context: { projectType: string }
   ): Promise<AxisScore> {
     const subCriteriaScores: SubCriteriaScore[] = []
@@ -41,8 +41,8 @@ export class Axe7Innovation {
    * 7.1 Performance Environnementale (30 points)
    */
   private async calculatePerformanceEnvironnementale(
-    devis: Devis,
-    enrichmentData: ScoringEnrichmentData,
+    _devis: Devis,
+    _enrichmentData: ScoringEnrichmentData,
     _context: any
   ): Promise<SubCriteriaScore> {
     const controlPointScores: ControlPointScore[] = []
@@ -70,8 +70,8 @@ export class Axe7Innovation {
    * Solutions Bas Carbone (20 points)
    */
   private async scoreSolutionsBasCarbone(
-    devis: Devis,
-    enrichmentData: ScoringEnrichmentData,
+    _devis: Devis,
+    _enrichmentData: ScoringEnrichmentData,
     _context: any
   ): Promise<ControlPointScore> {
     let score = 0
@@ -121,8 +121,8 @@ export class Axe7Innovation {
    * Démarche Écologique (10 points)
    */
   private async scoreDemarcheEcologique(
-    devis: Devis,
-    enrichmentData: ScoringEnrichmentData
+    _devis: Devis,
+    _enrichmentData: ScoringEnrichmentData
   ): Promise<ControlPointScore> {
     let score = 0
     let justification = ''
@@ -168,8 +168,8 @@ export class Axe7Innovation {
    * 7.2 Innovation Technique (20 points)
    */
   private async calculateInnovationTechnique(
-    devis: Devis,
-    enrichmentData: ScoringEnrichmentData
+    _devis: Devis,
+    _enrichmentData: ScoringEnrichmentData
   ): Promise<SubCriteriaScore> {
     const controlPointScores: ControlPointScore[] = []
     let totalScore = 0
@@ -196,8 +196,8 @@ export class Axe7Innovation {
    * Technologies Avancées (15 points)
    */
   private async scoreTechnologiesAvancees(
-    devis: Devis,
-    enrichmentData: ScoringEnrichmentData
+    _devis: Devis,
+    _enrichmentData: ScoringEnrichmentData
   ): Promise<ControlPointScore> {
     let score = 0
     let justification = ''
@@ -246,8 +246,8 @@ export class Axe7Innovation {
    * Veille & Formation (5 points)
    */
   private async scoreVeilleFormation(
-    devis: Devis,
-    enrichmentData: ScoringEnrichmentData
+    _devis: Devis,
+    _enrichmentData: ScoringEnrichmentData
   ): Promise<ControlPointScore> {
     let score = 0
     let justification = ''

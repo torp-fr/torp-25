@@ -11,7 +11,7 @@ import type { ScoringEnrichmentData, ControlPointScore, SubCriteriaScore, AxisSc
 export class Axe6Garanties {
   async calculate(
     devis: Devis,
-    enrichmentData: ScoringEnrichmentData
+    _enrichmentData: ScoringEnrichmentData
   ): Promise<AxisScore> {
     const subCriteriaScores: SubCriteriaScore[] = []
     const alerts: any[] = []
@@ -50,7 +50,7 @@ export class Axe6Garanties {
    */
   private async calculateCouverturesLegales(
     devis: Devis,
-    enrichmentData: ScoringEnrichmentData
+    _enrichmentData: ScoringEnrichmentData
   ): Promise<SubCriteriaScore> {
     const controlPointScores: ControlPointScore[] = []
     let totalScore = 0
@@ -78,7 +78,7 @@ export class Axe6Garanties {
    */
   private async scoreGarantiesObligatoires(
     devis: Devis,
-    enrichmentData: ScoringEnrichmentData
+    _enrichmentData: ScoringEnrichmentData
   ): Promise<ControlPointScore> {
     let score = 0
     let justification = ''
@@ -134,7 +134,7 @@ export class Axe6Garanties {
    */
   private async scoreAssurancesProfessionnelles(
     devis: Devis,
-    enrichmentData: ScoringEnrichmentData
+    _enrichmentData: ScoringEnrichmentData
   ): Promise<ControlPointScore> {
     let score = 0
     let justification = ''
