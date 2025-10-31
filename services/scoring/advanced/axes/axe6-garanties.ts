@@ -17,7 +17,7 @@ export class Axe6Garanties {
     const alerts: any[] = []
 
     // 6.1 Couvertures Légales (50 points)
-    const legales = await this.calculateCouverturesLegales(devis, enrichmentData)
+    const legales = await this.calculateCouverturesLegales(devis, _enrichmentData)
     subCriteriaScores.push(legales)
 
     if (legales.score < legales.maxPoints * 0.6) {
@@ -29,7 +29,7 @@ export class Axe6Garanties {
     }
 
     // 6.2 Extensions & Garanties Commerciales (30 points)
-    const extensions = await this.calculateExtensions(devis, enrichmentData)
+    const extensions = await this.calculateExtensions(devis, _enrichmentData)
     subCriteriaScores.push(extensions)
 
     const totalScore = subCriteriaScores.reduce((sum, sc) => sum + sc.score, 0)
@@ -56,12 +56,12 @@ export class Axe6Garanties {
     let totalScore = 0
 
     // Garanties Obligatoires (35 points)
-    const garanties = await this.scoreGarantiesObligatoires(devis, enrichmentData)
+    const garanties = await this.scoreGarantiesObligatoires(devis, _enrichmentData)
     controlPointScores.push(garanties)
     totalScore += garanties.score
 
     // Assurances Professionnelles (15 points)
-    const assurances = await this.scoreAssurancesProfessionnelles(devis, enrichmentData)
+    const assurances = await this.scoreAssurancesProfessionnelles(devis, _enrichmentData)
     controlPointScores.push(assurances)
     totalScore += assurances.score
 
@@ -140,7 +140,7 @@ export class Axe6Garanties {
     let justification = ''
 
     const legalMentions = (devis.extractedData as any)?.legalMentions || {}
-    const company = enrichmentData.company
+    const company = _enrichmentData.company
 
     // Montants adaptés (10 pts)
     if (legalMentions.hasInsurance || company?.insurances?.hasRC) {

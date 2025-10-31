@@ -155,7 +155,7 @@ export class Axe4Faisabilite {
     }
 
     // Retour d'expérience (15 pts)
-    const portfolio = enrichmentData.company?.portfolio
+    const portfolio = _enrichmentData.company?.portfolio
     if (portfolio?.similarProjects && portfolio.similarProjects >= 5) {
       score += 12
       justification += 'Expérience sur projets similaires vérifiée. '
