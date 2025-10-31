@@ -83,8 +83,8 @@ export class ReputationEnrichmentService {
    * Note: Nécessite respecter les conditions d'utilisation et robots.txt
    */
   async scrapeGoogleReviews(
-    companyName: string,
-    location?: string
+    _companyName: string,
+    _location?: string
   ): Promise<{ rating: number; reviews: number } | null> {
     try {
       // IMPORTANT: Scraping doit être légal et éthique
@@ -92,6 +92,7 @@ export class ReputationEnrichmentService {
       // ou un service tiers qui respecte les ToS
 
       // Placeholder - à implémenter avec respect des ToS
+      // TODO: Utiliser _companyName et _location pour rechercher les avis
       return null
     } catch (error) {
       console.error('[ReputationService] Erreur scraping Google:', error)
