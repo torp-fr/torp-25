@@ -2,8 +2,6 @@ import { NextRequest, NextResponse } from 'next/server'
 
 export const dynamic = 'force-dynamic'
 
-const DEMO_USER_ID = 'demo-user-id'
-
 /**
  * GET /api/user/payment-methods
  * Récupère les méthodes de paiement de l'utilisateur
@@ -12,7 +10,7 @@ export async function GET(_request: NextRequest) {
   try {
     // Pour l'instant, retourner une liste vide
     // À implémenter avec Stripe ou autre service de paiement
-    // const userId = request.nextUrl.searchParams.get('userId') || DEMO_USER_ID
+    // const userId = request.nextUrl.searchParams.get('userId') || 'demo-user-id'
     // const paymentMethods = await stripe.getPaymentMethods(userId)
     return NextResponse.json({
       success: true,
@@ -38,7 +36,7 @@ export async function PATCH(_request: NextRequest) {
   try {
     // À implémenter avec Stripe ou autre service de paiement
     // const body = await request.json()
-    // const { userId = DEMO_USER_ID, methodId, isDefault } = body
+    // const { userId = 'demo-user-id', methodId, isDefault } = body
     // await stripe.updatePaymentMethod(userId, methodId, isDefault)
     return NextResponse.json({
       success: true,
