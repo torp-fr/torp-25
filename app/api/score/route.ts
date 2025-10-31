@@ -52,10 +52,6 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    if (devis.userId !== userId) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
-    }
-
     // Calculate score
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const score = await torpScoringEngine.calculateScore(devis as any, {
