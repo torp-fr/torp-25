@@ -7,17 +7,9 @@ import { ApiClient } from './api-client'
 import type { PriceReference, RegionalData } from './types'
 
 export class PriceEnrichmentService {
-  private dataGouvClient: ApiClient
   private reefPremiumClient?: ApiClient
 
   constructor() {
-    // API data.gouv.fr (gratuite)
-    this.dataGouvClient = new ApiClient({
-      baseUrl: 'https://www.data.gouv.fr/api/1',
-      timeout: 10000,
-      retries: 2,
-    })
-
     // API Reef Premium (si disponible)
     const reefApiKey = process.env.REEF_PREMIUM_API_KEY
     if (reefApiKey) {
