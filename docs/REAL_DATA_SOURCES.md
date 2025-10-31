@@ -29,6 +29,18 @@ Ce document liste toutes les sources de données réelles utilisées par TORP po
   - Nature de la parcelle
 - **Clé API**: Non requise pour usage basique (gratuite)
 
+### 3b. API Cadastre data.gouv.fr (Etalab)
+- **URL**: `https://cadastre.data.gouv.fr/api`
+- **Dataset**: https://www.data.gouv.fr/fr/datasets/59b0020ec751df07d5f13bcf/
+- **Statut**: ✅ Réelle et opérationnelle
+- **Usage**: Données cadastrales complémentaires (parcelles, bâtiments)
+- **Données**: 
+  - Parcelles par commune (GeoJSON)
+  - Parcelle spécifique (section + numéro)
+  - Bâtiments sur une parcelle
+  - Surfaces et géométries détaillées
+- **Clé API**: Non requise (gratuite)
+
 ### 4. API Géoportail IGN (Optionnelle)
 - **URL**: `https://wxs.ign.fr`
 - **Statut**: ⚠️ Nécessite clé API
