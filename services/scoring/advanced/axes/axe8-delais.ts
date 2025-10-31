@@ -206,7 +206,7 @@ export class Axe8Delais {
     let totalScore = 0
 
     // Historique Performance (20 points)
-    const historique = await this.scoreHistoriquePerformance(devis, enrichmentData)
+    const historique = await this.scoreHistoriquePerformance(_devis, _enrichmentData)
     controlPointScores.push(historique)
     totalScore += historique.score
 
@@ -233,7 +233,7 @@ export class Axe8Delais {
     let score = 0
     let justification = ''
 
-    const reputation = enrichmentData.company?.reputation
+    const reputation = _enrichmentData.company?.reputation
 
     // Taux respect délais antérieur (15 pts)
     // Nécessiterait base de données historique TORP
