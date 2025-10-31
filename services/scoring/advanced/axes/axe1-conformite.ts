@@ -300,7 +300,7 @@ export class Axe1Conformite {
    * Qualifications Métier Obligatoires (45 points)
    */
   private async scoreQualificationsMetier(
-    devis: Devis,
+    _devis: Devis,
     enrichmentData: ScoringEnrichmentData,
     context: any
   ): Promise<ControlPointScore> {
