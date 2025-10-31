@@ -1,7 +1,12 @@
 -- Migration RNB - Création des tables et enum
 -- Cette migration remplace les migrations échouées précédentes
 
--- CreateEnum (idempotent pour éviter erreurs si l'enum existe déjà)
+-- 1. Nettoyer les migrations RNB échouées de _prisma_migrations
+DELETE FROM "_prisma_migrations" 
+WHERE migration_name IN ('20250127_add_rnb_models', '20250128_add_rnb_models', '20250128_fix_rnb_migration')
+AND finished_at IS NULL;
+
+-- 2. CreateEnum (idempotent pour éviter erreurs si l'enum existe déjà)
 DO $$ BEGIN
   CREATE TYPE "rnb_import_status" AS ENUM ('PENDING', 'IN_PROGRESS', 'COMPLETED', 'FAILED', 'CANCELLED');
 EXCEPTION
