@@ -24,6 +24,8 @@ export interface RNBBuildingData {
   hvd?: boolean // Haute Valeur Déterminante
   commune?: string
   codeINSEE?: string
+  address?: string // Adresse du bâtiment
+  coordinates?: { lat: number; lng: number } // Coordonnées géographiques
   sources: string[]
   lastUpdated: string
 }
