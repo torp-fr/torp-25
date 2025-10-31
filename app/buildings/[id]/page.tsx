@@ -437,6 +437,136 @@ export default function BuildingDetailPage() {
               </Card>
             )}
 
+            {/* DVF Data - Estimation et Valeurs Foncières */}
+            {profile.enrichedData?.dvf && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Building2 className="h-5 w-5" />
+                    Estimation & Valeurs Foncières
+                  </CardTitle>
+                  <CardDescription>
+                    Données issues des Demandes de Valeurs Foncières (DVF)
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-6">
+                    {/* Estimation */}
+                    {profile.enrichedData.dvf.estimation && (
+                      <div className="rounded-lg border bg-blue-50 p-4">
+                        <div className="mb-2 text-sm font-medium text-blue-900">Estimation</div>
+                        <div className="text-2xl font-bold text-blue-700">
+                          {profile.enrichedData.dvf.estimation.valeur_estimee?.toLocaleString('fr-FR')} €
+                        </div>
+                        {profile.enrichedData.dvf.estimation.prix_m2_estime && (
+                          <div className="mt-1 text-sm text-blue-600">
+                            {profile.enrichedData.dvf.estimation.prix_m2_estime.toLocaleString('fr-FR')} €/m²
+                          </div>
+                        )}
+                        {profile.enrichedData.dvf.estimation.fourchette_basse && profile.enrichedData.dvf.estimation.fourchette_haute && (
+                          <div className="mt-2 text-xs text-blue-600">
+                            Fourchette: {profile.enrichedData.dvf.estimation.fourchette_basse.toLocaleString('fr-FR')} € - {profile.enrichedData.dvf.estimation.fourchette_haute.toLocaleString('fr-FR')} €
+                          </div>
+                        )}
+                        {profile.enrichedData.dvf.estimation.confiance && (
+                          <div className="mt-2 flex items-center gap-2">
+                            <div className="flex-1 bg-gray-200 rounded-full h-2">
+                              <div
+                                className="bg-blue-600 h-2 rounded-full"
+                                style={{ width: `${profile.enrichedData.dvf.estimation.confiance}%` }}
+                              />
+                            </div>
+                            <span className="text-xs text-blue-600">
+                              Confiance: {profile.enrichedData.dvf.estimation.confiance}%
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Statistiques */}
+                    {profile.enrichedData.dvf.statistics && (
+                      <div className="space-y-3">
+                        <div className="text-sm font-medium">Statistiques du secteur</div>
+                        <div className="grid grid-cols-2 gap-4 text-sm">
+                          <div>
+                            <div className="text-muted-foreground">Transactions</div>
+                            <div className="font-semibold">{profile.enrichedData.dvf.statistics.total_transactions}</div>
+                          </div>
+                          {profile.enrichedData.dvf.statistics.prix_m2_median && (
+                            <div>
+                              <div className="text-muted-foreground">Prix médian/m²</div>
+                              <div className="font-semibold">
+                                {Math.round(profile.enrichedData.dvf.statistics.prix_m2_median).toLocaleString('fr-FR')} €
+                              </div>
+                            </div>
+                          )}
+                          {profile.enrichedData.dvf.statistics.valeur_median && (
+                            <div>
+                              <div className="text-muted-foreground">Valeur médiane</div>
+                              <div className="font-semibold">
+                                {Math.round(profile.enrichedData.dvf.statistics.valeur_median).toLocaleString('fr-FR')} €
+                              </div>
+                            </div>
+                          )}
+                          {profile.enrichedData.dvf.statistics.date_min && profile.enrichedData.dvf.statistics.date_max && (
+                            <div>
+                              <div className="text-muted-foreground">Période</div>
+                              <div className="font-semibold text-xs">
+                                {new Date(profile.enrichedData.dvf.statistics.date_min).getFullYear()} - {new Date(profile.enrichedData.dvf.statistics.date_max).getFullYear()}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Comparables */}
+                    {profile.enrichedData.dvf.comparables && profile.enrichedData.dvf.comparables.length > 0 && (
+                      <div className="space-y-3">
+                        <div className="text-sm font-medium">
+                          Biens comparables ({profile.enrichedData.dvf.comparables.length})
+                        </div>
+                        <div className="space-y-2 max-h-64 overflow-y-auto">
+                          {profile.enrichedData.dvf.comparables.slice(0, 5).map((comp: any, idx: number) => (
+                            <div key={idx} className="rounded border bg-gray-50 p-3 text-sm">
+                              <div className="flex justify-between items-start">
+                                <div>
+                                  <div className="font-medium">
+                                    {comp.transaction.valeur_fonciere?.toLocaleString('fr-FR')} €
+                                  </div>
+                                  {comp.transaction.surface_reelle_bati && (
+                                    <div className="text-muted-foreground">
+                                      {comp.transaction.surface_reelle_bati}m²
+                                      {comp.transaction.valeur_fonciere && (
+                                        <span className="ml-2">
+                                          ({Math.round(comp.transaction.valeur_fonciere / comp.transaction.surface_reelle_bati).toLocaleString('fr-FR')} €/m²)
+                                        </span>
+                                      )}
+                                    </div>
+                                  )}
+                                  {comp.transaction.date_mutation && (
+                                    <div className="text-xs text-muted-foreground mt-1">
+                                      {formatDate(comp.transaction.date_mutation)}
+                                    </div>
+                                  )}
+                                </div>
+                                {comp.similarite && (
+                                  <div className="text-xs text-blue-600 font-medium">
+                                    {comp.similarite}% similaire
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
             {/* Documents */}
             <Card>
               <CardHeader>

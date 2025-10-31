@@ -11,6 +11,7 @@ import { prisma } from '@/lib/db'
 import { AddressService } from './external-apis/address-service'
 import { BuildingService } from './external-apis/building-service'
 import { CadastreService } from './external-apis/cadastre-service'
+import { DVFService } from './external-apis/dvf-service'
 import type { AddressData, AggregatedBuildingData } from './external-apis/types'
 import type { CadastralData } from './external-apis/cadastre-service'
 
@@ -38,11 +39,13 @@ export class BuildingProfileService {
   private addressService: AddressService
   private buildingService: BuildingService
   private cadastreService: CadastreService
+  private dvfService: DVFService
 
   constructor() {
     this.addressService = new AddressService()
     this.buildingService = new BuildingService()
     this.cadastreService = new CadastreService()
+    this.dvfService = new DVFService()
   }
 
   /**
@@ -166,7 +169,38 @@ export class BuildingProfileService {
         errors.push(`Enrichissement cadastral: ${error instanceof Error ? error.message : 'Unknown error'}`)
       }
 
-      // 3. Mettre à jour le statut final
+      // 3. Enrichissement DVF (valeurs foncières pour estimation et comparaison)
+      try {
+        const dvfData = await this.dvfService.getDVFData(addressData, {
+          rayon: 1000, // 1km de rayon
+          annee_min: new Date().getFullYear() - 5, // 5 dernières années
+        })
+        
+        if (dvfData) {
+          sources.push('DVF (Demandes de Valeurs Foncières)')
+          
+          // Mettre à jour le profil avec les données DVF dans enrichedData
+          const currentEnriched = await prisma.buildingProfile.findUnique({
+            where: { id: profileId },
+            select: { enrichedData: true },
+          })
+          
+          const enrichedData = currentEnriched?.enrichedData as any || {}
+          enrichedData.dvf = dvfData
+          
+          await prisma.buildingProfile.update({
+            where: { id: profileId },
+            data: {
+              enrichedData: enrichedData as any,
+            },
+          })
+        }
+      } catch (error) {
+        console.error('[BuildingProfileService] Erreur enrichissement DVF:', error)
+        errors.push(`Enrichissement DVF: ${error instanceof Error ? error.message : 'Unknown error'}`)
+      }
+
+      // 4. Mettre à jour le statut final
       const uniqueSources = Array.from(new Set(sources))
       await prisma.buildingProfile.update({
         where: { id: profileId },

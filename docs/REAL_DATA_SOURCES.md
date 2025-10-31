@@ -65,7 +65,23 @@ Ce document liste toutes les sources de données réelles utilisées par TORP po
   - **Documents DICRIM**: Documents d'Information Communale sur les Risques Majeurs
 - **Clé API**: Non requise (gratuite)
 
-### 6. API Mérimée (Culture.gouv.fr)
+### 6. API DVF (Demandes de Valeurs Foncières)
+- **URL**: `https://api.cquest.org/dvf` (API DVF+)
+- **Dataset data.gouv.fr**: https://www.data.gouv.fr/fr/datasets/5c4ae55a634f4117716d5656/
+- **Statut**: ✅ Réelle et opérationnelle
+- **Usage**: Estimation de valeur immobilière, analyse du marché local, comparaison avec biens similaires
+- **Données**: 
+  - **Transactions récentes**: Historique des ventes depuis 2014 (sauf Alsace, Moselle, Mayotte)
+  - **Valeurs foncières**: Prix de vente déclarés, montants réels
+  - **Détails des biens**: Type de local (Maison, Appartement, Terrain), surface, nombre de pièces
+  - **Géolocalisation**: Coordonnées précises des biens vendus
+  - **Statistiques**: Prix au m² (min, max, médian, moyen), évolution temporelle
+  - **Comparables**: Identification automatique de biens similaires
+  - **Estimation**: Calcul automatique de valeur estimée avec fourchette et niveau de confiance
+- **Clé API**: Non requise pour l'API DVF+ (gratuite)
+- **Note**: Les fichiers sources sur data.gouv.fr sont volumineux (60-90MB par année). L'API DVF+ permet un accès rapide sans téléchargement.
+
+### 7. API Mérimée (Culture.gouv.fr)
 - **URL**: `https://api.culture.gouv.fr/open-data/memoire`
 - **Statut**: ✅ Réelle et opérationnelle
 - **Usage**: Monuments historiques, sites protégés
@@ -75,7 +91,7 @@ Ce document liste toutes les sources de données réelles utilisées par TORP po
   - Patrimoine
 - **Clé API**: Non requise (gratuite)
 
-### 7. API data.gouv.fr
+### 8. API data.gouv.fr
 - **URL**: `https://www.data.gouv.fr/api/1`
 - **Statut**: ✅ Réelle et opérationnelle
 - **Usage**: Datasets PLU, référentiels publics
@@ -85,7 +101,7 @@ Ce document liste toutes les sources de données réelles utilisées par TORP po
   - Données publiques diverses
 - **Clé API**: Non requise (gratuite)
 
-### 8. Référentiel National des Bâtiments (RNB)
+### 9. Référentiel National des Bâtiments (RNB)
 - **URL**: `https://www.data.gouv.fr/api/1/datasets/65a5568dfc88169d0a5416ca/`
 - **Dataset ID**: `65a5568dfc88169d0a5416ca`
 - **Statut**: ✅ Réelle et opérationnelle
