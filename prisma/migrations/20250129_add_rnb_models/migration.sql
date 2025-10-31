@@ -1,11 +1,14 @@
--- CreateEnum
+-- Migration RNB - Création des tables et enum
+-- Cette migration remplace les migrations échouées précédentes
+
+-- CreateEnum (idempotent pour éviter erreurs si l'enum existe déjà)
 DO $$ BEGIN
   CREATE TYPE "rnb_import_status" AS ENUM ('PENDING', 'IN_PROGRESS', 'COMPLETED', 'FAILED', 'CANCELLED');
 EXCEPTION
   WHEN duplicate_object THEN null;
 END $$;
 
--- CreateTable
+-- CreateTable: rnb_buildings
 CREATE TABLE IF NOT EXISTS "rnb_buildings" (
     "id" TEXT NOT NULL,
     "rnb_id" TEXT,
@@ -30,7 +33,7 @@ CREATE TABLE IF NOT EXISTS "rnb_buildings" (
     CONSTRAINT "rnb_buildings_pkey" PRIMARY KEY ("id")
 );
 
--- CreateTable
+-- CreateTable: rnb_import_jobs
 CREATE TABLE IF NOT EXISTS "rnb_import_jobs" (
     "id" TEXT NOT NULL,
     "department" TEXT NOT NULL,
@@ -49,34 +52,27 @@ CREATE TABLE IF NOT EXISTS "rnb_import_jobs" (
     CONSTRAINT "rnb_import_jobs_pkey" PRIMARY KEY ("id")
 );
 
--- CreateIndex (Unique index with NULL handling)
+-- CreateIndex: Unique index on rnb_id (with NULL handling)
 DO $$ BEGIN
-  CREATE UNIQUE INDEX "rnb_buildings_rnb_id_key" ON "rnb_buildings"("rnb_id") WHERE "rnb_id" IS NOT NULL;
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_indexes 
+    WHERE indexname = 'rnb_buildings_rnb_id_key' 
+    AND tablename = 'rnb_buildings'
+  ) THEN
+    CREATE UNIQUE INDEX "rnb_buildings_rnb_id_key" ON "rnb_buildings"("rnb_id") WHERE "rnb_id" IS NOT NULL;
+  END IF;
 EXCEPTION
   WHEN duplicate_table THEN null;
 END $$;
 
--- CreateIndex
+-- CreateIndex: Standard indexes
 CREATE INDEX IF NOT EXISTS "rnb_buildings_department_idx" ON "rnb_buildings"("department");
-
--- CreateIndex
 CREATE INDEX IF NOT EXISTS "rnb_buildings_code_insee_idx" ON "rnb_buildings"("code_insee");
-
--- CreateIndex
 CREATE INDEX IF NOT EXISTS "rnb_buildings_postal_code_idx" ON "rnb_buildings"("postal_code");
-
--- CreateIndex
 CREATE INDEX IF NOT EXISTS "rnb_buildings_dpe_class_idx" ON "rnb_buildings"("dpe_class");
-
--- CreateIndex
 CREATE INDEX IF NOT EXISTS "rnb_buildings_indexed_at_idx" ON "rnb_buildings"("indexed_at");
 
--- CreateIndex
 CREATE INDEX IF NOT EXISTS "rnb_import_jobs_department_idx" ON "rnb_import_jobs"("department");
-
--- CreateIndex
 CREATE INDEX IF NOT EXISTS "rnb_import_jobs_status_idx" ON "rnb_import_jobs"("status");
-
--- CreateIndex
 CREATE INDEX IF NOT EXISTS "rnb_import_jobs_created_at_idx" ON "rnb_import_jobs"("created_at");
 
