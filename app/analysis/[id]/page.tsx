@@ -42,7 +42,7 @@ interface TORPScore {
   }>
   recommendations: Array<{
     category: string
-    priority: string
+    priority: 'high' | 'medium' | 'low'
     suggestion: string
     potentialImpact?: string
   }>
@@ -407,7 +407,8 @@ export default function AnalysisPage() {
                           key={index}
                           recommendation={{
                             id: `rec-${index}`,
-                            ...rec,
+                            category: rec.category,
+                            priority: rec.priority,
                             message: rec.suggestion,
                             actionable: rec.priority === 'high' || rec.priority === 'medium',
                           }}
