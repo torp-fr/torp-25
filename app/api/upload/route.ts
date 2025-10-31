@@ -6,20 +6,28 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { documentUploadService, isS3Enabled } from '@/services/document/upload'
-import { getSession } from '@auth0/nextjs-auth0'
-import { ensureUserExistsFromAuth0 } from '@/lib/onboarding'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
 
+// Auth0 temporairement désactivé - utilise un userId demo
+const DEMO_USER_ID = 'demo-user-id'
+
 export async function POST(request: NextRequest) {
   try {
-    const session = await getSession()
-    if (!session?.user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-    await ensureUserExistsFromAuth0(session.user as any)
-    const userId = session.user.sub
+    // Auth0 désactivé - utilisateur demo par défaut
+    const userId = DEMO_USER_ID
+    
+    // S'assurer que l'utilisateur demo existe en DB
+    await prisma.user.upsert({
+      where: { id: DEMO_USER_ID },
+      update: {},
+      create: {
+        id: DEMO_USER_ID,
+        email: 'demo@torp.fr',
+        role: 'CONSUMER',
+      },
+    })
 
     const formData = await request.formData()
     const file = formData.get('file') as File

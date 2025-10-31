@@ -19,7 +19,6 @@ import {
   Clock,
 } from 'lucide-react'
 import { AppHeader } from '@/components/app-header'
-import { useUser } from '@auth0/nextjs-auth0/client'
 export const dynamic = 'force-dynamic'
 
 interface Devis {
@@ -43,7 +42,7 @@ interface DashboardStats {
 }
 
 export default function DashboardPage() {
-  const { user, isLoading: authLoading } = useUser()
+  // Auth0 désactivé temporairement - accès libre
   const [devisList, setDevisList] = useState<Devis[]>([])
   const [stats, setStats] = useState<DashboardStats>({
     totalDevis: 0,
@@ -56,8 +55,8 @@ export default function DashboardPage() {
   const [generating, setGenerating] = useState(false)
 
   useEffect(() => {
-    if (user) fetchDevis()
-  }, [user])
+    fetchDevis()
+  }, [])
 
   const fetchDevis = async () => {
     try {
@@ -184,7 +183,7 @@ export default function DashboardPage() {
     }).format(amount)
   }
 
-  if (authLoading || loading) {
+  if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center">
         <div className="text-center">
