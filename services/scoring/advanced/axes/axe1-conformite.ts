@@ -414,7 +414,7 @@ export class Axe1Conformite {
    */
   private async scoreAssurances(
     devis: Devis,
-    _enrichmentData: ScoringEnrichmentData
+    enrichmentData: ScoringEnrichmentData
   ): Promise<ControlPointScore> {
     let score = 0
     let justification = ''
@@ -437,7 +437,7 @@ export class Axe1Conformite {
 
     // RC Professionnelle appropriée (10 pts)
     const hasRC = legalMentions.hasInsurance || 
-                  _enrichmentData.company?.insurances?.hasRC
+                  enrichmentData.company?.insurances?.hasRC
     if (hasRC) {
       score += 8
       justification += 'RC Professionnelle mentionnée. '
