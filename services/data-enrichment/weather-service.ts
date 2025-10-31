@@ -7,14 +7,15 @@ import { ApiClient } from './api-client'
 import type { WeatherData } from './types'
 
 export class WeatherEnrichmentService {
-  private openWeatherClient?: ApiClient
-  private meteofranceClient?: ApiClient
+  private _openWeatherClient?: ApiClient
+  private _meteofranceClient?: ApiClient
 
   constructor() {
     // API OpenWeather (gratuite avec clé API)
+    // TODO: Utiliser _openWeatherClient pour récupérer les données météo réelles
     const openWeatherKey = process.env.OPENWEATHER_API_KEY
     if (openWeatherKey) {
-      this.openWeatherClient = new ApiClient({
+      this._openWeatherClient = new ApiClient({
         baseUrl: 'https://api.openweathermap.org/data/2.5',
         apiKey: openWeatherKey,
         timeout: 8000,
@@ -23,9 +24,10 @@ export class WeatherEnrichmentService {
     }
 
     // API Météo France (si disponible)
+    // TODO: Utiliser _meteofranceClient pour récupérer les données météo réelles
     const meteofranceKey = process.env.METEOFRANCE_API_KEY
     if (meteofranceKey) {
-      this.meteofranceClient = new ApiClient({
+      this._meteofranceClient = new ApiClient({
         baseUrl: 'https://api.meteofrance.fr/v1',
         apiKey: meteofranceKey,
         timeout: 8000,
