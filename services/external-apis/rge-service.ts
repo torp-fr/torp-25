@@ -346,12 +346,52 @@ export class RGEService {
    */
   async getDatasetInfo(): Promise<DataGouvRGEDataset | null> {
     try {
-      const response = await this.client.get<DataGouvRGEDataset>(
+      console.log(`[RGEService] 🔍 Récupération dataset RGE: ${this.datasetId}`)
+      
+      const response = await this.client.get<any>(
         `/datasets/${this.datasetId}/`
       )
-      return response
+      
+      console.log('[RGEService] 📦 Réponse API data.gouv.fr:', {
+        hasResponse: !!response,
+        hasResources: !!(response?.resources),
+        resourcesCount: response?.resources?.length || 0,
+        responseKeys: response ? Object.keys(response) : [],
+      })
+
+      if (!response) {
+        console.error('[RGEService] ❌ Réponse vide de l\'API')
+        return null
+      }
+
+      // Mapper la réponse vers notre interface
+      const dataset: DataGouvRGEDataset = {
+        id: response.id || this.datasetId,
+        title: response.title || response.name || 'Dataset RGE',
+        resources: (response.resources || []).map((r: any) => ({
+          id: r.id || r.uuid,
+          title: r.title || r.name || 'Ressource RGE',
+          url: r.url || r.file || r.files?.length > 0 ? r.files[0] : '',
+          format: (r.format || r.mime_type || 'csv').toLowerCase().replace('application/', '').replace('text/', ''),
+          filesize: r.filesize || r.size || 0,
+          last_modified: r.last_modified || r.modified || r.created_at || new Date().toISOString(),
+        })).filter((r: any) => r.url && r.format), // Filtrer les ressources valides
+      }
+
+      console.log(`[RGEService] ✅ Dataset mappé: ${dataset.resources.length} ressource(s) trouvée(s)`)
+      
+      if (dataset.resources.length === 0) {
+        console.warn('[RGEService] ⚠️ Aucune ressource valide trouvée dans le dataset')
+        console.warn('[RGEService] 📋 Structure de réponse:', JSON.stringify(response, null, 2).substring(0, 500))
+      }
+
+      return dataset
     } catch (error) {
-      console.error('[RGEService] Erreur récupération métadonnées dataset:', error)
+      console.error('[RGEService] ❌ Erreur récupération métadonnées dataset:', error)
+      if (error instanceof Error) {
+        console.error('[RGEService] ❌ Détails erreur:', error.message)
+        console.error('[RGEService] ❌ Stack:', error.stack)
+      }
       return null
     }
   }
