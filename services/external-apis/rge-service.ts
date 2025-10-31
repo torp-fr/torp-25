@@ -368,14 +368,43 @@ export class RGEService {
       const dataset: DataGouvRGEDataset = {
         id: response.id || this.datasetId,
         title: response.title || response.name || 'Dataset RGE',
-        resources: (response.resources || []).map((r: any) => ({
-          id: r.id || r.uuid,
-          title: r.title || r.name || 'Ressource RGE',
-          url: r.url || r.file || r.files?.length > 0 ? r.files[0] : '',
-          format: (r.format || r.mime_type || 'csv').toLowerCase().replace('application/', '').replace('text/', ''),
-          filesize: r.filesize || r.size || 0,
-          last_modified: r.last_modified || r.modified || r.created_at || new Date().toISOString(),
-        })).filter((r: any) => r.url && r.format), // Filtrer les ressources valides
+        resources: (response.resources || []).map((r: any) => {
+          // Normaliser le format
+          let format = (r.format || r.mime_type || r.filetype || 'unknown').toLowerCase()
+          
+          // Extraire le format réel (supprimer les préfixes)
+          format = format
+            .replace(/^application\//, '')
+            .replace(/^text\//, '')
+            .replace(/^page\s+web$/i, 'web')
+          
+          // Si c'est une page web, vérifier si l'URL pointe vers un fichier
+          if (format === 'web' || format === 'html') {
+            const url = r.url || ''
+            if (url.includes('.csv')) format = 'csv'
+            else if (url.includes('.json')) format = 'json'
+            else if (url.includes('.xls') || url.includes('.xlsx')) format = 'xls'
+          }
+
+          return {
+            id: r.id || r.uuid,
+            title: r.title || r.name || 'Ressource RGE',
+            url: r.url || r.file || (r.files?.length > 0 ? r.files[0] : ''),
+            format,
+            filesize: r.filesize || r.size || 0,
+            last_modified: r.last_modified || r.modified || r.created_at || new Date().toISOString(),
+          }
+        }).filter((r: any) => {
+          // Filtrer uniquement les ressources avec URL valide
+          // Accepter CSV, JSON, XLS, mais exclure les pages web sans extension de fichier
+          return r.url && (
+            r.format === 'csv' || 
+            r.format === 'json' || 
+            r.format === 'xls' || 
+            r.format === 'xlsx' ||
+            r.url.match(/\.(csv|json|xls|xlsx)$/i)
+          )
+        }),
       }
 
       console.log(`[RGEService] ✅ Dataset mappé: ${dataset.resources.length} ressource(s) trouvée(s)`)

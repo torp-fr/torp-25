@@ -354,9 +354,63 @@ export default function RGEAdminPage() {
             </div>
 
             {error && (
-              <div className="p-4 bg-red-50 border border-red-200 rounded-md">
-                <p className="text-red-800 font-semibold">❌ Erreur</p>
-                <p className="text-red-600">{error}</p>
+              <div className="p-4 bg-red-50 border border-red-200 rounded-md space-y-3">
+                <div>
+                  <p className="text-red-800 font-semibold">❌ Erreur</p>
+                  <p className="text-red-600">{error}</p>
+                </div>
+                
+                {(error.includes('Aucune ressource disponible') || error.includes('Aucune ressource CSV/JSON')) && (
+                  <div className="mt-3 p-4 bg-blue-50 border border-blue-200 rounded-md">
+                    <p className="font-semibold text-blue-900 mb-2">💡 Situation actuelle :</p>
+                    <p className="text-blue-800 text-sm mb-3">
+                      Le dataset RGE sur data.gouv.fr (<strong>ID: 62bd63b70ff1edf452b83a6b</strong>) ne contient pas de fichiers CSV/JSON directement téléchargeables. 
+                      Il référence uniquement des liens vers l&apos;API ADEME.
+                    </p>
+                    
+                    <div className="space-y-2 text-sm text-blue-700">
+                      <p className="font-medium">📌 Comment fonctionne actuellement TORP :</p>
+                      <ul className="list-disc list-inside space-y-1 ml-2">
+                        <li>Les certifications RGE sont recherchées <strong>à la demande</strong> lors de l&apos;analyse de devis</li>
+                        <li>Chaque certification trouvée est <strong>automatiquement indexée</strong> dans la base locale</li>
+                        <li>L&apos;index se construit progressivement avec chaque analyse</li>
+                      </ul>
+                      
+                      <p className="font-medium mt-3">🚀 Pour accélérer l&apos;indexation :</p>
+                      <ul className="list-disc list-inside space-y-1 ml-2">
+                        <li>Analyser plusieurs devis contenant des SIRET différents</li>
+                        <li>Chaque nouvelle certification est ajoutée à l&apos;index automatiquement</li>
+                        <li>Les recherches futures utiliseront l&apos;index local (plus rapide)</li>
+                      </ul>
+                      
+                      <div className="mt-3 pt-3 border-t border-blue-300">
+                        <p className="font-medium text-blue-900">🔗 Ressources :</p>
+                        <ul className="list-disc list-inside space-y-1 ml-2">
+                          <li>
+                            <a 
+                              href="https://data.ademe.fr/datasets/liste-des-entreprises-rge-2" 
+                              target="_blank" 
+                              rel="noopener noreferrer" 
+                              className="underline hover:text-blue-900"
+                            >
+                              API ADEME - Liste des entreprises RGE
+                            </a>
+                          </li>
+                          <li>
+                            <a 
+                              href="https://www.data.gouv.fr/fr/datasets/liste-des-entreprises-rge/" 
+                              target="_blank" 
+                              rel="noopener noreferrer" 
+                              className="underline hover:text-blue-900"
+                            >
+                              Dataset data.gouv.fr
+                            </a>
+                          </li>
+                        </ul>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 
