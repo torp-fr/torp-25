@@ -280,6 +280,35 @@ export class RGEIndexer {
   }
 
   /**
+   * Récupère tous les jobs d'import (actifs et terminés)
+   */
+  async getAllImportJobs(): Promise<any[]> {
+    const jobs = await prisma.rGEImportJob.findMany({
+      orderBy: {
+        createdAt: 'desc',
+      },
+      take: 50, // Limiter à 50 derniers jobs
+    })
+
+    return jobs.map((job) => ({
+      id: job.id,
+      resourceId: job.resourceId,
+      resourceUrl: job.resourceUrl,
+      resourceTitle: job.resourceTitle,
+      resourceFormat: job.resourceFormat,
+      status: job.status,
+      progress: job.progress,
+      totalRows: job.totalRows || undefined,
+      processedRows: job.processedRows,
+      errorMessage: job.errorMessage || undefined,
+      startedAt: job.startedAt?.toISOString(),
+      completedAt: job.completedAt?.toISOString(),
+      createdAt: job.createdAt.toISOString(),
+      updatedAt: job.updatedAt.toISOString(),
+    }))
+  }
+
+  /**
    * Récupère les statistiques d'indexation
    */
   async getIndexingStats(): Promise<{

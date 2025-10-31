@@ -5,14 +5,51 @@ export const dynamic = 'force-dynamic'
 
 /**
  * GET /api/rge
- * Récupère les informations de certification RGE d'une entreprise
+ * 
+ * Mode 1: Récupère les ressources disponibles du dataset (si ?resources=true)
+ * Mode 2: Récupère les informations de certification RGE d'une entreprise
+ * 
  * Paramètres :
- * - siret: SIRET de l'entreprise (requis)
+ * - resources=true: Retourne la liste des ressources disponibles
+ * - siret: SIRET de l'entreprise (requis si resources != true)
  * - activities: Domaines d'activité à vérifier (optionnel, séparés par des virgules)
  */
 export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams
+    const resourcesParam = searchParams.get('resources')
+    
+    // Mode 1: Retourner les ressources disponibles
+    if (resourcesParam === 'true') {
+      const rgeService = new RGEService()
+      const dataset = await rgeService.getDatasetInfo()
+      
+      if (!dataset || !dataset.resources) {
+        return NextResponse.json({
+          success: true,
+          resources: [],
+        })
+      }
+
+      const resources = dataset.resources
+        .filter((r) => r.format === 'csv' || r.format === 'json')
+        .map((r) => ({
+          id: r.id,
+          title: r.title,
+          format: r.format,
+          url: r.url,
+          filesize: r.filesize,
+          last_modified: r.last_modified,
+        }))
+        .sort((a, b) => new Date(b.last_modified).getTime() - new Date(a.last_modified).getTime())
+
+      return NextResponse.json({
+        success: true,
+        resources,
+      })
+    }
+
+    // Mode 2: Recherche par SIRET
     const siret = searchParams.get('siret')
     const activitiesParam = searchParams.get('activities')
 

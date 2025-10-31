@@ -138,22 +138,28 @@ export async function POST(request: NextRequest) {
 /**
  * GET /api/rge/import
  * Récupère les statistiques d'indexation et les jobs actifs
+ * Paramètres :
+ * - allJobs=true: Retourne tous les jobs, pas seulement les actifs
  */
-export async function GET(_request: NextRequest) {
+export async function GET(request: NextRequest) {
   try {
     const { RGEIndexer } = await import('@/services/external-apis/rge-indexer')
     const indexer = new RGEIndexer()
 
+    const searchParams = request.nextUrl.searchParams
+    const allJobs = searchParams.get('allJobs') === 'true'
+
     const [stats, activeJobs] = await Promise.all([
       indexer.getIndexingStats(),
-      indexer.getActiveImportJobs(),
+      allJobs ? indexer.getAllImportJobs() : indexer.getActiveImportJobs(),
     ])
 
     return NextResponse.json({
       success: true,
       data: {
         stats,
-        activeJobs,
+        jobs: activeJobs,
+        activeJobs: allJobs ? activeJobs.filter((j: any) => j.status === 'PENDING' || j.status === 'IN_PROGRESS') : activeJobs,
       },
     })
   } catch (error) {
