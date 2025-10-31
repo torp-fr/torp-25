@@ -8,6 +8,7 @@
 
 import type { AddressData } from './types'
 import { APICartoCadastreService } from './apicarto-cadastre-service'
+import { DataGouvCadastreService } from './datagouv-cadastre-service'
 
 export interface CadastralParcel {
   id: string // Identifiant parcellaire
@@ -77,10 +78,12 @@ export interface CadastralData {
 export class CadastreService {
   private geoportailApiKey: string | undefined
   private apicartoService: APICartoCadastreService
+  private dataGouvCadastreService: DataGouvCadastreService
 
   constructor() {
     this.geoportailApiKey = process.env.GEOPORTAIL_API_KEY
     this.apicartoService = new APICartoCadastreService()
+    this.dataGouvCadastreService = new DataGouvCadastreService()
   }
 
   /**
@@ -128,6 +131,34 @@ export class CadastreService {
         console.warn('[CadastreService] Erreur récupération code INSEE:', error)
       }
 
+      // Enrichir avec les données de cadastre.data.gouv.fr si disponibles
+      let dataGouvParcelle = null
+      if (parcelle && codeINSEE && parcelle.section && parcelle.numero) {
+        try {
+          dataGouvParcelle = await this.dataGouvCadastreService.getParcelle(
+            codeINSEE,
+            parcelle.section,
+            parcelle.numero
+          )
+          if (dataGouvParcelle && dataGouvParcelle.surface) {
+            // Utiliser la surface depuis cadastre.data.gouv.fr si disponible
+            if (parcelleDetails) {
+              parcelleDetails.surface = dataGouvParcelle.surface
+              parcelleDetails.contenance = dataGouvParcelle.surface / 10000
+            } else if (parcelle) {
+              parcelle.surface = dataGouvParcelle.surface
+            }
+          }
+        } catch (error) {
+          console.warn('[CadastreService] ⚠️ Erreur enrichissement cadastre.data.gouv.fr:', error)
+        }
+      }
+
+      const sources = ['Géoportail IGN (API Carto)']
+      if (dataGouvParcelle) {
+        sources.push('Cadastre data.gouv.fr (Etalab)')
+      }
+
       return {
         commune: city,
         codeINSEE,
@@ -140,7 +171,7 @@ export class CadastreService {
         constraints,
         connectivity,
         historicalData,
-        sources: ['Géoportail IGN'],
+        sources,
         lastUpdated: new Date().toISOString(),
       }
     } catch (error) {
