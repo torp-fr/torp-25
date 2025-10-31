@@ -5,7 +5,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
-import { uploadToS3 } from '@/services/document/upload'
+import { documentUploadService } from '@/services/document/upload'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -47,7 +47,12 @@ export async function POST(request: NextRequest) {
     }
 
     // Upload vers S3
-    const fileUrl = await uploadToS3(file, userId)
+    const uploadResult = await documentUploadService.upload({
+      userId,
+      file,
+      folder: 'complementary-documents',
+    })
+    const fileUrl = uploadResult.fileUrl
 
     // Créer le document complémentaire en DB
     const document = await prisma.complementaryDocument.create({
