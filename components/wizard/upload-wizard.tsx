@@ -54,6 +54,9 @@ interface CCFData {
   // Étape 4: Contraintes et besoins
   constraints: string[]
   requirements: string[]
+  rooms?: string[] // Pièces concernées (SDB, cuisine, etc.)
+  autoDetectedConstraints?: string[] // Contraintes détectées automatiquement
+  accessConditions?: string[] // Conditions d'accès
   budgetRange: {
     min: number
     max: number
@@ -79,12 +82,32 @@ export function UploadWizard({ onComplete, onCancel }: UploadWizardProps) {
     region: '',
     constraints: [],
     requirements: [],
+    rooms: [],
+    autoDetectedConstraints: [],
+    accessConditions: [],
     budgetRange: { min: 0, max: 0 },
   })
 
   const [addressSearchQuery, setAddressSearchQuery] = useState('')
   const [addressSuggestions, setAddressSuggestions] = useState<any[]>([])
   const [selectedAddress, setSelectedAddress] = useState<any>(null)
+
+  // Options pour les pièces
+  const availableRooms = [
+    'Salle de bain',
+    'Cuisine',
+    'Chambre',
+    'Salon',
+    'Salle à manger',
+    'Bureau',
+    'WC',
+    'Entrée',
+    'Cave',
+    'Grenier',
+    'Garage',
+    'Terrasse',
+    'Balcon',
+  ]
 
   const steps = [
     { id: 1, title: 'Type de projet', icon: Building },
@@ -126,11 +149,17 @@ export function UploadWizard({ onComplete, onCancel }: UploadWizardProps) {
 
       if (response.ok) {
         const data = await response.json()
+        
+        // Détecter automatiquement les contraintes depuis les données bâti
+        const autoConstraints = detectConstraintsFromBuildingData(data.data)
+        
         setCcfData((prev) => ({
           ...prev,
           buildingData: data.data.building,
           urbanismData: data.data.urbanism,
           energyData: data.data.energy,
+          pluData: data.data.plu,
+          autoDetectedConstraints: autoConstraints,
         }))
       }
     } catch (error) {
@@ -173,6 +202,46 @@ export function UploadWizard({ onComplete, onCancel }: UploadWizardProps) {
 
   const handleSubmit = () => {
     onComplete(ccfData)
+  }
+
+  // Fonction pour détecter automatiquement les contraintes depuis les données bâti
+  const detectConstraintsFromBuildingData = (buildingData: any): string[] => {
+    const constraints: string[] = []
+
+    if (!buildingData) return constraints
+
+    // Contraintes PLU
+    if (buildingData.plu?.contraintes) {
+      buildingData.plu.contraintes.forEach((c: any) => {
+        if (c.description) constraints.push(c.description)
+      })
+    }
+
+    if (buildingData.plu?.zonage?.type) {
+      constraints.push(`Zone PLU: ${buildingData.plu.zonage.type}`)
+    }
+
+    // Contraintes de hauteur
+    if (buildingData.building?.heightRestriction) {
+      constraints.push(`Limitation de hauteur: ${buildingData.building.heightRestriction}m`)
+    }
+
+    // Contraintes de retrait
+    if (buildingData.building?.setbackRestriction) {
+      constraints.push(`Retrait obligatoire: ${buildingData.building.setbackRestriction}m`)
+    }
+
+    // Contraintes PLU depuis buildingData
+    if (buildingData.building?.pluConstraints && buildingData.building.pluConstraints.length > 0) {
+      constraints.push(...buildingData.building.pluConstraints)
+    }
+
+    // Contraintes d'urbanisme
+    if (buildingData.urbanism?.constraints && buildingData.urbanism.constraints.length > 0) {
+      constraints.push(...buildingData.urbanism.constraints)
+    }
+
+    return [...new Set(constraints)] // Supprimer les doublons
   }
 
   const renderStepContent = () => {
@@ -294,6 +363,37 @@ export function UploadWizard({ onComplete, onCancel }: UploadWizardProps) {
                     </p>
                   </div>
                 )}
+                {ccfData.pluData && (
+                  <div className="p-4 bg-green-50 border border-green-200 rounded-md">
+                    <h4 className="font-semibold mb-2">Données PLU récupérées</h4>
+                    {ccfData.pluData.zone && (
+                      <p className="text-sm mb-1">
+                        <strong>Zone:</strong> {ccfData.pluData.zone}
+                      </p>
+                    )}
+                    {ccfData.pluData.commune && (
+                      <p className="text-sm mb-1">
+                        <strong>Commune:</strong> {ccfData.pluData.commune}
+                      </p>
+                    )}
+                    {ccfData.pluData.contraintes && ccfData.pluData.contraintes.length > 0 && (
+                      <div className="mt-2">
+                        <p className="text-sm font-medium mb-1">Contraintes identifiées:</p>
+                        <ul className="text-xs space-y-1">
+                          {ccfData.pluData.contraintes.slice(0, 3).map((c: any, idx: number) => (
+                            <li key={idx}>• {c.description || c}</li>
+                          ))}
+                          {ccfData.pluData.contraintes.length > 3 && (
+                            <li className="text-gray-500">+ {ccfData.pluData.contraintes.length - 3} autres...</li>
+                          )}
+                        </ul>
+                      </div>
+                    )}
+                    <p className="text-xs text-green-600 mt-2">
+                      ✓ Les contraintes PLU seront utilisées dans l'analyse
+                    </p>
+                  </div>
+                )}
                 {ccfData.urbanismData && (
                   <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-md">
                     <h4 className="font-semibold mb-2">Données d'urbanisme</h4>
@@ -314,12 +414,81 @@ export function UploadWizard({ onComplete, onCancel }: UploadWizardProps) {
       case 4:
         return (
           <div className="space-y-6">
+            {/* Contraintes détectées automatiquement */}
+            {ccfData.autoDetectedConstraints && ccfData.autoDetectedConstraints.length > 0 && (
+              <div className="p-4 bg-blue-50 border border-blue-200 rounded-md">
+                <Label className="font-semibold mb-2 block">Contraintes détectées automatiquement</Label>
+                <ul className="space-y-1 text-sm">
+                  {ccfData.autoDetectedConstraints.map((constraint, idx) => (
+                    <li key={idx} className="flex items-start gap-2">
+                      <CheckCircle2 className="h-4 w-4 mt-0.5 text-blue-600 flex-shrink-0" />
+                      <span>{constraint}</span>
+                    </li>
+                  ))}
+                </ul>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="mt-2"
+                  onClick={() => {
+                    setCcfData((prev) => ({
+                      ...prev,
+                      constraints: [...prev.constraints, ...(prev.autoDetectedConstraints || [])],
+                    }))
+                  }}
+                >
+                  Ajouter toutes les contraintes détectées
+                </Button>
+              </div>
+            )}
+
+            {/* Identification des pièces */}
             <div>
-              <Label htmlFor="constraints">Contraintes particulières</Label>
+              <Label>Pièces concernées (choix multiple)</Label>
+              <p className="text-sm text-muted-foreground mb-2">
+                Sélectionnez les pièces concernées par votre projet. Laissez vide si vous ne connaissez pas précisément votre besoin.
+              </p>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-2 max-h-48 overflow-y-auto p-2 border rounded-md">
+                {availableRooms.map((room) => {
+                  const isSelected = ccfData.rooms?.includes(room)
+                  return (
+                    <button
+                      key={room}
+                      type="button"
+                      onClick={() => {
+                        setCcfData((prev) => ({
+                          ...prev,
+                          rooms: isSelected
+                            ? prev.rooms?.filter((r) => r !== room) || []
+                            : [...(prev.rooms || []), room],
+                        }))
+                      }}
+                      className={`px-3 py-2 text-sm rounded-md border transition-colors ${
+                        isSelected
+                          ? 'bg-blue-600 text-white border-blue-600'
+                          : 'bg-white hover:bg-gray-50 border-gray-300'
+                      }`}
+                    >
+                      {room}
+                    </button>
+                  )
+                })}
+              </div>
+              {ccfData.rooms && ccfData.rooms.length > 0 && (
+                <p className="text-xs text-muted-foreground mt-2">
+                  {ccfData.rooms.length} pièce(s) sélectionnée(s)
+                </p>
+              )}
+            </div>
+
+            {/* Contraintes particulières (manuelles) */}
+            <div>
+              <Label htmlFor="constraints">Contraintes particulières supplémentaires</Label>
               <Textarea
                 id="constraints"
-                placeholder="Contraintes techniques, réglementaires, accès, etc."
+                placeholder="Ajoutez des contraintes techniques, réglementaires, accès, etc. (une par ligne)"
                 rows={4}
+                value={ccfData.constraints.join('\n')}
                 onChange={(e) =>
                   setCcfData((prev) => ({
                     ...prev,
@@ -329,12 +498,49 @@ export function UploadWizard({ onComplete, onCancel }: UploadWizardProps) {
               />
             </div>
 
+            {/* Conditions d'accès */}
+            <div>
+              <Label htmlFor="accessConditions">Conditions d'accès (optionnel)</Label>
+              <div className="space-y-2 mt-2">
+                {[
+                  'Accès difficile',
+                  'Étage élevé',
+                  'Escalier étroit',
+                  'Parking disponible',
+                  'Accès engin nécessaire',
+                  'Horaires restreints',
+                ].map((condition) => {
+                  const isSelected = ccfData.accessConditions?.includes(condition)
+                  return (
+                    <label key={condition} className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={isSelected}
+                        onChange={(e) => {
+                          setCcfData((prev) => ({
+                            ...prev,
+                            accessConditions: e.target.checked
+                              ? [...(prev.accessConditions || []), condition]
+                              : prev.accessConditions?.filter((c) => c !== condition) || [],
+                          }))
+                        }}
+                        className="rounded"
+                      />
+                      <span className="text-sm">{condition}</span>
+                    </label>
+                  )
+                })}
+              </div>
+            </div>
+
+            {/* Besoins fonctionnels */}
             <div>
               <Label htmlFor="requirements">Besoins fonctionnels</Label>
               <Textarea
                 id="requirements"
                 placeholder="Vos besoins, préférences, exigences..."
                 rows={4}
+                value={ccfData.requirements.join('\n')}
                 onChange={(e) =>
                   setCcfData((prev) => ({
                     ...prev,

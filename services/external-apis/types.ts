@@ -60,6 +60,7 @@ export interface AggregatedBuildingData {
   urbanism?: UrbanismData
   building?: BuildingData
   energy?: EnergyData
+  plu?: any // PLUData from plu-service
   sources: string[]
   lastUpdated: string
 }

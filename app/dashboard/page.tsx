@@ -17,6 +17,7 @@ import {
   AlertCircle,
   CheckCircle2,
   Clock,
+  Trash2,
 } from 'lucide-react'
 import { AppHeader } from '@/components/app-header'
 export const dynamic = 'force-dynamic'
@@ -53,6 +54,7 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [generating, setGenerating] = useState(false)
+  const [deleting, setDeleting] = useState<string | null>(null)
 
   useEffect(() => {
     fetchDevis()
@@ -181,6 +183,34 @@ export default function DashboardPage() {
       style: 'currency',
       currency: 'EUR',
     }).format(amount)
+  }
+
+  const handleDeleteDevis = async (devisId: string) => {
+    if (!confirm('Êtes-vous sûr de vouloir supprimer ce devis ? Cette action est irréversible.')) {
+      return
+    }
+
+    try {
+      setDeleting(devisId)
+      setError(null)
+
+      const response = await fetch(`/api/devis/${devisId}`, {
+        method: 'DELETE',
+      })
+
+      if (!response.ok) {
+        throw new Error('Erreur lors de la suppression')
+      }
+
+      // Recharger la liste
+      await fetchDevis()
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : 'Erreur lors de la suppression'
+      )
+    } finally {
+      setDeleting(null)
+    }
   }
 
   if (loading) {
@@ -405,11 +435,26 @@ export default function DashboardPage() {
                             </div>
                           </td>
                           <td className="px-4 py-4">
-                            <Link href={`/analysis/${devis.id}`}>
-                              <Button variant="outline" size="sm">
-                                Voir Détails
+                            <div className="flex items-center gap-2">
+                              <Link href={`/analysis/${devis.id}`}>
+                                <Button variant="outline" size="sm">
+                                  Voir Détails
+                                </Button>
+                              </Link>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleDeleteDevis(devis.id)}
+                                disabled={deleting === devis.id}
+                                className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                              >
+                                {deleting === devis.id ? (
+                                  <Clock className="h-4 w-4 animate-spin" />
+                                ) : (
+                                  <Trash2 className="h-4 w-4" />
+                                )}
                               </Button>
-                            </Link>
+                            </div>
                           </td>
                         </tr>
                       )

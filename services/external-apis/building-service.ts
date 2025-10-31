@@ -8,12 +8,15 @@
 
 import type { BuildingData, EnergyData, UrbanismData, AggregatedBuildingData, AddressData } from './types'
 import { AddressService } from './address-service'
+import { PLUService } from './plu-service'
 
 export class BuildingService {
   private addressService: AddressService
+  private pluService: PLUService
 
   constructor() {
     this.addressService = new AddressService()
+    this.pluService = new PLUService()
   }
 
   /**
@@ -34,21 +37,34 @@ export class BuildingService {
       sources.push('API Adresse')
 
       // 2. Récupération des données depuis différentes sources
-      const [urbanism, building, energy] = await Promise.all([
+      const [urbanism, building, energy, plu] = await Promise.all([
         this.getUrbanismData(addressData),
         this.getBuildingData(addressData),
         this.getEnergyData(addressData),
+        this.pluService.getPLUData(addressData),
       ])
 
       if (urbanism) sources.push('APU Urbanisme')
-      if (building) sources.push('ONTB/PLU')
+      if (building) sources.push('ONTB')
+      if (plu) sources.push('PLU')
       if (energy) sources.push('DPE')
+
+      // Enrichir buildingData avec les données PLU
+      let enrichedBuilding = building
+      if (plu && building) {
+        enrichedBuilding = {
+          ...building,
+          pluZone: plu.zone || plu.zonage?.type,
+          pluConstraints: plu.contraintes?.map((c) => c.description) || [],
+        }
+      }
 
       return {
         address: addressData,
         urbanism: urbanism || undefined,
-        building: building || undefined,
+        building: enrichedBuilding || undefined,
         energy: energy || undefined,
+        plu: plu || undefined,
         sources,
         lastUpdated: new Date().toISOString(),
       }
