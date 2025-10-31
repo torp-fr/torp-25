@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
-import { Home, Upload } from 'lucide-react'
+import { Home, Upload, Building2 } from 'lucide-react'
 import { UserButton } from '@/components/user-button'
 
 export function AppHeader() {
@@ -24,6 +24,13 @@ export function AppHeader() {
             >
               <Home className="h-4 w-4" />
               Dashboard
+            </Link>
+            <Link
+              href="/buildings"
+              className="flex items-center gap-2 text-sm font-medium transition-colors hover:text-primary"
+            >
+              <Building2 className="h-4 w-4" />
+              Mes Logements
             </Link>
             <Link
               href="/upload"
