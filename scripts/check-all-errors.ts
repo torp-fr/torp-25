@@ -69,7 +69,6 @@ function checkTypeScriptErrors(): ErrorReport[] {
 function findUnusedParamsInFile(filePath: string): ErrorReport[] {
   const errors: ErrorReport[] = []
   const content = readFileSync(filePath, 'utf-8')
-  const lines = content.split('\n')
   
   // Pattern pour trouver les fonctions avec paramètres
   const functionPattern = /(?:private|public|async)\s+(?:async\s+)?(\w+)\s*\(([^)]+)\)/g
