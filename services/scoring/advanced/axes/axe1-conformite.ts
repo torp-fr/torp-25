@@ -420,7 +420,6 @@ export class Axe1Conformite {
     let justification = ''
 
     const legalMentions = (devis.extractedData as any)?.legalMentions || {}
-    const totalAmount = Number(devis.totalAmount) || 0
 
     // RC Décennale valide et couvrante (20 pts)
     if (legalMentions.hasInsurance) {
