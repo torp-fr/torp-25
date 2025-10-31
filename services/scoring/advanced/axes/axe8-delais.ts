@@ -50,8 +50,8 @@ export class Axe8Delais {
    * 8.1 Réalisme Planning (40 points)
    */
   private async calculateRealismePlanning(
-    _devis: Devis,
-    _enrichmentData: ScoringEnrichmentData,
+    devis: Devis,
+    enrichmentData: ScoringEnrichmentData,
     context: any
   ): Promise<SubCriteriaScore> {
     const controlPointScores: ControlPointScore[] = []
@@ -79,8 +79,8 @@ export class Axe8Delais {
    * Cohérence Temporelle (25 points)
    */
   private async scoreCoherenceTemporelle(
-    _devis: Devis,
-    _enrichmentData: ScoringEnrichmentData,
+    devis: Devis,
+    enrichmentData: ScoringEnrichmentData,
     context: any
   ): Promise<ControlPointScore> {
     let score = 0
@@ -152,13 +152,13 @@ export class Axe8Delais {
    * Coordination Métiers (15 points)
    */
   private async scoreCoordinationMetiers(
-    _devis: Devis,
-    _enrichmentData: ScoringEnrichmentData
+    devis: Devis,
+    enrichmentData: ScoringEnrichmentData
   ): Promise<ControlPointScore> {
     let score = 0
     let justification = ''
 
-    const text = JSON.stringify(devis.extractedData).toLowerCase()
+    const text = JSON.stringify(_devis.extractedData).toLowerCase()
 
     // Interfaces bien définies (8 pts)
     const hasInterfaces = text.includes('interface') ||
@@ -199,19 +199,19 @@ export class Axe8Delais {
    * 8.2 Capacité Respect Délais (30 points)
    */
   private async calculateCapaciteDelais(
-    _devis: Devis,
-    _enrichmentData: ScoringEnrichmentData
+    devis: Devis,
+    enrichmentData: ScoringEnrichmentData
   ): Promise<SubCriteriaScore> {
     const controlPointScores: ControlPointScore[] = []
     let totalScore = 0
 
     // Historique Performance (20 points)
-    const historique = await this.scoreHistoriquePerformance(_devis, _enrichmentData)
+    const historique = await this.scoreHistoriquePerformance(devis, enrichmentData)
     controlPointScores.push(historique)
     totalScore += historique.score
 
     // Engagement Contractuel (10 points)
-    const engagement = await this.scoreEngagementContractuel(_devis)
+    const engagement = await this.scoreEngagementContractuel(devis)
     controlPointScores.push(engagement)
     totalScore += engagement.score
 
@@ -227,13 +227,13 @@ export class Axe8Delais {
    * Historique Performance (20 points)
    */
   private async scoreHistoriquePerformance(
-    _devis: Devis,
-    _enrichmentData: ScoringEnrichmentData
+    devis: Devis,
+    enrichmentData: ScoringEnrichmentData
   ): Promise<ControlPointScore> {
     let score = 0
     let justification = ''
 
-    const reputation = _enrichmentData.company?.reputation
+    const reputation = enrichmentData.company?.reputation
 
     // Taux respect délais antérieur (15 pts)
     // Nécessiterait base de données historique TORP
@@ -275,11 +275,11 @@ export class Axe8Delais {
   /**
    * Engagement Contractuel (10 points)
    */
-  private async scoreEngagementContractuel(_devis: Devis): Promise<ControlPointScore> {
+  private async scoreEngagementContractuel(devis: Devis): Promise<ControlPointScore> {
     let score = 0
     let justification = ''
 
-    const text = JSON.stringify(_devis.extractedData).toLowerCase()
+    const text = JSON.stringify(devis.extractedData).toLowerCase()
 
     // Pénalités équilibrées (5 pts)
     const hasPenalties = text.includes('pénalité') ||
