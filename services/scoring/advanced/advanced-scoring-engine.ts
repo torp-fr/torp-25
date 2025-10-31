@@ -313,7 +313,7 @@ export class AdvancedScoringEngine {
   private generateOverallRecommendations(
     totalScore: number,
     axisScores: AxisScore[],
-    context: any
+    _context: any
   ): Recommendation[] {
     const recommendations: Recommendation[] = []
 
