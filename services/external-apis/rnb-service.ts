@@ -167,7 +167,7 @@ export class RNBService {
   /**
    * Récupère la ressource RNB pour un département spécifique
    */
-  private async getDepartmentResource(department: string): Promise<RNBResource | null> {
+  async getDepartmentResource(department: string): Promise<RNBResource | null> {
     try {
       const resources = await this.getAllResources()
       return resources.find((r) => r.department === department) || null
