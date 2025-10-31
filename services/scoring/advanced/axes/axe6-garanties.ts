@@ -256,7 +256,6 @@ export class Axe6Garanties {
     let justification = ''
 
     const text = JSON.stringify(devis.extractedData).toLowerCase()
-    const totals = (devis.extractedData as any)?.totals || {}
 
     // Garantie financière achèvement (5 pts)
     // Généralement requise si acomptes > 30%

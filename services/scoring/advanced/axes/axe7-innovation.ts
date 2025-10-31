@@ -10,8 +10,8 @@ import type { ScoringEnrichmentData, ControlPointScore, SubCriteriaScore, AxisSc
 
 export class Axe7Innovation {
   async calculate(
-    _devis: Devis,
-    _enrichmentData: ScoringEnrichmentData,
+    devis: Devis,
+    enrichmentData: ScoringEnrichmentData,
     context: { projectType: string }
   ): Promise<AxisScore> {
     const subCriteriaScores: SubCriteriaScore[] = []

@@ -77,7 +77,6 @@ export class Axe5Transparence {
     let justification = ''
 
     const items = (devis.extractedData as any)?.items || []
-    const totals = (devis.extractedData as any)?.totals || {}
 
     // Descriptif détaillé (15 pts)
     let detailedItems = 0

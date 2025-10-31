@@ -11,9 +11,9 @@ import type { ScoringEnrichmentData, ControlPointScore, SubCriteriaScore, AxisSc
 
 export class Axe3Qualite {
   async calculate(
-    _devis: Devis,
+    devis: Devis,
     enrichmentData: ScoringEnrichmentData,
-    _context: { projectType: string; projectAmount: string }
+    context: { projectType: string; projectAmount: string }
   ): Promise<AxisScore> {
     const subCriteriaScores: SubCriteriaScore[] = []
     const alerts: any[] = []
@@ -427,20 +427,20 @@ export class Axe3Qualite {
    * 3.3 Capital Humain & Organisation (50 points)
    */
   private async calculateCapitalHumain(
-    _devis: Devis,
+    devis: Devis,
     enrichmentData: ScoringEnrichmentData,
-    _context: any
+    context: any
   ): Promise<SubCriteriaScore> {
     const controlPointScores: ControlPointScore[] = []
     let totalScore = 0
 
     // Moyens Humains (30 points)
-    const humains = await this.scoreMoyensHumains(devis, enrichmentData, _context)
+    const humains = await this.scoreMoyensHumains(devis, enrichmentData, context)
     controlPointScores.push(humains)
     totalScore += humains.score
 
     // Moyens Matériels (20 points)
-    const materiels = await this.scoreMoyensMateriels(_devis, enrichmentData)
+    const materiels = await this.scoreMoyensMateriels(devis, enrichmentData)
     controlPointScores.push(materiels)
     totalScore += materiels.score
 
@@ -458,7 +458,7 @@ export class Axe3Qualite {
   private async scoreMoyensHumains(
     devis: Devis,
     enrichmentData: ScoringEnrichmentData,
-    _context: any
+    context: any
   ): Promise<ControlPointScore> {
     let score = 0
     let justification = ''
@@ -518,7 +518,7 @@ export class Axe3Qualite {
    * Moyens Matériels (20 points)
    */
   private async scoreMoyensMateriels(
-    _devis: Devis,
+    devis: Devis,
     enrichmentData: ScoringEnrichmentData
   ): Promise<ControlPointScore> {
     let score = 0
