@@ -35,9 +35,26 @@ export class AddressService {
 
   /**
    * Recherche d'adresse depuis API Adresse
+   * Essaie d'abord l'index local BAN, puis fallback sur API Adresse
    */
   async searchAddress(query: string): Promise<AddressData[]> {
     try {
+      // 1. Essayer d'abord l'index local BAN
+      try {
+        const { BANIndexer } = await import('./ban-indexer')
+        const indexer = new BANIndexer()
+        const localResults = await indexer.searchAddress(query, 5)
+        
+        if (localResults.length > 0) {
+          console.log('[AddressService] Données récupérées depuis l\'index BAN local')
+          return localResults
+        }
+      } catch (error) {
+        // Si l'index BAN n'est pas disponible, continuer avec l'API
+        console.warn('[AddressService] Index BAN non disponible, utilisation API Adresse')
+      }
+
+      // 2. Fallback sur l'API Adresse
       const response = await this.client.get<ApiAdresseResponse>('/search', {
         q: query,
         limit: '5',
@@ -73,9 +90,26 @@ export class AddressService {
 
   /**
    * Géocodage inverse (coordonnées → adresse)
+   * Essaie d'abord l'index local BAN, puis fallback sur API Adresse
    */
   async reverseGeocode(lat: number, lng: number): Promise<AddressData | null> {
     try {
+      // 1. Essayer d'abord l'index local BAN
+      try {
+        const { BANIndexer } = await import('./ban-indexer')
+        const indexer = new BANIndexer()
+        const localResult = await indexer.reverseGeocode(lat, lng, 100)
+        
+        if (localResult) {
+          console.log('[AddressService] Géocodage inverse depuis l\'index BAN local')
+          return localResult
+        }
+      } catch (error) {
+        // Si l'index BAN n'est pas disponible, continuer avec l'API
+        console.warn('[AddressService] Index BAN non disponible pour géocodage inverse')
+      }
+
+      // 2. Fallback sur l'API Adresse
       const response = await this.client.get<ApiAdresseResponse>('/reverse', {
         lat: lat.toString(),
         lon: lng.toString(),

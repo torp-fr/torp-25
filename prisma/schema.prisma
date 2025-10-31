@@ -502,3 +502,76 @@ enum RNBImportStatus {
 
   @@map("rnb_import_status")
 }
+
+// ============================================================================
+// Base Adresse Nationale (BAN) - Indexation locale
+// Dataset ID: 5530fbacc751df5ff937dddb
+// ============================================================================
+
+model BANAddress {
+  id         String  @id @default(uuid())
+  banId      String? @unique @map("ban_id") // Identifiant BAN original
+  department String // Code département (01-95, 971-978)
+  codeINSEE  String? @map("code_insee")
+  commune    String?
+
+  // Adresse complète
+  formatted   String // Adresse formatée complète
+  housenumber String? @map("house_number")
+  street      String?
+  postalCode  String  @map("postal_code")
+  city        String
+  region      String?
+  country     String  @default("FR")
+
+  // Coordonnées géographiques
+  coordinates Json? // {lat, lng}
+
+  // Données complémentaires BAN
+  citycode String? // Code INSEE commune
+  district String? // Arrondissement si applicable
+
+  // Métadonnées
+  sourceUrl   String?  @map("source_url")
+  indexedAt   DateTime @default(now()) @map("indexed_at")
+  lastUpdated DateTime @updatedAt @map("last_updated")
+
+  @@index([department])
+  @@index([codeINSEE])
+  @@index([postalCode])
+  @@index([city])
+  @@index([formatted])
+  @@index([indexedAt])
+  @@map("ban_addresses")
+}
+
+model BANImportJob {
+  id            String          @id @default(uuid())
+  department    String // Code département
+  resourceId    String?         @map("resource_id") // ID ressource data.gouv.fr
+  resourceUrl   String          @map("resource_url")
+  status        BANImportStatus @default(PENDING)
+  progress      Float           @default(0) // 0-100
+  totalRows     Int?            @map("total_rows")
+  processedRows Int             @default(0) @map("processed_rows")
+  errorMessage  String?         @map("error_message")
+  startedAt     DateTime?       @map("started_at")
+  completedAt   DateTime?       @map("completed_at")
+  createdAt     DateTime        @default(now()) @map("created_at")
+  updatedAt     DateTime        @updatedAt @map("updated_at")
+
+  @@index([department])
+  @@index([status])
+  @@index([createdAt])
+  @@map("ban_import_jobs")
+}
+
+enum BANImportStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  FAILED
+  CANCELLED
+
+  @@map("ban_import_status")
+}
