@@ -65,6 +65,23 @@ Ce document liste toutes les sources de données réelles utilisées par TORP po
   - Données publiques diverses
 - **Clé API**: Non requise (gratuite)
 
+### 8. Référentiel National des Bâtiments (RNB)
+- **URL**: `https://www.data.gouv.fr/api/1/datasets/65a5568dfc88169d0a5416ca/`
+- **Dataset ID**: `65a5568dfc88169d0a5416ca`
+- **Statut**: ✅ Réelle et opérationnelle
+- **Usage**: Données complètes sur les bâtiments français
+- **Données**: 
+  - DPE (Diagnostic de Performance Energétique) par département
+  - Année de construction
+  - Type de bâtiment
+  - Surface en m²
+  - Consommation énergétique (kWh/m²/an)
+  - Émissions GES (kg CO2/m²/an)
+  - Haute Valeur Déterminante (HVD)
+- **Format**: CSV zippé par département
+- **Clé API**: Non requise (gratuite)
+- **Note**: Les fichiers CSV sont volumineux (50-200MB). Le service récupère les métadonnées et prépare l'intégration du parsing CSV.
+
 ## 📋 Données Récupérées
 
 ### Données Cadastrales Réelles
@@ -84,6 +101,12 @@ Ce document liste toutes les sources de données réelles utilisées par TORP po
 - ✅ PLU depuis data.gouv.fr (datasets réels)
 - ✅ Code INSEE pour identification commune
 - ⚠️ Parsing fichiers PLU (GeoJSON/Shapefile) - à améliorer
+
+### Données RNB (Référentiel National des Bâtiments)
+- ✅ Métadonnées RNB par département (data.gouv.fr)
+- ✅ Identification ressource par département
+- ✅ DPE, année construction, surface, consommation énergétique
+- ⚠️ Parsing CSV volumineux - à améliorer (nécessite système de cache/index)
 
 ### Connectivité
 - ✅ Analyse basée sur type d'adresse (API Adresse)

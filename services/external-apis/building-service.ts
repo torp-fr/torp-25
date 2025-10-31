@@ -10,16 +10,19 @@ import type { BuildingData, EnergyData, UrbanismData, AggregatedBuildingData, Ad
 import { AddressService } from './address-service'
 import { PLUService } from './plu-service'
 import { CadastreService } from './cadastre-service'
+import { RNBService } from './rnb-service'
 
 export class BuildingService {
   private addressService: AddressService
   private pluService: PLUService
   private cadastreService: CadastreService
+  private rnbService: RNBService
 
   constructor() {
     this.addressService = new AddressService()
     this.pluService = new PLUService()
     this.cadastreService = new CadastreService()
+    this.rnbService = new RNBService()
   }
 
   /**
@@ -40,12 +43,13 @@ export class BuildingService {
       sources.push('API Adresse')
 
       // 2. Récupération des données depuis différentes sources
-      const [urbanism, building, energy, plu, cadastre] = await Promise.all([
+      const [urbanism, building, energy, plu, cadastre, rnb] = await Promise.all([
         this.getUrbanismData(addressData),
         this.getBuildingData(addressData),
         this.getEnergyData(addressData),
         this.pluService.getPLUData(addressData),
         this.cadastreService.getCadastralData(addressData),
+        this.rnbService.getBuildingData(addressData),
       ])
 
       if (urbanism) sources.push('APU Urbanisme')
@@ -53,12 +57,37 @@ export class BuildingService {
       if (plu) sources.push('PLU')
       if (energy) sources.push('DPE')
       if (cadastre) sources.push('Cadastre Géoportail')
+      if (rnb) sources.push('RNB')
+
+      // Enrichir buildingData avec les données RNB et PLU
+      let enrichedBuilding = building
+      if (rnb) {
+        enrichedBuilding = {
+          ...enrichedBuilding,
+          constructionYear: enrichedBuilding?.constructionYear || rnb.constructionYear,
+          buildingType: enrichedBuilding?.buildingType || rnb.buildingType,
+          surface: enrichedBuilding?.surface || rnb.surface,
+          energyClass: enrichedBuilding?.energyClass || rnb.dpeClass,
+          energyConsumption: enrichedBuilding?.energyConsumption || rnb.energyConsumption,
+        }
+      }
+
+      // Enrichir energyData avec les données RNB
+      let enrichedEnergy = energy
+      if (rnb) {
+        enrichedEnergy = {
+          ...enrichedEnergy,
+          dpeDate: enrichedEnergy?.dpeDate || rnb.dpeDate,
+          dpeClass: enrichedEnergy?.dpeClass || rnb.dpeClass,
+          energyConsumption: enrichedEnergy?.energyConsumption || rnb.energyConsumption,
+          ghgEmissions: enrichedEnergy?.ghgEmissions || rnb.ghgEmissions,
+        }
+      }
 
       // Enrichir buildingData avec les données PLU
-      let enrichedBuilding = building
-      if (plu && building) {
+      if (plu && enrichedBuilding) {
         enrichedBuilding = {
-          ...building,
+          ...enrichedBuilding,
           pluZone: plu.zone || plu.zonage?.type,
           pluConstraints: plu.contraintes?.map((c) => c.description) || [],
         }
@@ -68,9 +97,10 @@ export class BuildingService {
         address: addressData,
         urbanism: urbanism || undefined,
         building: enrichedBuilding || undefined,
-        energy: energy || undefined,
+        energy: enrichedEnergy || undefined,
         plu: plu || undefined,
         cadastre: cadastre || undefined,
+        rnb: rnb || undefined,
         sources,
         lastUpdated: new Date().toISOString(),
       }

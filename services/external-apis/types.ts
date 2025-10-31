@@ -62,6 +62,7 @@ export interface AggregatedBuildingData {
   energy?: EnergyData
   plu?: any // PLUData from plu-service
   cadastre?: any // CadastralData from cadastre-service
+  rnb?: any // RNBBuildingData from rnb-service
   sources: string[]
   lastUpdated: string
 }
