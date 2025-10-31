@@ -458,7 +458,7 @@ export class Axe3Qualite {
   private async scoreMoyensHumains(
     devis: Devis,
     enrichmentData: ScoringEnrichmentData,
-    context: any
+    _context: any
   ): Promise<ControlPointScore> {
     let score = 0
     let justification = ''
@@ -518,7 +518,7 @@ export class Axe3Qualite {
    * Moyens Matériels (20 points)
    */
   private async scoreMoyensMateriels(
-    devis: Devis,
+    _devis: Devis,
     enrichmentData: ScoringEnrichmentData
   ): Promise<ControlPointScore> {
     let score = 0

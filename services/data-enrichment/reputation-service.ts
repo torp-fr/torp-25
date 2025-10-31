@@ -103,9 +103,10 @@ export class ReputationEnrichmentService {
   /**
    * Calcule un NPS (Net Promoter Score) estimé depuis les avis
    */
-  calculateNPSEstimate(rating: number, reviewTexts?: string[]): number {
+  calculateNPSEstimate(rating: number, _reviewTexts?: string[]): number {
     // NPS basique estimé depuis la note moyenne
     // NPS réel nécessite la question "Recommanderiez-vous?"
+    // TODO: Utiliser _reviewTexts pour analyser le sentiment et calculer un NPS plus précis
     if (rating >= 4.5) return 70
     if (rating >= 4.0) return 50
     if (rating >= 3.5) return 30

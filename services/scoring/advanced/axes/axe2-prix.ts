@@ -536,7 +536,7 @@ export class Axe2Prix {
    */
   private async scoreOptimisationFiscale(
     devis: Devis,
-    enrichmentData: ScoringEnrichmentData
+    _enrichmentData: ScoringEnrichmentData
   ): Promise<ControlPointScore> {
     let score = 0
     let justification = ''

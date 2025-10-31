@@ -212,7 +212,7 @@ export class Axe5Transparence {
    */
   private async scoreProfessionnalisme(
     devis: Devis,
-    enrichmentData: ScoringEnrichmentData
+    _enrichmentData: ScoringEnrichmentData
   ): Promise<ControlPointScore> {
     let score = 0
     let justification = ''
@@ -287,7 +287,7 @@ export class Axe5Transparence {
    */
   private async calculateSuiviProjet(
     devis: Devis,
-    enrichmentData: ScoringEnrichmentData
+    _enrichmentData: ScoringEnrichmentData
   ): Promise<SubCriteriaScore> {
     const controlPointScores: ControlPointScore[] = []
     let totalScore = 0
