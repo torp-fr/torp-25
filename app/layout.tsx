@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import './globals.css'
 import { Toaster } from '@/components/ui/toaster'
 import { AuthProvider } from '@/components/auth-provider'
+import { WebVitalsClient } from '@/components/web-vitals-client'
 
 export const metadata: Metadata = {
   title: 'TORP - Analyse Intelligente de Devis BTP',
@@ -28,6 +29,7 @@ export default function RootLayout({
         <AuthProvider>
           {children}
           <Toaster />
+          <WebVitalsClient />
         </AuthProvider>
       </body>
     </html>

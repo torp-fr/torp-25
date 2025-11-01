@@ -1,0 +1,7 @@
+[auth]
+token=
+
+[defaults]
+org=torp
+project=torp-platform
+
