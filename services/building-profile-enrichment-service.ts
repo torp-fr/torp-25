@@ -693,18 +693,24 @@ export class BuildingProfileEnrichmentService {
       })
     }
 
-    // Type de bien
+    // Type de bien (peut être dans enrichedData.building.buildingType ou rnbData.buildingType)
+    const buildingType = enrichedData?.building?.buildingType || 
+                         rnbData?.buildingType ||
+                         enrichedData?.rnb?.buildingType
+    
     characteristics.push({
       id: 'structure-property-type',
       category: 'structure',
       label: 'Type de bien',
-      value: null,
-      valueDisplay: 'Non renseigné',
-      status: 'unknown',
+      value: buildingType || null,
+      valueDisplay: buildingType || 'Non renseigné',
+      status: buildingType ? 'known' : 'unknown',
       editable: true,
       priority: 'high',
       icon: 'Building2',
-      description: 'Type de bien (Maison, Appartement, etc.)',
+      description: buildingType 
+        ? `Type de bien : ${buildingType}`
+        : 'Type de bien (Maison, Appartement, etc.)',
     })
 
     // Nombre de pièces
