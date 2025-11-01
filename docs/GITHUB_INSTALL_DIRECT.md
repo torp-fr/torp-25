@@ -23,18 +23,23 @@
 
 ## 📋 Instructions Rapides
 
+> **⚠️ Guide très détaillé disponible** : Voir `docs/GITHUB_INTEGRATION_STEP_BY_STEP.md` pour un guide pas à pas complet avec toutes les explications.
+
 ### Étape 1: Installer GitHub Integration
 
 1. **Ouvrir le lien d'intégration** ci-dessus
-2. **Cliquer sur "Install"** ou "Add Installation"
-3. **Si première fois**:
-   - Cliquer sur "Authorize GitHub"
-   - Sélectionner le compte/organisation GitHub (`torp-fr`)
-   - Autoriser les permissions:
-     - ✅ Repository access (read)
-     - ✅ Commit status (write)
-     - ✅ Pull requests (read)
-     - ✅ Issues (write)
+   - 👉 https://sentry.io/settings/o4510290746146816/integrations/github/
+2. **Cliquer sur "Install"** ou "Add Installation" ou "Configure"
+   - Si vous ne voyez pas de bouton, cherchez "GitHub" dans la liste des intégrations
+3. **Vous serez redirigé vers GitHub** (c'est normal, c'est pour autoriser)
+4. **Sur la page GitHub** :
+   - Cliquer sur "Authorize GitHub" (si première fois)
+   - **Sélectionner l'organisation GitHub** : `torp-fr` (dans le menu déroulant)
+   - **Choisir les repositories** :
+     - Option "Only select repositories" (recommandé)
+     - Cocher **"torp-25"** dans la liste
+   - **Cliquer sur "Install"** ou "Authorize"
+5. **Vous serez redirigé vers Sentry automatiquement**
 
 ### Étape 2: Sélectionner le Repository
 
