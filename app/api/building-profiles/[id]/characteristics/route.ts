@@ -42,26 +42,40 @@ export async function GET(
     // Extraire les caractéristiques
     const enrichmentService = new BuildingProfileEnrichmentService()
     
-    // Utiliser enrichedData comme source principale, avec fallback sur les champs séparés
-    const enrichedData = profile.enrichedData || {}
+    // Construire enrichedData complet depuis toutes les sources disponibles
+    const enrichedData: any = profile.enrichedData ? { ...profile.enrichedData } : {}
     
-    // S'assurer que toutes les données sont bien présentes dans enrichedData
-    if (profile.dpeData && !enrichedData.energy && !enrichedData.dpe) {
+    // Compléter avec les données stockées séparément si enrichedData est vide ou incomplet
+    if (!enrichedData.cadastre && profile.cadastralData) {
+      enrichedData.cadastre = profile.cadastralData
+    }
+    if (!enrichedData.plu && profile.pluData) {
+      enrichedData.plu = profile.pluData
+    }
+    if (!enrichedData.rnb && profile.rnbData) {
+      enrichedData.rnb = profile.rnbData
+    }
+    if ((!enrichedData.energy && !enrichedData.dpe) && profile.dpeData) {
       enrichedData.energy = profile.dpeData
       enrichedData.dpe = profile.dpeData
     }
-    if (profile.cadastralData && !enrichedData.cadastre) {
-      enrichedData.cadastre = profile.cadastralData
-    }
-    if (profile.pluData && !enrichedData.plu) {
-      enrichedData.plu = profile.pluData
-    }
-    if (profile.rnbData && !enrichedData.rnb) {
-      enrichedData.rnb = profile.rnbData
+    if (!enrichedData.georisques) {
+      // Géorisques peut être dans enrichedData directement
+      enrichedData.georisques = enrichedData.georisques || null
     }
     
-    // Extraire georisques de enrichedData si disponible
-    const georisquesData = enrichedData.georisques || profile.enrichedData?.georisques || null
+    // Log pour déboguer
+    console.log('[API Characteristics] Données disponibles:', {
+      hasEnrichedData: !!profile.enrichedData,
+      enrichedDataKeys: Object.keys(enrichedData),
+      hasCadastralData: !!profile.cadastralData,
+      hasPLUData: !!profile.pluData,
+      hasRNBData: !!profile.rnbData,
+      hasDPEData: !!profile.dpeData,
+    })
+    
+    // Extraire georisques
+    const georisquesData = enrichedData.georisques || null
     
     const characteristics = enrichmentService.extractCharacteristics(
       enrichedData,

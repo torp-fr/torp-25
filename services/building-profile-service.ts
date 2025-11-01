@@ -192,6 +192,9 @@ export class BuildingProfileService {
    * Enrichit automatiquement un profil avec toutes les données disponibles
    * Note: L'enrichissement est uniquement disponible pour les cartes PROPRIETAIRE
    */
+  /**
+   * Enrichit un profil selon le flux : Adresse → Parcelle → Bâti → Données associées
+   */
   async enrichProfile(profileId: string): Promise<BuildingProfileEnrichmentResult> {
     try {
       const profile = await prisma.buildingProfile.findUnique({
@@ -216,97 +219,110 @@ export class BuildingProfileService {
       const addressData = profile.address as unknown as AddressData
       const sources: string[] = []
       const errors: string[] = []
+      let enrichedData: any = {}
 
-      // 1. Enrichissement via BuildingService (agrégation complète)
-      let aggregatedData: AggregatedBuildingData | null = null
+      console.log('[BuildingProfileService] 🏠 ÉTAPE 1: Adresse → Parcelle cadastrale')
+      console.log('📍 Adresse:', addressData.formatted)
+
+      // ============================================
+      // ÉTAPE 1: ADRESSE → PARCELLE CADASTRALE
+      // ============================================
+      let cadastralData: CadastralData | null = null
       try {
-        console.log('[BuildingProfileService] 🚀 Démarrage enrichissement pour:', addressData.formatted)
-        aggregatedData = await this.buildingService.getAggregatedData(addressData.formatted)
-        if (aggregatedData) {
-          console.log('[BuildingProfileService] ✅ Données agrégées récupérées:', {
-            hasCadastre: !!aggregatedData.cadastre,
-            hasPLU: !!aggregatedData.plu,
-            hasRNB: !!aggregatedData.rnb,
-            hasDPE: !!aggregatedData.energy || !!aggregatedData.dpe,
-            hasGeorisques: !!aggregatedData.georisques,
-            sources: aggregatedData.sources,
-          })
-          sources.push(...aggregatedData.sources)
-          
-          // Construire enrichedData complet avec toutes les données
-          const enrichedDataComplete = {
-            ...aggregatedData,
-            // S'assurer que georisques est présent
-            georisques: aggregatedData.georisques || null,
-            // S'assurer que dvf sera ajouté après
-            dvf: null, // Sera rempli par l'étape DVF
-          }
+        cadastralData = await this.cadastreService.getCadastralData(addressData)
+        if (cadastralData?.parcelle) {
+          console.log('✅ Parcelle identifiée:', cadastralData.parcelle.numero, 'Section:', cadastralData.parcelle.section)
+          sources.push('Cadastre IGN')
           
           await prisma.buildingProfile.update({
             where: { id: profileId },
             data: {
-              enrichedData: enrichedDataComplete as any,
+              cadastralData: cadastralData as any,
+              parcelleNumber: cadastralData.parcelle.numero || null,
+              sectionCadastrale: cadastralData.parcelle.section || null,
+              codeINSEE: cadastralData.codeINSEE || null,
+            },
+          })
+          
+          enrichedData.cadastre = cadastralData
+        } else {
+          console.warn('⚠️ Aucune parcelle identifiée pour cette adresse')
+        }
+      } catch (error) {
+        console.error('❌ Erreur identification parcelle:', error)
+        errors.push(`Parcelle: ${error instanceof Error ? error.message : 'Unknown error'}`)
+      }
+
+      console.log('[BuildingProfileService] 🏗️ ÉTAPE 2: Parcelle → Bâti et données associées')
+
+      // ============================================
+      // ÉTAPE 2: PARCELLE → BÂTI ET DONNÉES ASSOCIÉES
+      // ============================================
+      try {
+        console.log('📊 Récupération données agrégées du bâti...')
+        const aggregatedData = await this.buildingService.getAggregatedData(addressData.formatted)
+        
+        if (aggregatedData) {
+          console.log('✅ Données bâti récupérées:', {
+            hasPLU: !!aggregatedData.plu,
+            hasRNB: !!aggregatedData.rnb,
+            hasDPE: !!aggregatedData.energy || !!aggregatedData.dpe,
+            hasGeorisques: !!aggregatedData.georisques,
+          })
+          
+          sources.push(...aggregatedData.sources)
+          
+          // Construire enrichedData progressivement
+          enrichedData = {
+            address: aggregatedData.address,
+            ...enrichedData, // Conserver cadastre si déjà récupéré
+            urbanism: aggregatedData.urbanism || null,
+            building: aggregatedData.building || null,
+            energy: aggregatedData.energy || aggregatedData.dpe || null,
+            plu: aggregatedData.plu || null,
+            rnb: aggregatedData.rnb || null,
+            georisques: aggregatedData.georisques || null,
+            sources: aggregatedData.sources || [],
+            lastUpdated: new Date().toISOString(),
+          }
+          
+          // Sauvegarder dans les champs séparés aussi
+          await prisma.buildingProfile.update({
+            where: { id: profileId },
+            data: {
+              enrichedData: enrichedData as any,
               pluData: aggregatedData.plu ? (aggregatedData.plu as any) : null,
               rnbData: aggregatedData.rnb ? (aggregatedData.rnb as any) : null,
               dpeData: aggregatedData.energy || aggregatedData.dpe ? ((aggregatedData.energy || aggregatedData.dpe) as any) : null,
               urbanismData: aggregatedData.urbanism ? (aggregatedData.urbanism as any) : null,
             },
           })
-          console.log('[BuildingProfileService] ✅ Données enrichies sauvegardées')
         } else {
-          console.warn('[BuildingProfileService] ⚠️ Aucune donnée agrégée récupérée')
+          console.warn('⚠️ Aucune donnée bâti récupérée')
         }
       } catch (error) {
-        console.error('[BuildingProfileService] ❌ Erreur enrichissement BuildingService:', error)
-        errors.push(`Enrichissement bâti: ${error instanceof Error ? error.message : 'Unknown error'}`)
+        console.error('❌ Erreur récupération données bâti:', error)
+        errors.push(`Bâti: ${error instanceof Error ? error.message : 'Unknown error'}`)
       }
 
-      // 2. Enrichissement cadastral détaillé
-      let cadastralData: CadastralData | null = null
-      try {
-        cadastralData = await this.cadastreService.getCadastralData(addressData)
-        if (cadastralData) {
-          sources.push('Cadastre IGN')
-          const parcelle = cadastralData.parcelle
-          
-          await prisma.buildingProfile.update({
-            where: { id: profileId },
-            data: {
-              cadastralData: cadastralData as any,
-              parcelleNumber: parcelle?.numero || null,
-              sectionCadastrale: parcelle?.section || null,
-              codeINSEE: cadastralData.codeINSEE || null,
-            },
-          })
-        }
-      } catch (error) {
-        console.error('[BuildingProfileService] Erreur enrichissement cadastral:', error)
-        errors.push(`Enrichissement cadastral: ${error instanceof Error ? error.message : 'Unknown error'}`)
-      }
+      console.log('[BuildingProfileService] 💰 ÉTAPE 3: Valorisation (DVF)')
 
-      // 3. Enrichissement DVF (valeurs foncières pour estimation et comparaison)
+      // ============================================
+      // ÉTAPE 3: VALORISATION (DVF)
+      // ============================================
       try {
-        console.log('[BuildingProfileService] 📊 Récupération données DVF...')
         const dvfData = await this.dvfService.getDVFData(addressData, {
-          rayon: 1000, // 1km de rayon
-          annee_min: new Date().getFullYear() - 5, // 5 dernières années
+          rayon: 1000,
+          annee_min: new Date().getFullYear() - 5,
         })
         
         if (dvfData) {
-          console.log('[BuildingProfileService] ✅ Données DVF récupérées:', {
+          console.log('✅ Données DVF récupérées:', {
             hasEstimation: !!dvfData.estimation,
             hasStatistics: !!dvfData.statistics,
             hasComparables: !!dvfData.comparables?.length,
           })
           sources.push('DVF (Demandes de Valeurs Foncières)')
-          
-          // Mettre à jour le profil avec les données DVF dans enrichedData
-          const currentProfile = await prisma.buildingProfile.findUnique({
-            where: { id: profileId },
-            select: { enrichedData: true },
-          })
-          
-          const enrichedData = (currentProfile?.enrichedData as any) || {}
           enrichedData.dvf = dvfData
           
           await prisma.buildingProfile.update({
@@ -315,17 +331,26 @@ export class BuildingProfileService {
               enrichedData: enrichedData as any,
             },
           })
-          console.log('[BuildingProfileService] ✅ Données DVF sauvegardées')
         } else {
-          console.warn('[BuildingProfileService] ⚠️ Aucune donnée DVF récupérée')
+          console.warn('⚠️ Aucune donnée DVF récupérée')
         }
       } catch (error) {
-        console.error('[BuildingProfileService] ❌ Erreur enrichissement DVF:', error)
-        errors.push(`Enrichissement DVF: ${error instanceof Error ? error.message : 'Unknown error'}`)
+        console.error('❌ Erreur récupération DVF:', error)
+        errors.push(`DVF: ${error instanceof Error ? error.message : 'Unknown error'}`)
       }
 
-      // 4. Mettre à jour le statut final
+      // ============================================
+      // FINALISATION
+      // ============================================
       const uniqueSources = Array.from(new Set(sources))
+      const hasData = Object.keys(enrichedData).length > 1 // Plus que juste "address"
+      
+      console.log('[BuildingProfileService] ✅ Enrichissement terminé:', {
+        sources: uniqueSources.length,
+        hasData,
+        errors: errors.length,
+      })
+
       await prisma.buildingProfile.update({
         where: { id: profileId },
         data: {
@@ -333,17 +358,19 @@ export class BuildingProfileService {
           enrichmentSources: uniqueSources,
           enrichmentErrors: errors.length > 0 ? (errors as any) : null,
           lastEnrichedAt: new Date(),
+          // S'assurer que enrichedData est sauvegardé même si partiel
+          enrichedData: Object.keys(enrichedData).length > 0 ? (enrichedData as any) : null,
         },
       })
 
       return {
-        success: uniqueSources.length > 0,
+        success: uniqueSources.length > 0 || hasData,
         sources: uniqueSources,
         errors: errors.length > 0 ? errors : undefined,
         enrichedAt: new Date(),
       }
     } catch (error) {
-      console.error('[BuildingProfileService] Erreur enrichissement profil:', error)
+      console.error('[BuildingProfileService] ❌ Erreur enrichissement profil:', error)
       
       await prisma.buildingProfile.update({
         where: { id: profileId },
