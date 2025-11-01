@@ -19,8 +19,9 @@ const nextConfig: NextConfig = {
     ],
   },
 
-  // Experimental features (Next.js 15 compatible)
+  // Next.js 16: Features optimisées
   experimental: {
+    // Server Actions toujours supportés
     serverActions: {
       bodySizeLimit: '10mb',
     },
@@ -29,16 +30,8 @@ const nextConfig: NextConfig = {
   // Production source maps (disable for better performance)
   productionBrowserSourceMaps: false,
 
-  // Webpack configuration
-  webpack: (config, { isServer }) => {
-    // Fix for Prisma in serverless
-    if (isServer) {
-      config.externals.push({
-        '@prisma/client': 'commonjs @prisma/client',
-      })
-    }
-    return config
-  },
+  // Next.js 16: Turbopack par défaut (plus besoin de config webpack pour Prisma)
+  // Le support de Prisma est natif avec Turbopack
 
   // Headers for security
   async headers() {
