@@ -43,6 +43,14 @@ export class BuildingProfileEnrichmentService {
     profileCadastralData: any = null, 
     profileDvfData: any = null
   ): BuildingCharacteristic[] {
+    console.log('[BuildingProfileEnrichmentService] 🔄 Extraction caractéristiques:', {
+      hasEnrichedData: !!enrichedData && Object.keys(enrichedData).length > 0,
+      hasDPEData: !!profileDpeData,
+      hasRiskData: !!profileRiskData,
+      hasCadastralData: !!profileCadastralData,
+      hasDvfData: !!profileDvfData,
+    })
+    
     // Utiliser les données du profil si disponibles, sinon celles de enrichedData
     const dpeData = profileDpeData || enrichedData?.energy || enrichedData?.dpe
     const riskData = profileRiskData || enrichedData?.georisques
@@ -517,13 +525,53 @@ export class BuildingProfileEnrichmentService {
       description: 'Nombre d\'étages du bâtiment',
     })
 
-    return characteristics.sort((a, b) => {
+    const sorted = characteristics.sort((a, b) => {
       // Trier par priorité puis par catégorie
       const priorityOrder = { high: 3, medium: 2, low: 1 }
       const priorityDiff = (priorityOrder[b.priority] || 0) - (priorityOrder[a.priority] || 0)
       if (priorityDiff !== 0) return priorityDiff
       return a.label.localeCompare(b.label)
     })
+    
+    console.log('[BuildingProfileEnrichmentService] ✅ Caractéristiques extraites:', {
+      total: sorted.length,
+      known: sorted.filter(c => c.status === 'known').length,
+      unknown: sorted.filter(c => c.status === 'unknown').length,
+      partial: sorted.filter(c => c.status === 'partial').length,
+    })
+    
+    // GARANTIE : Toujours retourner au moins quelques caractéristiques de base
+    if (sorted.length === 0) {
+      console.warn('[BuildingProfileEnrichmentService] ⚠️ Aucune caractéristique générée, ajout caractéristiques de base')
+      return [
+        {
+          id: 'structure-property-type',
+          category: 'structure',
+          label: 'Type de bien',
+          value: null,
+          valueDisplay: 'Non renseigné',
+          status: 'unknown',
+          editable: true,
+          priority: 'high',
+          icon: 'Home',
+          description: 'Type de bien (Maison, Appartement, etc.)',
+        },
+        {
+          id: 'structure-rooms',
+          category: 'structure',
+          label: 'Nombre de pièces',
+          value: null,
+          valueDisplay: 'Non renseigné',
+          status: 'unknown',
+          editable: true,
+          priority: 'high',
+          icon: 'DoorOpen',
+          description: 'Nombre de pièces principales',
+        },
+      ]
+    }
+    
+    return sorted
   }
 
   /**
