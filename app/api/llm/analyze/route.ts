@@ -334,42 +334,42 @@ export async function POST(request: NextRequest) {
           scoreGrade: advancedScore.grade,
           confidenceLevel: new Decimal(advancedScore.confidenceLevel),
           breakdown: {
-            // Score avancé : structure complète avec 8 axes
+            // Score avancé : structure complète avec 8 axes (si disponible)
             version: 'advanced-v2.0.0',
             totalScore: advancedScore.totalScore,
-            percentage: advancedScore.percentage,
-            axes: advancedScore.axisScores.map((axis: any) => ({
-              id: axis.axisId,
-              score: axis.score,
-              maxPoints: axis.maxPoints,
-              percentage: axis.percentage,
-              subCriteria: axis.subCriteriaScores,
-            })),
+            percentage: (advancedScore as any).percentage || Math.round((advancedScore.totalScore / 1200) * 100),
+            axes: ('axisScores' in advancedScore && Array.isArray((advancedScore as any).axisScores))
+              ? (advancedScore as any).axisScores.map((axis: any) => ({
+                  id: axis.axisId,
+                  score: axis.score,
+                  maxPoints: axis.maxPoints,
+                  percentage: axis.percentage,
+                  subCriteria: axis.subCriteriaScores,
+                }))
+              : [],
             // Rétrocompatibilité avec l'ancien format
             prix: findAxisScore(advancedScore, 'prix'),
             qualite: findAxisScore(advancedScore, 'qualite'),
             delais: findAxisScore(advancedScore, 'delais'),
             conformite: findAxisScore(advancedScore, 'conformite'),
           },
-          alerts: advancedScore.overallAlerts,
-          recommendations: advancedScore.overallRecommendations,
-          algorithmVersion: 'advanced-v2.0.0',
-          regionalBenchmark: (useAdvancedScoring && advancedScore && 'axisScores' in advancedScore && advancedScore.axisScores)
-            ? null // Les données régionales seront enrichies en arrière-plan
-            : {
-                region: finalRegion,
-                averagePriceSqm: 1500,
-                percentilePosition: 50,
-                comparisonData: {
-                  devisPrice: analysis.extractedData.totals.total,
-                  averagePrice: analysis.extractedData.totals.total,
-                  priceRange: {
-                    min: analysis.extractedData.totals.total * 0.8,
-                    max: analysis.extractedData.totals.total * 1.2,
-                  },
-                },
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              } as any,
+          alerts: (advancedScore as any).overallAlerts || (advancedScore as any).alerts || [],
+          recommendations: (advancedScore as any).overallRecommendations || (advancedScore as any).recommendations || [],
+          algorithmVersion: (advancedScore as any).algorithmVersion || 'advanced-v2.0.0',
+          regionalBenchmark: {
+            region: finalRegion,
+            averagePriceSqm: 1500,
+            percentilePosition: 50,
+            comparisonData: {
+              devisPrice: analysis.extractedData.totals.total,
+              averagePrice: analysis.extractedData.totals.total,
+              priceRange: {
+                min: analysis.extractedData.totals.total * 0.8,
+                max: analysis.extractedData.totals.total * 1.2,
+              },
+            },
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          } as any,
         }
       : {
           // Fallback sur score LLM classique
