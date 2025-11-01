@@ -64,19 +64,28 @@ export async function GET(
       enrichedData.georisques = enrichedData.georisques || null
     }
     
+    // S'assurer qu'on a au moins l'adresse
+    if (!enrichedData.address && profile.address) {
+      enrichedData.address = profile.address
+    }
+    
     // Log pour déboguer
-    console.log('[API Characteristics] Données disponibles:', {
+    console.log('[API Characteristics] 📊 Données disponibles:', {
+      profileId,
       hasEnrichedData: !!profile.enrichedData,
       enrichedDataKeys: Object.keys(enrichedData),
       hasCadastralData: !!profile.cadastralData,
       hasPLUData: !!profile.pluData,
       hasRNBData: !!profile.rnbData,
       hasDPEData: !!profile.dpeData,
+      enrichmentStatus: profile.enrichmentStatus,
     })
     
     // Extraire georisques
     const georisquesData = enrichedData.georisques || null
     
+    // TOUJOURS extraire les caractéristiques, même si données vides
+    // Cela affichera au moins les champs "unknown" avec possibilité de saisie manuelle
     const characteristics = enrichmentService.extractCharacteristics(
       enrichedData,
       profile.dpeData,
@@ -84,6 +93,12 @@ export async function GET(
       profile.cadastralData || enrichedData.cadastre,
       enrichedData.dvf
     )
+    
+    console.log('[API Characteristics] ✅ Caractéristiques extraites:', {
+      total: characteristics.length,
+      known: characteristics.filter(c => c.status === 'known').length,
+      unknown: characteristics.filter(c => c.status === 'unknown').length,
+    })
 
     // Grouper par catégorie
     const grouped = enrichmentService.groupByCategory(characteristics)

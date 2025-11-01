@@ -233,17 +233,36 @@ export default function BuildingDetailPage() {
   const fetchCharacteristics = async () => {
     try {
       setLoadingCharacteristics(true)
+      console.log('[Frontend] 🔄 Chargement caractéristiques pour:', profileId)
+      
       const response = await fetch(`/api/building-profiles/${profileId}/characteristics?userId=${DEMO_USER_ID}`)
 
       if (!response.ok) {
-        throw new Error('Erreur lors du chargement des caractéristiques')
+        const errorData = await response.json().catch(() => ({}))
+        console.error('[Frontend] ❌ Erreur API:', errorData)
+        throw new Error(errorData.error || 'Erreur lors du chargement des caractéristiques')
       }
 
       const data = await response.json()
-      setCharacteristics(data.data.characteristics || [])
-      setGroupedCharacteristics(data.data.grouped || {})
+      
+      if (!data.success) {
+        throw new Error(data.error || 'Erreur lors de l\'extraction')
+      }
+      
+      console.log('[Frontend] ✅ Caractéristiques reçues:', {
+        total: data.data?.characteristics?.length || 0,
+        grouped: Object.keys(data.data?.grouped || {}).length,
+        known: data.data?.counts?.known || 0,
+        unknown: data.data?.counts?.unknown || 0,
+      })
+      
+      setCharacteristics(data.data?.characteristics || [])
+      setGroupedCharacteristics(data.data?.grouped || {})
     } catch (err) {
-      console.error('Erreur chargement caractéristiques:', err)
+      console.error('❌ Erreur chargement caractéristiques:', err)
+      // Même en cas d'erreur, définir un tableau vide plutôt que undefined
+      setCharacteristics([])
+      setGroupedCharacteristics({})
     } finally {
       setLoadingCharacteristics(false)
     }
