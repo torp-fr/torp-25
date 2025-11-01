@@ -306,10 +306,22 @@ export default function BuildingDetailPage() {
         await fetchProfile()
         await fetchCharacteristics()
         
-        if (profile?.enrichmentStatus === 'completed' || profile?.enrichmentStatus === 'failed' || attempts >= maxAttempts) {
-          setRefreshing(false)
+        // Re-vérifier le statut après fetchProfile
+        const currentProfileResponse = await fetch(`/api/building-profiles/${profileId}?userId=${DEMO_USER_ID}`)
+        if (currentProfileResponse.ok) {
+          const currentProfileData = await currentProfileResponse.json()
+          const currentStatus = currentProfileData.data?.enrichmentStatus
+          
+          if (currentStatus === 'completed' || currentStatus === 'failed' || attempts >= maxAttempts) {
+            setRefreshing(false)
+            // Recharger une dernière fois
+            await fetchProfile()
+            await fetchCharacteristics()
+          } else {
+            setTimeout(checkStatus, 2000)
+          }
         } else {
-          setTimeout(checkStatus, 2000)
+          setRefreshing(false)
         }
       }
       
