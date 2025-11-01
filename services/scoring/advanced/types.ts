@@ -83,6 +83,17 @@ export interface Recommendation {
   actionable: boolean
 }
 
+// Prédiction ML
+export interface MLPredictionData {
+  adjustments: {
+    priceAdjustment: number
+    qualityAdjustment: number
+    riskAdjustment: number
+  }
+  featureImportance: Record<string, number>
+  confidence: number
+}
+
 // Score final
 export interface FinalScore {
   totalScore: number // 0-1200
@@ -92,6 +103,7 @@ export interface FinalScore {
   overallAlerts: Alert[]
   overallRecommendations: Recommendation[]
   confidenceLevel: number // 0-100%
+  mlPrediction?: MLPredictionData
   metadata: {
     profile: UserProfile
     projectType: ProjectType

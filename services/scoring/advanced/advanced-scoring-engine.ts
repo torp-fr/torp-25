@@ -25,6 +25,7 @@ import { Axe5Transparence } from './axes/axe5-transparence'
 import { Axe6Garanties } from './axes/axe6-garanties'
 import { Axe7Innovation } from './axes/axe7-innovation'
 import { Axe8Delais } from './axes/axe8-delais'
+import { ScoringML } from '@/services/ml/scoring-ml'
 
 interface AxisConfig {
   id: string
@@ -36,7 +37,7 @@ interface AxisConfig {
 }
 
 export class AdvancedScoringEngine {
-  private readonly version = '2.0.0'
+  private readonly version = '2.1.0' // Version avec ML
   private axesConfig!: AxisConfig[]
   private axeInstances!: {
     conformite: Axe1Conformite
@@ -48,8 +49,12 @@ export class AdvancedScoringEngine {
     innovation: Axe7Innovation
     delais: Axe8Delais
   }
+  private mlEngine: ScoringML
+  private useML: boolean
 
-  constructor() {
+  constructor(useML: boolean = true) {
+    this.useML = useML
+    this.mlEngine = new ScoringML()
     this.initializeAxesConfig()
     this.initializeAxes()
   }
@@ -237,12 +242,37 @@ export class AdvancedScoringEngine {
     const totalWeightedMax = this.getTotalWeightedPoints(context.profile)
     totalScore = (totalScore / totalWeightedMax) * 1200
 
+    // Ajustement ML si activé
+    let finalScore = totalScore
+    let mlPrediction = null
+    
+    if (this.useML) {
+      try {
+        const features = this.mlEngine.extractFeatures(devis, enrichmentData)
+        mlPrediction = await this.mlEngine.predictScore(features, totalScore)
+        
+        // Appliquer l'ajustement ML avec pondération de confiance
+        const mlWeight = mlPrediction.confidence * 0.3 // Max 30% d'ajustement
+        finalScore = totalScore * (1 - mlWeight) + mlPrediction.predictedScore * mlWeight
+        finalScore = Math.max(0, Math.min(1200, finalScore))
+        
+        console.log(`[AdvancedScoringEngine] ML adjustment: ${(finalScore - totalScore).toFixed(1)} points (confidence: ${(mlPrediction.confidence * 100).toFixed(1)}%)`)
+      } catch (error) {
+        console.warn('[AdvancedScoringEngine] Erreur ML, utilisation score de base:', error)
+      }
+    }
+
     // Déterminer le grade
-    const grade = this.getGradeFromScore(totalScore)
-    const percentage = (totalScore / 1200) * 100
+    const grade = this.getGradeFromScore(finalScore)
+    const percentage = (finalScore / 1200) * 100
 
     // Calculer le niveau de confiance global
-    const confidenceLevel = this.calculateConfidenceLevel(axisScores, enrichmentData)
+    let confidenceLevel = this.calculateConfidenceLevel(axisScores, enrichmentData)
+    
+    // Ajuster confiance avec ML si disponible
+    if (mlPrediction) {
+      confidenceLevel = confidenceLevel * 0.7 + mlPrediction.confidence * 100 * 0.3
+    }
 
     // Générer recommandations globales
     const finalRecommendations = this.generateOverallRecommendations(

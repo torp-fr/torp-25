@@ -5,6 +5,7 @@
 
 import { ApiClient } from './api-client'
 import type { PriceReference, RegionalData } from './types'
+import { globalCache } from '@/services/cache/data-cache'
 
 export class PriceEnrichmentService {
   private reefPremiumClient?: ApiClient
@@ -30,6 +31,14 @@ export class PriceEnrichmentService {
     region: string = 'ILE_DE_FRANCE',
     item?: string
   ): Promise<PriceReference[]> {
+    // Vérifier le cache
+    const cacheKey = `price:${category}:${region}:${item || 'all'}`
+    const cached = globalCache.getPriceReference<PriceReference[]>(cacheKey)
+    if (cached) {
+      console.log('[PriceService] ✅ Prix récupérés depuis le cache')
+      return cached
+    }
+
     const references: PriceReference[] = []
 
     try {
@@ -79,6 +88,11 @@ export class PriceEnrichmentService {
       console.error(`[PriceService] Erreur lors de la récupération des prix:`, error)
       // Fallback sur des prix de référence basiques
       references.push(...this.getFallbackPrices(category, region, item))
+    }
+
+    // Mettre en cache les résultats
+    if (references.length > 0) {
+      globalCache.setPriceReference(cacheKey, references)
     }
 
     return references

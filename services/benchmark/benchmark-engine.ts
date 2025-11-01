@@ -4,7 +4,7 @@
  */
 
 import type { Devis, TORPScore } from '@/types'
-import { prisma } from '@/lib/prisma'
+import { prisma } from '@/lib/db'
 
 export interface BenchmarkMetrics {
   // Métriques de précision
