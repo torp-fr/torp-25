@@ -911,7 +911,7 @@ export default function BuildingDetailPage() {
                                   </div>
                                 </div>
                               )
-                                })}
+                            })}
                               </div>
                             </div>
                           ))
