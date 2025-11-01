@@ -66,19 +66,23 @@ const nextConfig: NextConfig = {
   },
 }
 
-// Wrap with Sentry (only in production or when SENTRY_DSN is set)
-const configWithSentry =
-  process.env.SENTRY_DSN || process.env.NEXT_PUBLIC_SENTRY_DSN
-    ? withSentryConfig(withBundleAnalyzer(nextConfig), {
-        // Sentry options
-        silent: true,
-        org: process.env.SENTRY_ORG,
-        project: process.env.SENTRY_PROJECT,
-        widenClientFileUpload: true,
-        tunnelRoute: '/monitoring',
-        disableLogger: true,
-        automaticVercelMonitors: true,
-      })
-    : withBundleAnalyzer(nextConfig)
+// Wrap with Sentry (always enabled with GitHub integration)
+const hasSentryDsn =
+  process.env.SENTRY_DSN ||
+  process.env.NEXT_PUBLIC_SENTRY_DSN ||
+  'https://500276df8605b31faf438668d5d366bc@o4510290746146816.ingest.de.sentry.io/4510290759581776'
+
+const configWithSentry = hasSentryDsn
+  ? withSentryConfig(withBundleAnalyzer(nextConfig), {
+      // Sentry options
+      silent: true,
+      org: process.env.SENTRY_ORG || 'o4510290746146816',
+      project: process.env.SENTRY_PROJECT || 'torp-platform',
+      widenClientFileUpload: true,
+      tunnelRoute: '/monitoring',
+      disableLogger: true,
+      automaticVercelMonitors: true,
+    })
+  : withBundleAnalyzer(nextConfig)
 
 export default configWithSentry
