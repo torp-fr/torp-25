@@ -15,7 +15,6 @@ import {
   Upload,
   FileText,
   AlertCircle,
-  Clock,
   Home,
   Plus,
   ChevronRight,
@@ -36,13 +35,6 @@ interface Devis {
     scoreGrade: string
     createdAt: string
   }>
-}
-
-interface DashboardStats {
-  totalDevis: number
-  avgScore: number
-  pendingDevis: number
-  completedDevis: number
 }
 
 export default function DashboardPage() {
