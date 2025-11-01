@@ -191,14 +191,15 @@ export async function POST(request: NextRequest) {
       console.warn('[LLM Analyze] Erreur programmation scraping (non bloquant):', error)
     }
 
-    // 3. Calculer le score avec le système avancé
-    console.log('[LLM Analyze] Calcul du score avancé avec 8 axes...')
+    // 3. Calculer le score avec le système avancé (optimisé avec ML)
+    const scoringStartTime = Date.now()
+    console.log('[LLM Analyze] Calcul du score avancé avec 8 axes (ML activé)...')
     
     let advancedScore = null
     let useAdvancedScoring = true
 
     try {
-      const scoringEngine = new AdvancedScoringEngine()
+      const scoringEngine = new AdvancedScoringEngine(true) // ML activé
       
       // Utiliser les données CCF si disponibles pour le contexte de scoring
       const userProfile = 'B2C' // TODO: Récupérer depuis le profil utilisateur
@@ -256,7 +257,13 @@ export async function POST(request: NextRequest) {
         }
       )
 
-      console.log(`[LLM Analyze] Score avancé calculé: ${advancedScore.totalScore}/1200 (${advancedScore.grade})`)
+      const scoringDuration = Date.now() - scoringStartTime
+      console.log(`[LLM Analyze] Score avancé calculé (${scoringDuration}ms): ${advancedScore.totalScore}/1200 (${advancedScore.grade})`)
+      
+      // Log performance ML si disponible
+      if (advancedScore.mlPrediction) {
+        console.log(`[LLM Analyze] ML adjustment: ${JSON.stringify(advancedScore.mlPrediction.adjustments)}, confidence: ${(advancedScore.mlPrediction.confidence * 100).toFixed(1)}%`)
+      }
     } catch (error) {
       console.error('[LLM Analyze] Erreur lors du calcul du score avancé, fallback sur score LLM:', error)
       useAdvancedScoring = false
