@@ -43,9 +43,20 @@ export class BuildingProfileEnrichmentService {
     profileCadastralData: any = null, 
     profileDvfData: any = null
   ): BuildingCharacteristic[] {
+    // NORMALISATION : S'assurer qu'enrichedData est un objet
+    if (!enrichedData || typeof enrichedData !== 'object' || Array.isArray(enrichedData)) {
+      console.warn('[BuildingProfileEnrichmentService] ⚠️ enrichedData invalide, normalisation:', {
+        type: typeof enrichedData,
+        isArray: Array.isArray(enrichedData),
+        value: enrichedData,
+      })
+      enrichedData = enrichedData && typeof enrichedData === 'object' && !Array.isArray(enrichedData) ? enrichedData : {}
+    }
+    
     console.log('[BuildingProfileEnrichmentService] 🔄 Extraction caractéristiques:', {
       hasEnrichedData: !!enrichedData && Object.keys(enrichedData).length > 0,
       enrichedDataKeys: enrichedData ? Object.keys(enrichedData) : [],
+      enrichedDataAddress: enrichedData?.address?.formatted || enrichedData?.address || 'pas d\'adresse',
       enrichedDataStructure: enrichedData ? {
         hasCadastre: !!enrichedData.cadastre,
         hasPLU: !!enrichedData.plu,
@@ -54,6 +65,7 @@ export class BuildingProfileEnrichmentService {
         hasDpe: !!enrichedData.dpe,
         hasGeorisques: !!enrichedData.georisques,
         hasDVF: !!enrichedData.dvf,
+        hasAddress: !!enrichedData.address,
       } : {},
       hasDPEData: !!profileDpeData,
       hasRiskData: !!profileRiskData,
