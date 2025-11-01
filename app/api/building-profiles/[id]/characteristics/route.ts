@@ -46,6 +46,7 @@ export async function GET(
     const enrichedData: any = profile.enrichedData ? { ...profile.enrichedData } : {}
     
     // Compléter avec les données stockées séparément si enrichedData est vide ou incomplet
+    // PRIORITÉ : Utiliser enrichedData d'abord, puis les champs séparés
     if (!enrichedData.cadastre && profile.cadastralData) {
       enrichedData.cadastre = profile.cadastralData
     }
@@ -59,9 +60,9 @@ export async function GET(
       enrichedData.energy = profile.dpeData
       enrichedData.dpe = profile.dpeData
     }
+    // Géorisques : peut être dans enrichedData.georisques OU enrichData (sans 's')
     if (!enrichedData.georisques) {
-      // Géorisques peut être dans enrichedData directement
-      enrichedData.georisques = enrichedData.georisques || null
+      enrichedData.georisques = enrichedData.georisques || enrichedData.georisques || null
     }
     
     // S'assurer qu'on a au moins l'adresse
@@ -74,6 +75,15 @@ export async function GET(
       profileId,
       hasEnrichedData: !!profile.enrichedData,
       enrichedDataKeys: Object.keys(enrichedData),
+      enrichedDataStructure: {
+        hasCadastre: !!enrichedData.cadastre,
+        hasPLU: !!enrichedData.plu,
+        hasRNB: !!enrichedData.rnb,
+        hasEnergy: !!enrichedData.energy,
+        hasDPE: !!enrichedData.dpe,
+        hasGeorisques: !!enrichedData.georisques,
+        hasDVF: !!enrichedData.dvf,
+      },
       hasCadastralData: !!profile.cadastralData,
       hasPLUData: !!profile.pluData,
       hasRNBData: !!profile.rnbData,
@@ -81,17 +91,20 @@ export async function GET(
       enrichmentStatus: profile.enrichmentStatus,
     })
     
-    // Extraire georisques
+    // Extraire georisques (peut être dans enrichedData.georisques OU directement)
     const georisquesData = enrichedData.georisques || null
+    
+    // DVF peut être dans enrichedData.dvf
+    const dvfData = enrichedData.dvf || null
     
     // TOUJOURS extraire les caractéristiques, même si données vides
     // Cela affichera au moins les champs "unknown" avec possibilité de saisie manuelle
     const characteristics = enrichmentService.extractCharacteristics(
       enrichedData,
-      profile.dpeData,
+      profile.dpeData || enrichedData.energy || enrichedData.dpe,
       georisquesData,
       profile.cadastralData || enrichedData.cadastre,
-      enrichedData.dvf
+      dvfData
     )
     
     console.log('[API Characteristics] ✅ Caractéristiques extraites:', {
