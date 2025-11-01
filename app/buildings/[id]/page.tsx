@@ -173,6 +173,16 @@ export default function BuildingDetailPage() {
     if (profile) {
       fetchRecommendations()
       fetchCharacteristics()
+      
+      // Si l'enrichissement est en cours, poller régulièrement
+      if (profile.enrichmentStatus === 'in_progress') {
+        const interval = setInterval(() => {
+          fetchProfile()
+          fetchCharacteristics()
+        }, 3000) // Toutes les 3 secondes
+        
+        return () => clearInterval(interval)
+      }
     }
   }, [profile])
 
@@ -273,21 +283,41 @@ export default function BuildingDetailPage() {
   const handleRefreshEnrichment = async () => {
     try {
       setRefreshing(true)
+      setError(null)
+      
       const response = await fetch(`/api/building-profiles/${profileId}/enrich?userId=${DEMO_USER_ID}`, {
         method: 'POST',
       })
 
       if (!response.ok) {
-        throw new Error('Erreur lors de l\'enrichissement')
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Erreur lors de l\'enrichissement')
       }
 
-      // Attendre un peu puis recharger
-      setTimeout(() => {
-        fetchProfile()
-      }, 2000)
+      const data = await response.json()
+      console.log('✅ Enrichissement terminé:', data.data)
+
+      // Polling pour vérifier le statut toutes les 2 secondes
+      let attempts = 0
+      const maxAttempts = 30 // 60 secondes max
+      
+      const checkStatus = async () => {
+        attempts++
+        await fetchProfile()
+        await fetchCharacteristics()
+        
+        if (profile?.enrichmentStatus === 'completed' || profile?.enrichmentStatus === 'failed' || attempts >= maxAttempts) {
+          setRefreshing(false)
+        } else {
+          setTimeout(checkStatus, 2000)
+        }
+      }
+      
+      // Démarrer le polling après un court délai
+      setTimeout(checkStatus, 2000)
     } catch (err) {
+      console.error('❌ Erreur enrichissement:', err)
       setError(err instanceof Error ? err.message : 'Erreur lors de l\'enrichissement')
-    } finally {
       setRefreshing(false)
     }
   }
@@ -714,16 +744,69 @@ export default function BuildingDetailPage() {
               </Card>
             )}
 
-            {/* Statut enrichissement - Simplifié */}
-            {profile.enrichmentStatus === 'in_progress' && (
-              <Card className="border-blue-200 bg-blue-50">
+            {/* Statut enrichissement */}
+            {(profile.enrichmentStatus === 'pending' || profile.enrichmentStatus === 'in_progress' || profile.enrichmentStatus === 'failed') && (
+              <Card className={`${
+                profile.enrichmentStatus === 'failed' ? 'border-red-200 bg-red-50' :
+                profile.enrichmentStatus === 'in_progress' ? 'border-blue-200 bg-blue-50' :
+                'border-yellow-200 bg-yellow-50'
+              }`}>
                 <CardContent className="pt-6">
-                  <div className="flex items-center gap-3">
-                    <Loader2 className="h-5 w-5 animate-spin text-blue-600" />
-                    <div>
-                      <div className="font-medium">Mise à jour des données en cours...</div>
-                      <div className="text-sm text-muted-foreground">Vos informations sont en cours d&apos;actualisation</div>
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex items-center gap-3 flex-1">
+                      {profile.enrichmentStatus === 'in_progress' && (
+                        <Loader2 className="h-5 w-5 animate-spin text-blue-600" />
+                      )}
+                      {profile.enrichmentStatus === 'failed' && (
+                        <AlertCircle className="h-5 w-5 text-red-600" />
+                      )}
+                      {profile.enrichmentStatus === 'pending' && (
+                        <AlertCircle className="h-5 w-5 text-yellow-600" />
+                      )}
+                      <div className="flex-1">
+                        <div className="font-medium">
+                          {profile.enrichmentStatus === 'in_progress' && 'Enrichissement en cours...'}
+                          {profile.enrichmentStatus === 'pending' && 'Enrichissement en attente'}
+                          {profile.enrichmentStatus === 'failed' && 'Enrichissement échoué'}
+                        </div>
+                        <div className="text-sm text-muted-foreground mt-1">
+                          {profile.enrichmentStatus === 'in_progress' && 'Vos informations sont en cours d\'actualisation depuis les sources externes.'}
+                          {profile.enrichmentStatus === 'pending' && 'Cliquez sur "Enrichir" pour récupérer toutes les données disponibles.'}
+                          {profile.enrichmentStatus === 'failed' && (
+                            <span>
+                              {profile.enrichmentErrors && Array.isArray(profile.enrichmentErrors) && profile.enrichmentErrors.length > 0
+                                ? `Erreurs: ${profile.enrichmentErrors.join(', ')}`
+                                : 'Certaines données n\'ont pas pu être récupérées. Vous pouvez réessayer.'}
+                            </span>
+                          )}
+                        </div>
+                        {profile.enrichmentSources && profile.enrichmentSources.length > 0 && (
+                          <div className="mt-2 text-xs text-muted-foreground">
+                            Sources disponibles: {profile.enrichmentSources.length}
+                          </div>
+                        )}
+                      </div>
                     </div>
+                    {(profile.enrichmentStatus === 'pending' || profile.enrichmentStatus === 'failed') && (
+                      <Button
+                        onClick={handleRefreshEnrichment}
+                        disabled={refreshing}
+                        variant={profile.enrichmentStatus === 'failed' ? 'default' : 'outline'}
+                        size="sm"
+                      >
+                        {refreshing ? (
+                          <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            En cours...
+                          </>
+                        ) : (
+                          <>
+                            <RefreshCw className="mr-2 h-4 w-4" />
+                            Enrichir
+                          </>
+                        )}
+                      </Button>
+                    )}
                   </div>
                 </CardContent>
               </Card>

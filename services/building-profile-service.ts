@@ -178,9 +178,15 @@ export class BuildingProfileService {
       })
 
       // 4. Lancer l'enrichissement en arrière-plan uniquement pour PROPRIETAIRE
+      // Ne pas attendre, mais s'assurer qu'il démarre
       if (role === 'PROPRIETAIRE') {
-        this.enrichProfile(profile.id).catch((error) => {
-          console.error('[BuildingProfileService] Erreur enrichissement initial:', error)
+        console.log('[BuildingProfileService] 🚀 Lancement enrichissement automatique pour profil:', profile.id)
+        // Ne pas bloquer la création, mais démarrer l'enrichissement immédiatement
+        // Utiliser Promise.resolve().then() pour lancer de manière asynchrone
+        Promise.resolve().then(() => {
+          this.enrichProfile(profile.id).catch((error) => {
+            console.error('[BuildingProfileService] ❌ Erreur enrichissement initial:', error)
+          })
         })
       }
 
