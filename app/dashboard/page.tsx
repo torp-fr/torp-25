@@ -167,21 +167,8 @@ export default function DashboardPage() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="mb-4 flex items-baseline gap-2">
-                <span className="text-2xl font-bold">{buildingsCount}</span>
-                <span className="text-sm text-muted-foreground">logement{buildingsCount > 1 ? 's' : ''}</span>
-              </div>
               <Button className="w-full" variant="outline" onClick={(e) => { e.stopPropagation(); router.push('/buildings') }}>
-                Voir mes logements
-              </Button>
-              <Button 
-                className="mt-2 w-full" 
-                variant="ghost" 
-                size="sm"
-                onClick={(e) => { e.stopPropagation(); router.push('/buildings/new') }}
-              >
-                <Plus className="mr-2 h-4 w-4" />
-                Ajouter un logement
+                Accéder à mes logements
               </Button>
             </CardContent>
           </Card>
@@ -201,12 +188,8 @@ export default function DashboardPage() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="mb-4 flex items-baseline gap-2">
-                <span className="text-2xl font-bold">{devisList.length}</span>
-                <span className="text-sm text-muted-foreground">devis récent{devisList.length > 1 ? 's' : ''}</span>
-              </div>
               <Button className="w-full" variant="outline" onClick={(e) => { e.stopPropagation(); router.push('/upload') }}>
-                Voir toutes les analyses
+                Accéder aux analyses
               </Button>
             </CardContent>
           </Card>
