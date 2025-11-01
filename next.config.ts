@@ -1,5 +1,15 @@
 import type { NextConfig } from 'next'
 
+// Bundle analyzer (optional, enabled via ANALYZE env var)
+let withBundleAnalyzer = (config: NextConfig) => config
+if (process.env.ANALYZE === 'true') {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const bundleAnalyzer = require('@next/bundle-analyzer')({
+    enabled: true,
+  })
+  withBundleAnalyzer = bundleAnalyzer
+}
+
 const nextConfig: NextConfig = {
   // Optimize images
   images: {
@@ -56,4 +66,4 @@ const nextConfig: NextConfig = {
   },
 }
 
-export default nextConfig
+export default withBundleAnalyzer(nextConfig)
