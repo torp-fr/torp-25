@@ -383,35 +383,20 @@ export async function POST(request: NextRequest) {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           recommendations: analysis.torpscore.recommendations as any,
           algorithmVersion: 'claude-llm-v2.0-enhanced',
-          regionalBenchmark: enrichmentData?.regionalData
-            ? {
-                region: enrichmentData.regionalData.region,
-                averagePriceSqm: enrichmentData.regionalData.averagePriceSqm,
-                percentilePosition: calculatePercentile(
-                  analysis.extractedData.totals.total,
-                  enrichmentData.regionalData
-                ),
-                comparisonData: {
-                  devisPrice: analysis.extractedData.totals.total,
-                  averagePrice: enrichmentData.regionalData.averagePriceSqm,
-                  priceRange: enrichmentData.regionalData.priceRange,
-                },
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              } as any
-            : {
-                region: 'ILE_DE_FRANCE',
-                averagePriceSqm: 1500,
-                percentilePosition: 50,
-                comparisonData: {
-                  devisPrice: analysis.extractedData.totals.total,
-                  averagePrice: analysis.extractedData.totals.total,
-                  priceRange: {
-                    min: analysis.extractedData.totals.total * 0.8,
-                    max: analysis.extractedData.totals.total * 1.2,
-                  },
-                },
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              } as any,
+          regionalBenchmark: {
+            region: finalRegion,
+            averagePriceSqm: 1500,
+            percentilePosition: 50,
+            comparisonData: {
+              devisPrice: analysis.extractedData.totals.total,
+              averagePrice: analysis.extractedData.totals.total,
+              priceRange: {
+                min: analysis.extractedData.totals.total * 0.8,
+                max: analysis.extractedData.totals.total * 1.2,
+              },
+            },
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          } as any,
         }
 
     const torpScore = await prisma.tORPScore.create({
