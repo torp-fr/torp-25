@@ -62,20 +62,46 @@ export class BuildingProfileEnrichmentService {
     })
     
     // Utiliser les données du profil si disponibles, sinon celles de enrichedData
-    const dpeData = profileDpeData || enrichedData?.energy || enrichedData?.dpe
+    // DPE peut être dans plusieurs endroits : profileDpeData, enrichedData.energy, enrichedData.dpe, ou enrichedData.rnb
+    let dpeData = profileDpeData || enrichedData?.energy || enrichedData?.dpe
+    // Si pas de DPE mais RNB disponible, utiliser RNB pour DPE
+    if (!dpeData && enrichedData?.rnb) {
+      const rnb = enrichedData.rnb as any
+      if (rnb.dpeClass || rnb.energyConsumption) {
+        dpeData = {
+          dpeClass: rnb.dpeClass && rnb.dpeClass !== 'N/A' ? rnb.dpeClass : undefined,
+          dpeDate: rnb.dpeDate,
+          energyConsumption: rnb.energyConsumption,
+          ghgEmissions: rnb.ghgEmissions,
+        }
+      }
+    }
+    
+    // Risques
     const riskData = profileRiskData || enrichedData?.georisques
+    
+    // Cadastre
     const cadastralData = profileCadastralData || enrichedData?.cadastre
+    
+    // DVF
     const dvfData = profileDvfData || enrichedData?.dvf
+    
+    // RNB pour données structure (année, surface, type)
+    const rnbData = enrichedData?.rnb
     
     console.log('[BuildingProfileEnrichmentService] 📊 Données extraites pour traitement:', {
       hasDpeData: !!dpeData,
       dpeDataKeys: dpeData ? Object.keys(dpeData) : [],
+      dpeClass: dpeData?.dpeClass,
+      energyConsumption: dpeData?.energyConsumption,
       hasRiskData: !!riskData,
       riskDataKeys: riskData ? Object.keys(riskData) : [],
       hasCadastralData: !!cadastralData,
       cadastralDataKeys: cadastralData ? Object.keys(cadastralData) : [],
       hasDvfData: !!dvfData,
       dvfDataKeys: dvfData ? Object.keys(dvfData) : [],
+      hasRnbData: !!rnbData,
+      rnbDataKeys: rnbData ? Object.keys(rnbData) : [],
     })
     const characteristics: BuildingCharacteristic[] = []
 
@@ -264,19 +290,23 @@ export class BuildingProfileEnrichmentService {
     // CATÉGORIE : ÉNERGIE
     // ============================================
 
-    // Classe DPE
-    if (dpeData?.dpeClass) {
+    // Classe DPE (peut être dans dpeData.dpeClass, dpeData.energyClassPrimary, ou rnbData.dpeClass)
+    const dpeClass = dpeData?.dpeClass || 
+                     dpeData?.energyClassPrimary ||
+                     (rnbData?.dpeClass && rnbData.dpeClass !== 'N/A' ? rnbData.dpeClass : undefined)
+    
+    if (dpeClass) {
       characteristics.push({
         id: 'energy-dpe-class',
         category: 'energie',
         label: 'Classe énergétique (DPE)',
-        value: dpeData.dpeClass,
-        valueDisplay: dpeData.dpeClass,
+        value: dpeClass,
+        valueDisplay: dpeClass,
         status: 'known',
         editable: true,
         priority: 'high',
         icon: 'Zap',
-        description: `Diagnostic de Performance Energétique : Classe ${dpeData.dpeClass}`,
+        description: `Diagnostic de Performance Energétique : Classe ${dpeClass}`,
       })
     } else {
       characteristics.push({
@@ -293,14 +323,18 @@ export class BuildingProfileEnrichmentService {
       })
     }
 
-    // Consommation énergétique
-    if (dpeData?.energyConsumption) {
+    // Consommation énergétique (peut être dans dpeData.energyConsumption, dpeData.energyConsumptionPrimary, ou rnbData.energyConsumption)
+    const energyConsumption = dpeData?.energyConsumption || 
+                               dpeData?.energyConsumptionPrimary ||
+                               rnbData?.energyConsumption
+    
+    if (energyConsumption) {
       characteristics.push({
         id: 'energy-consumption',
         category: 'energie',
         label: 'Consommation énergétique',
-        value: dpeData.energyConsumption,
-        valueDisplay: `${dpeData.energyConsumption} kWh/m²/an`,
+        value: energyConsumption,
+        valueDisplay: `${energyConsumption} kWh/m²/an`,
         status: 'known',
         editable: true,
         priority: 'high',
@@ -324,14 +358,18 @@ export class BuildingProfileEnrichmentService {
       })
     }
 
-    // Émissions GES
-    if (dpeData?.ghgEmissions) {
+    // Émissions GES (peut être dans dpeData.ghgEmissions, dpeData.ghgEmissionsPrimary, ou rnbData.ghgEmissions)
+    const ghgEmissions = dpeData?.ghgEmissions || 
+                         dpeData?.ghgEmissionsPrimary ||
+                         rnbData?.ghgEmissions
+    
+    if (ghgEmissions) {
       characteristics.push({
         id: 'energy-ghg',
         category: 'energie',
         label: 'Émissions de gaz à effet de serre',
-        value: dpeData.ghgEmissions,
-        valueDisplay: `${dpeData.ghgEmissions} kg CO₂/m²/an`,
+        value: ghgEmissions,
+        valueDisplay: `${ghgEmissions} kg CO₂/m²/an`,
         status: 'known',
         editable: true,
         priority: 'medium',
@@ -359,14 +397,17 @@ export class BuildingProfileEnrichmentService {
     // CATÉGORIE : CADASTRE
     // ============================================
 
-    // Surface parcelle
-    if (cadastralData?.parcelle?.surface) {
+    // Surface parcelle (peut être dans cadastralData.parcelle.surface ou parcelle contenance convertie)
+    const parcelleSurface = cadastralData?.parcelle?.surface || 
+                            (cadastralData?.parcelle?.contenance ? cadastralData.parcelle.contenance * 10000 : undefined)
+    
+    if (parcelleSurface) {
       characteristics.push({
         id: 'cadastre-surface',
         category: 'cadastre',
         label: 'Surface de la parcelle',
-        value: cadastralData.parcelle.surface,
-        valueDisplay: `${cadastralData.parcelle.surface} m²`,
+        value: parcelleSurface,
+        valueDisplay: `${parcelleSurface} m²`,
         status: 'known',
         editable: true,
         priority: 'medium',
@@ -390,14 +431,18 @@ export class BuildingProfileEnrichmentService {
       })
     }
 
-    // Numéro de parcelle
-    if (cadastralData?.parcelle?.numero) {
+    // Numéro de parcelle (peut être dans cadastralData.parcelle.numero ou parcelle.id)
+    const parcelleNumber = cadastralData?.parcelle?.numero || 
+                           cadastralData?.parcelle?.id ||
+                           cadastralData?.parcelleNumber // Depuis le profil directement
+    
+    if (parcelleNumber) {
       characteristics.push({
         id: 'cadastre-parcelle',
         category: 'cadastre',
         label: 'Parcelle cadastrale',
-        value: cadastralData.parcelle.numero,
-        valueDisplay: cadastralData.parcelle.numero,
+        value: parcelleNumber,
+        valueDisplay: parcelleNumber,
         status: 'known',
         editable: true,
         priority: 'low',
@@ -419,14 +464,17 @@ export class BuildingProfileEnrichmentService {
       })
     }
 
-    // Section cadastrale
-    if (cadastralData?.parcelle?.section) {
+    // Section cadastrale (peut être dans cadastralData.parcelle.section ou sectionCadastrale du profil)
+    const sectionCadastrale = cadastralData?.parcelle?.section || 
+                               cadastralData?.sectionCadastrale
+    
+    if (sectionCadastrale) {
       characteristics.push({
         id: 'cadastre-section',
         category: 'cadastre',
         label: 'Section cadastrale',
-        value: cadastralData.parcelle.section,
-        valueDisplay: cadastralData.parcelle.section,
+        value: sectionCadastrale,
+        valueDisplay: sectionCadastrale,
         status: 'known',
         editable: true,
         priority: 'low',
@@ -452,20 +500,29 @@ export class BuildingProfileEnrichmentService {
     // CATÉGORIE : VALORISATION
     // ============================================
 
-    // Estimation valeur
-    if (dvfData?.estimation?.valeur_estimee) {
+    // Estimation valeur (peut être dans dvfData.estimation.valeur_estimee ou calculée depuis prix_m2_estime × surface)
+    let estimationValue = dvfData?.estimation?.valeur_estimee
+    // Si pas d'estimation directe mais prix/m² et surface disponibles, calculer
+    if (!estimationValue && dvfData?.estimation?.prix_m2_estime && surface) {
+      estimationValue = dvfData.estimation.prix_m2_estime * surface
+    }
+    
+    if (estimationValue) {
+      const confiance = dvfData?.estimation?.confiance
       characteristics.push({
         id: 'valuation-estimate',
         category: 'valorisation',
         label: 'Estimation immobilière',
-        value: dvfData.estimation.valeur_estimee,
-        valueDisplay: `${dvfData.estimation.valeur_estimee.toLocaleString('fr-FR')} €`,
-        status: dvfData.estimation.confiance && dvfData.estimation.confiance > 50 ? 'known' : 'partial',
+        value: estimationValue,
+        valueDisplay: `${Math.round(estimationValue).toLocaleString('fr-FR')} €`,
+        status: confiance && confiance > 50 ? 'known' : 'partial',
         editable: true,
         priority: 'high',
         unit: '€',
         icon: 'Euro',
-        description: 'Estimation de la valeur du bien',
+        description: confiance 
+          ? `Estimation de la valeur du bien (confiance: ${confiance}%)`
+          : 'Estimation de la valeur du bien',
       })
     } else {
       characteristics.push({
@@ -483,14 +540,24 @@ export class BuildingProfileEnrichmentService {
       })
     }
 
-    // Prix au m²
-    if (dvfData?.estimation?.prix_m2_estime) {
+    // Prix au m² (peut être dans dvfData.estimation.prix_m2_estime, dvfData.statistics.prix_m2_moyen, ou calculé depuis valeur_estimee ÷ surface)
+    let prixM2 = dvfData?.estimation?.prix_m2_estime
+    // Si pas de prix/m² direct mais estimation et surface disponibles, calculer
+    if (!prixM2 && estimationValue && surface) {
+      prixM2 = estimationValue / surface
+    }
+    // Sinon utiliser la moyenne des statistiques
+    if (!prixM2 && dvfData?.statistics?.prix_m2_moyen) {
+      prixM2 = dvfData.statistics.prix_m2_moyen
+    }
+    
+    if (prixM2) {
       characteristics.push({
         id: 'valuation-price-per-m2',
         category: 'valorisation',
         label: 'Prix au m² estimé',
-        value: dvfData.estimation.prix_m2_estime,
-        valueDisplay: `${dvfData.estimation.prix_m2_estime.toLocaleString('fr-FR')} €/m²`,
+        value: prixM2,
+        valueDisplay: `${Math.round(prixM2).toLocaleString('fr-FR')} €/m²`,
         status: 'known',
         editable: true,
         priority: 'medium',
@@ -551,14 +618,19 @@ export class BuildingProfileEnrichmentService {
     // CATÉGORIE : STRUCTURE
     // ============================================
 
-    // Année de construction
-    if (enrichedData?.rnb?.annee_construction) {
+    // Année de construction (peut être dans RNB, enrichedData.rnb, ou enrichedData.building)
+    const constructionYear = enrichedData?.rnb?.constructionYear || 
+                            rnbData?.constructionYear ||
+                            enrichedData?.building?.constructionYear ||
+                            enrichedData?.rnb?.annee_construction
+    
+    if (constructionYear) {
       characteristics.push({
         id: 'structure-construction-year',
         category: 'structure',
         label: 'Année de construction',
-        value: enrichedData.rnb.annee_construction,
-        valueDisplay: enrichedData.rnb.annee_construction.toString(),
+        value: constructionYear,
+        valueDisplay: constructionYear.toString(),
         status: 'known',
         editable: true,
         priority: 'medium',
@@ -580,14 +652,20 @@ export class BuildingProfileEnrichmentService {
       })
     }
 
-    // Surface habitable
-    if (enrichedData?.rnb?.surface_habitable) {
+    // Surface habitable (peut être dans RNB, enrichedData.rnb, enrichedData.building, ou dpeData)
+    const surface = enrichedData?.rnb?.surface || 
+                    rnbData?.surface ||
+                    enrichedData?.rnb?.surface_habitable ||
+                    enrichedData?.building?.surface ||
+                    dpeData?.surface
+    
+    if (surface) {
       characteristics.push({
         id: 'structure-living-area',
         category: 'structure',
         label: 'Surface habitable',
-        value: enrichedData.rnb.surface_habitable,
-        valueDisplay: `${enrichedData.rnb.surface_habitable} m²`,
+        value: surface,
+        valueDisplay: `${surface} m²`,
         status: 'known',
         editable: true,
         priority: 'high',
