@@ -11,8 +11,17 @@ Sentry.init({
 
   environment: process.env.NODE_ENV || 'development',
 
-  // Enable Spotlight in development
+  // Enable Spotlight in development (requires Sentry DevTools extension)
   spotlight: process.env.NODE_ENV === 'development',
+
+  // Custom tags
+  initialScope: {
+    tags: {
+      environment: process.env.NODE_ENV || 'development',
+      platform: 'nextjs',
+      version: process.env.npm_package_version || '1.0.0',
+    },
+  },
 
   // Configure which integrations to use
   integrations: [

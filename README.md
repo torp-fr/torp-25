@@ -26,6 +26,7 @@ TORP est une plateforme SaaS qui analyse et score automatiquement les devis de c
 ## 💻 Stack Technologique
 
 ### Frontend
+
 - **Framework**: Next.js 15.2.3 (App Router)
 - **Language**: TypeScript (strict mode)
 - **Styling**: TailwindCSS 4 + Shadcn/ui
@@ -33,6 +34,7 @@ TORP est une plateforme SaaS qui analyse et score automatiquement les devis de c
 - **Forms**: React Hook Form + Zod validation
 
 ### Backend
+
 - **Runtime**: Node.js 20 LTS
 - **Database**: PostgreSQL 15 (Prisma ORM)
 - **Cache**: Redis 7
@@ -40,6 +42,7 @@ TORP est une plateforme SaaS qui analyse et score automatiquement les devis de c
 - **Auth**: Auth0
 
 ### Intelligence Artificielle
+
 - **Analyse LLM**: Claude AI (Anthropic) - Analyse intelligente des devis
 - **OCR**: Lecture directe par Claude AI (PDF, images)
 - **NLP**: Analyse sémantique avancée des devis
@@ -47,6 +50,7 @@ TORP est une plateforme SaaS qui analyse et score automatiquement les devis de c
 - **Enrichissement**: Multi-sources via APIs externes (15+ sources)
 
 ### Infrastructure
+
 - **Cloud**: AWS (EU-West-3 Paris)
 - **CI/CD**: GitHub Actions
 - **Monitoring**: Sentry (planned)
@@ -83,29 +87,34 @@ TORP est une plateforme SaaS qui analyse et score automatiquement les devis de c
 ### Installation
 
 1. **Clone the repository**
+
 ```bash
 git clone https://github.com/your-org/torp-platform.git
 cd torp-platform
 ```
 
 2. **Install dependencies**
+
 ```bash
 npm install
 ```
 
 3. **Setup environment variables**
+
 ```bash
 cp .env.example .env
 # Edit .env with your credentials
 ```
 
 4. **Setup database**
+
 ```bash
 npm run db:migrate
 npm run db:generate
 ```
 
 5. **Run development server**
+
 ```bash
 npm run dev
 ```
@@ -117,10 +126,12 @@ Visit [http://localhost:3000](http://localhost:3000)
 See `.env.example` for all required environment variables:
 
 **Obligatoires :**
+
 - `DATABASE_URL`: PostgreSQL connection string
 - `ANTHROPIC_API_KEY`: Claude AI API key (pour analyse LLM)
 
 **Optionnelles - APIs d'Enrichissement :**
+
 - `INSEE_API_KEY`: Clé API INSEE Sirene (officielle) - Pour données complètes d'entreprises
   - **Note** : Sans clé, le système utilise automatiquement l'API Recherche d'Entreprises (data.gouv.fr) gratuite comme fallback
   - Obtenir une clé : https://api.insee.fr/
@@ -131,6 +142,7 @@ See `.env.example` for all required environment variables:
 - `METEOFRANCE_API_KEY`: Météo officielle française
 
 **Autres :**
+
 - `AUTH0_*`: Auth0 credentials (optionnel - désactivé en mode demo)
 - `AWS_*`: AWS credentials for S3 and Rekognition
 - `STRIPE_*`: Stripe payment credentials
@@ -252,12 +264,14 @@ Le système de scoring TORP v2.0 évalue les devis selon une **architecture hié
 Le système s'adapte automatiquement selon le profil utilisateur :
 
 **Profil B2C (Particuliers)** - Focus Sécurisation :
+
 - Conformité : 35% (+6%)
 - Qualité Entreprise : 22% (+5%)
 - Transparence : 15% (+7%)
 - Garanties : 10% (+3%)
 
 **Profil B2B (Professionnels)** - Focus Optimisation :
+
 - Prix & Marché : 28% (+7%)
 - Faisabilité Technique : 18% (+6%)
 - Innovation Durable : 8% (+4%)
@@ -277,6 +291,7 @@ Le système s'adapte automatiquement selon le profil utilisateur :
 Le système enrichit automatiquement les données via **15+ sources** :
 
 **APIs Publiques Officielles** (Gratuites) :
+
 - ✅ **INSEE Sirene** (API officielle + fallback data.gouv.fr) - Informations entreprises, SIRET, certification
   - Service complet avec vérification et certification automatique des données d'entreprise
   - Recherche par SIREN/SIRET, nom, département, code NAF
@@ -286,6 +301,7 @@ Le système enrichit automatiquement les données via **15+ sources** :
 - ✅ **Data.gouv.fr** - Données publiques multiples
 
 **APIs Sectorielles** (Optionnelles) :
+
 - 🔑 **Infogreffe** - Bilans, données financières
 - 🔑 **Pappers.fr** - Enrichissement entreprises
 - 🔑 **Qualibat** - Certifications métiers
@@ -293,6 +309,7 @@ Le système enrichit automatiquement les données via **15+ sources** :
 - 🔑 **Reef Premium** - Prix de référence
 
 **Services Propriétaires** :
+
 - 🧠 **LLM Claude AI** - Analyse intelligente des devis
 - 📊 **Base TORP** - Historique analyses, modèles ML
 - 🌐 **Scraping légal** - Avis clients, réputation
@@ -310,6 +327,7 @@ Voir [services/data-enrichment/README.md](services/data-enrichment/README.md) po
 ## 📊 Database Schema
 
 Key models:
+
 - `User` - User accounts
 - `UserProfile` - User profile data
 - `CompanyProfile` - Professional company data
@@ -331,7 +349,7 @@ See `prisma/schema.prisma` for full schema.
 - [ ] Configure AWS S3 bucket
 - [ ] Setup Auth0 production tenant
 - [ ] Configure Stripe webhooks
-- [ ] Setup monitoring (Sentry)
+- [x] Setup monitoring (Sentry) - Configuration prête, nécessite DSN
 - [ ] Configure CDN (CloudFront)
 - [ ] Enable SSL/TLS
 - [ ] Setup backups
@@ -344,6 +362,7 @@ See `prisma/schema.prisma` for full schema.
 ## 📈 Roadmap
 
 ### Phase 1: MVP (Mois 0-12) ✅
+
 - [x] Core infrastructure
 - [x] Document upload & OCR
 - [x] TORP-Score algorithm
@@ -351,6 +370,7 @@ See `prisma/schema.prisma` for full schema.
 - [x] Payment integration
 
 ### Phase 2: Growth (Mois 12-24)
+
 - [ ] Payment workflow integration
 - [ ] Project tracking system
 - [ ] Marketplace fournisseurs
@@ -358,6 +378,7 @@ See `prisma/schema.prisma` for full schema.
 - [ ] Mobile app React Native
 
 ### Phase 3: Scale (Mois 24-36)
+
 - [ ] European expansion
 - [ ] Microservices architecture
 - [ ] Advanced AI features

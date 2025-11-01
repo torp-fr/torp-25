@@ -10,4 +10,13 @@ Sentry.init({
   debug: process.env.NODE_ENV === 'development',
 
   environment: process.env.NODE_ENV || 'development',
+
+  // Custom tags
+  initialScope: {
+    tags: {
+      environment: process.env.NODE_ENV || 'development',
+      platform: 'nextjs',
+      version: process.env.npm_package_version || '1.0.0',
+    },
+  },
 })
