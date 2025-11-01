@@ -338,7 +338,7 @@ export async function POST(request: NextRequest) {
             version: 'advanced-v2.0.0',
             totalScore: advancedScore.totalScore,
             percentage: advancedScore.percentage,
-            axes: advancedScore.axisScores.map((axis) => ({
+            axes: advancedScore.axisScores.map((axis: any) => ({
               id: axis.axisId,
               score: axis.score,
               maxPoints: axis.maxPoints,
