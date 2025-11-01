@@ -261,7 +261,8 @@ export default function AnalysisPage() {
     )
   }
 
-  const enrichedCompanyData = devis.enrichedData?.company || {}
+  const extractedDataAny = devis.extractedData as any
+  const enrichedCompanyData = extractedDataAny?.enrichedData?.company || {}
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
