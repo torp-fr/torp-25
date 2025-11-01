@@ -121,28 +121,24 @@ export default function NewBuildingPage() {
       
       console.log('[New Building] ✅ Profil créé:', profileId)
       
-      // 2. Lancer l'enrichissement immédiatement et attendre qu'il démarre
-      try {
-        console.log('[New Building] 🚀 Lancement enrichissement...')
-        const enrichResponse = await fetch(`/api/building-profiles/${profileId}/enrich?userId=${DEMO_USER_ID}`, {
-          method: 'POST',
+      // 2. Lancer l'enrichissement immédiatement (en arrière-plan, non bloquant)
+      // L'enrichissement se fera en arrière-plan pendant que l'utilisateur est redirigé
+      fetch(`/api/building-profiles/${profileId}/enrich?userId=${DEMO_USER_ID}`, {
+        method: 'POST',
+      })
+        .then(async (enrichResponse) => {
+          if (!enrichResponse.ok) {
+            const errorData = await enrichResponse.json().catch(() => ({}))
+            console.error('[New Building] ❌ Erreur enrichissement:', errorData)
+            return
+          }
+          const enrichData = await enrichResponse.json()
+          console.log('[New Building] ✅ Enrichissement lancé:', enrichData)
         })
-
-        if (!enrichResponse.ok) {
-          const errorData = await enrichResponse.json().catch(() => ({}))
-          console.error('[New Building] ❌ Erreur enrichissement:', errorData)
-          throw new Error(errorData.error || 'Erreur lors de l\'enrichissement')
-        }
-
-        const enrichData = await enrichResponse.json()
-        console.log('[New Building] ✅ Enrichissement lancé:', enrichData)
-        
-        // Attendre 2 secondes pour que l'enrichissement commence
-        await new Promise(resolve => setTimeout(resolve, 2000))
-      } catch (enrichErr) {
-        console.error('[New Building] ❌ Erreur enrichissement:', enrichErr)
-        // Ne pas bloquer la redirection, mais loguer l'erreur
-      }
+        .catch((enrichErr) => {
+          console.error('[New Building] ❌ Erreur enrichissement:', enrichErr)
+          // Ne pas bloquer, l'enrichissement peut être relancé depuis la page de détail
+        })
       
       // 3. Rediriger vers la page de détail
       console.log('[New Building] 🔄 Redirection vers:', `/buildings/${profileId}`)
