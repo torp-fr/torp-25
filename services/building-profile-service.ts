@@ -231,27 +231,38 @@ export class BuildingProfileService {
       let cadastralData: CadastralData | null = null
       try {
         cadastralData = await this.cadastreService.getCadastralData(addressData)
-        if (cadastralData?.parcelle) {
-          console.log('✅ Parcelle identifiée:', cadastralData.parcelle.numero, 'Section:', cadastralData.parcelle.section)
-          sources.push('Cadastre IGN')
+        if (cadastralData) {
+          // TOUJOURS sauvegarder les données cadastrales, même si c'est juste les données de base
+          if (cadastralData.parcelle) {
+            console.log('✅ Parcelle identifiée:', cadastralData.parcelle.numero, 'Section:', cadastralData.parcelle.section)
+            sources.push('Cadastre IGN')
+          } else {
+            console.log('✅ Données cadastrales de base récupérées (pas de parcelle identifiée)')
+            sources.push('Cadastre (données de base)')
+          }
           
           await prisma.buildingProfile.update({
             where: { id: profileId },
             data: {
               cadastralData: cadastralData as any,
-              parcelleNumber: cadastralData.parcelle.numero || null,
-              sectionCadastrale: cadastralData.parcelle.section || null,
+              parcelleNumber: cadastralData.parcelle?.numero || null,
+              sectionCadastrale: cadastralData.parcelle?.section || null,
               codeINSEE: cadastralData.codeINSEE || null,
             },
           })
           
           enrichedData.cadastre = cadastralData
+          enrichedData.address = addressData // Toujours inclure l'adresse
         } else {
-          console.warn('⚠️ Aucune parcelle identifiée pour cette adresse')
+          console.warn('⚠️ Aucune donnée cadastrale récupérée (même de base)')
+          // Sauvegarder au moins l'adresse
+          enrichedData.address = addressData
         }
       } catch (error) {
         console.error('❌ Erreur identification parcelle:', error)
         errors.push(`Parcelle: ${error instanceof Error ? error.message : 'Unknown error'}`)
+        // Même en cas d'erreur, sauvegarder au moins l'adresse
+        enrichedData.address = addressData
       }
 
       console.log('[BuildingProfileService] 🏗️ ÉTAPE 2: Parcelle → Bâti et données associées')
