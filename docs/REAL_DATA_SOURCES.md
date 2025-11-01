@@ -133,6 +133,23 @@ Ce document liste toutes les sources de données réelles utilisées par TORP po
 - **Clé API**: Non requise (gratuite)
 - **Note**: Les fichiers CSV sont volumineux (50-200MB). Le service récupère les métadonnées et prépare l'intégration du parsing CSV.
 
+### 10. API Infogreffe (Registre du Commerce et des Sociétés)
+- **URL Dataset**: `https://www.data.gouv.fr/api/1/datasets/5620c13fc751df08e3cdbb48/`
+- **Dataset ID**: `5620c13fc751df08e3cdbb48`
+- **Statut**: ✅ Réelle et opérationnelle
+- **Usage**: Enrichissement des données d'entreprise pour l'analyse des devis
+- **Données**: 
+  - **Données financières**: Chiffre d'affaires, résultat net, EBITDA, dettes, capital social
+  - **Données juridiques**: Procédures collectives (sauvegarde, redressement, liquidation), statut juridique
+  - **Mandataires sociaux**: Informations sur les dirigeants
+  - **Historique**: Modifications récentes (augmentation capital, changement direction, etc.)
+- **Sources disponibles**:
+  - Explore API v2 (publique) - https://www.data.gouv.fr/es/dataservices/explore-api-v2-94/
+  - API Extrait RCS (Bouquet API Entreprise - réservé aux administrations)
+  - Dataset data.gouv.fr
+- **Clé API**: Variable selon la source (Explore API peut nécessiter authentification)
+- **Note**: Utilisé pour enrichir l'analyse des devis avec les données financières et juridiques des entreprises prestataires
+
 ## 📋 Données Récupérées
 
 ### Données Cadastrales Réelles

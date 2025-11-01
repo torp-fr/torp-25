@@ -6,10 +6,12 @@
 import { ApiClient } from './api-client'
 import type { CompanyEnrichment } from './types'
 import { SireneService, type SireneCompany } from '../external-apis/sirene-service'
+import { InfogreffeService } from '../external-apis/infogreffe-service'
 
 export class CompanyEnrichmentService {
   private sireneClient: ApiClient
   private sireneService: SireneService
+  private infogreffeService: InfogreffeService
 
   constructor() {
     // API Recherche d'Entreprises (data.gouv.fr) - gratuite, sans clé
@@ -22,6 +24,9 @@ export class CompanyEnrichmentService {
     
     // Service Sirene complet (INSEE + fallback data.gouv.fr)
     this.sireneService = new SireneService()
+    
+    // Service Infogreffe pour données financières et juridiques
+    this.infogreffeService = new InfogreffeService()
   }
 
   /**
@@ -104,8 +109,54 @@ export class CompanyEnrichmentService {
           : [],
       }
 
+      // Enrichir avec Infogreffe pour données financières et juridiques
+      let infogreffeData = null
+      try {
+        const siren = company.siren || cleanSiret.substring(0, 9)
+        if (siren) {
+          console.log(`[CompanyService] 🔄 Enrichissement Infogreffe pour SIREN: ${siren}`)
+          infogreffeData = await this.infogreffeService.getCompanyData(siren)
+          
+          if (infogreffeData && infogreffeData.available) {
+            // Enrichir avec les données financières
+            if (infogreffeData.financial) {
+              enrichment.financialData = {
+                ca: infogreffeData.financial.turnover?.years?.map(y => y.amount) || 
+                    (infogreffeData.financial.turnover?.lastYear ? [infogreffeData.financial.turnover.lastYear] : []),
+                result: infogreffeData.financial.netResult?.years?.map(y => y.amount) || 
+                        (infogreffeData.financial.netResult?.lastYear ? [infogreffeData.financial.netResult.lastYear] : []),
+                ebitda: infogreffeData.financial.ebitda,
+                debt: infogreffeData.financial.debt?.total,
+                lastUpdate: infogreffeData.financial.lastUpdate || infogreffeData.lastUpdated,
+              }
+            }
+            
+            // Enrichir avec les données juridiques (procédures collectives)
+            if (infogreffeData.legal?.collectiveProcedures) {
+              const ongoingProcedures = infogreffeData.legal.collectiveProcedures.filter(
+                proc => proc.status === 'ongoing'
+              )
+              if (ongoingProcedures.length > 0) {
+                enrichment.legalStatusDetails = {
+                  hasCollectiveProcedure: true,
+                  procedureType: ongoingProcedures[0].type,
+                  procedureDate: ongoingProcedures[0].startDate,
+                }
+              }
+            }
+            
+            console.log(`[CompanyService] ✅ Données Infogreffe récupérées:`, {
+              hasFinancial: !!enrichment.financialData,
+              hasLegal: !!enrichment.legalStatusDetails,
+            })
+          }
+        }
+      } catch (error) {
+        console.warn(`[CompanyService] ⚠️ Erreur enrichissement Infogreffe:`, error)
+        // Ne pas échouer si Infogreffe échoue, on garde les données Sirene
+      }
+
       // TODO: Enrichir avec d'autres APIs pour les assurances
-      // - API Infogreffe (payante) pour données financières
       // - API Assurance (à implémenter)
       // - API Certifications (à implémenter)
 

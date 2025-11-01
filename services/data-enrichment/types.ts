@@ -35,6 +35,22 @@ export interface CompanyEnrichment {
     type: string
     validUntil?: string
   }>
+  
+  // Données financières (Infogreffe)
+  financialData?: {
+    ca: number[] // Chiffre d'affaires par année (plus récent en premier)
+    result: number[] // Résultat net par année
+    ebitda?: number
+    debt?: number
+    lastUpdate: string
+  }
+  
+  // Données juridiques (Infogreffe)
+  legalStatusDetails?: {
+    hasCollectiveProcedure?: boolean
+    procedureType?: string // 'sauvegarde', 'redressement', 'liquidation'
+    procedureDate?: string
+  }
 }
 
 // Prix de référence pour les matériaux/prestations
