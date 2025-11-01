@@ -465,12 +465,44 @@ export class BuildingProfileService {
     } catch (error) {
       console.error('[BuildingProfileService] ❌ Erreur enrichissement profil:', error)
       
+      // Récupérer l'adresse depuis le profil pour sauvegarder au moins ça
+      let addressDataForError: AddressData | null = null
+      try {
+        const profileForAddress = await prisma.buildingProfile.findUnique({
+          where: { id: profileId },
+          select: { address: true },
+        })
+        if (profileForAddress?.address) {
+          addressDataForError = profileForAddress.address as unknown as AddressData
+        }
+      } catch (addrError) {
+        console.warn('[BuildingProfileService] ⚠️ Erreur récupération adresse pour sauvegarde:', addrError)
+      }
+      
+      // MÊME EN CAS D'ERREUR, sauvegarder au moins l'adresse dans enrichedData
+      const errorEnrichedData = addressDataForError ? {
+        address: addressDataForError,
+        sources: ['API Adresse'],
+        lastUpdated: new Date().toISOString(),
+        error: error instanceof Error ? error.message : 'Unknown error',
+      } : {
+        sources: ['API Adresse'],
+        lastUpdated: new Date().toISOString(),
+        error: error instanceof Error ? error.message : 'Unknown error',
+      }
+      
       await prisma.buildingProfile.update({
         where: { id: profileId },
         data: {
           enrichmentStatus: 'failed',
           enrichmentErrors: [error instanceof Error ? error.message : 'Unknown error'] as any,
+          lastEnrichedAt: new Date(),
+          enrichedData: errorEnrichedData as any, // Sauvegarder au moins l'adresse
         },
+      })
+      
+      console.log('[BuildingProfileService] ✅ Données minimales sauvegardées même après erreur:', {
+        hasAddress: !!errorEnrichedData.address,
       })
 
       throw error
