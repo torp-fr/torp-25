@@ -645,7 +645,6 @@ function extractSourcesFromEnrichment(enrichmentData: any): string[] {
   if (enrichmentData?.complianceData) sources.push('Conformité')
   if (enrichmentData?.weatherData) sources.push('Météo')
   return sources
-  return sources
 }
 
 /**
