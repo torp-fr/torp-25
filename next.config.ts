@@ -1,10 +1,6 @@
 import type { NextConfig } from 'next'
 
 const nextConfig: NextConfig = {
-  // Disable ESLint during builds on CI to avoid plugin resolution issues
-  eslint: {
-    ignoreDuringBuilds: true,
-  },
   // Optimize images
   images: {
     remotePatterns: [
@@ -19,9 +15,11 @@ const nextConfig: NextConfig = {
     ],
   },
 
-  // Next.js 16: Features optimisées
+  // Next.js 16: Turbopack est maintenant le bundler par défaut
+  // Offre des builds jusqu'à 5x plus rapides en production
+  
+  // Server Actions configuration
   experimental: {
-    // Server Actions toujours supportés
     serverActions: {
       bodySizeLimit: '10mb',
     },
@@ -29,9 +27,6 @@ const nextConfig: NextConfig = {
 
   // Production source maps (disable for better performance)
   productionBrowserSourceMaps: false,
-
-  // Next.js 16: Turbopack par défaut (plus besoin de config webpack pour Prisma)
-  // Le support de Prisma est natif avec Turbopack
 
   // Headers for security
   async headers() {

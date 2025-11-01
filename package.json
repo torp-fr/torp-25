@@ -33,7 +33,6 @@
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.67.0",
-    "@auth0/nextjs-auth0": "^3.8.0",
     "@aws-sdk/client-s3": "^3.671.0",
     "@aws-sdk/s3-request-presigner": "^3.671.0",
     "@hookform/resolvers": "^3.9.0",

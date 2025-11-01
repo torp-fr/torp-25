@@ -1,12 +1,15 @@
-import { useUser } from '@auth0/nextjs-auth0/client'
-
+// Auth0 désactivé - Mode démo
 export function useAuth(_requireAuth: boolean = true) {
-  const { user, error, isLoading } = useUser()
+  const demoUser = {
+    sub: 'demo-user-id',
+    email: 'demo@torp.fr',
+    name: 'Utilisateur Démo',
+  }
 
   return {
-    user: user || null,
-    userId: user?.sub || null,
-    isLoading,
-    error,
+    user: demoUser,
+    isLoading: false,
+    error: null,
+    userId: 'demo-user-id',
   }
 }
