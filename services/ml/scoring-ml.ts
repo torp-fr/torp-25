@@ -3,7 +3,7 @@
  * Amélioration de la précision du scoring via ML
  */
 
-import type { Devis, TORPScore } from '@/types'
+import type { Devis } from '@/types'
 
 export interface MLFeatures {
   // Features prix
@@ -49,8 +49,6 @@ export interface MLPrediction {
 }
 
 export class ScoringML {
-  private readonly version = '1.0.0'
-  
   // Modèles simples basés sur règles (à remplacer par vrai ML)
   private priceModel: PricePredictor
   private qualityModel: QualityPredictor
@@ -212,12 +210,6 @@ export class ScoringML {
  * Modèle de prédiction prix
  */
 class PricePredictor {
-  private weights = {
-    totalAmount: 0.3,
-    pricePerSqm: 0.4,
-    averageItemPrice: 0.3,
-  }
-
   predict(features: MLFeatures): { adjustment: number; importance: number } {
     let adjustment = 0
     let importance = 0

@@ -5,7 +5,6 @@
 
 import { prisma } from '@/lib/db'
 import { globalCache } from '@/services/cache/data-cache'
-import type { Devis } from '@/types'
 
 interface ScrapingTask {
   id: string

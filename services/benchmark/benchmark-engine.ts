@@ -3,7 +3,6 @@
  * Système de mesure de performance et de validation de l'algorithme de scoring
  */
 
-import type { Devis, TORPScore } from '@/types'
 import { prisma } from '@/lib/db'
 
 export interface BenchmarkMetrics {
@@ -159,7 +158,6 @@ export class BenchmarkEngine {
 
     return devis.map((devis) => {
       const latestScore = devis.torpScores[0]
-      const extractedData = devis.extractedData as any
       
       // Calculer la complétude des données
       const dataCompleteness = this.calculateDataCompleteness(devis)
@@ -338,8 +336,8 @@ export class BenchmarkEngine {
       gradeDistribution[tc.actualGrade] = (gradeDistribution[tc.actualGrade] || 0) + 1
     })
 
-    // Diversité des grades = meilleure discrimination
-    const diversity = Object.keys(gradeDistribution).length / 5 // 5 grades possibles (A-E)
+    // Diversité des grades = meilleure discrimination (calculé pour validation interne mais non exposé)
+    // const diversity = Object.keys(gradeDistribution).length / 5 // 5 grades possibles (A-E)
 
     return {
       userSatisfaction: 75, // Placeholder - nécessite feedback utilisateurs

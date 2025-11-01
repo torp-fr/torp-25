@@ -15,15 +15,13 @@ export async function POST(request: NextRequest) {
     console.log('[API Training] 🔍 Collecte données d\'entraînement...')
 
     const collector = new TrainingDataCollector()
-    const examples = await collector.collectFromDevis(limit, 
-      startDate && endDate ? { start: startDate, end: endDate } : undefined
-    )
-
-    // Nettoyer les exemples invalides
-    const cleanExamples = collector.cleanDataset(examples)
+    const examples = await collector.collectTrainingData({
+      limit,
+      dateRange: startDate && endDate ? { start: startDate, end: endDate } : undefined,
+    })
 
     // Créer le dataset
-    const dataset = await collector.createTrainingDataset(cleanExamples)
+    const dataset = await collector.createDataset(examples)
 
     return NextResponse.json({
       success: true,
@@ -31,8 +29,6 @@ export async function POST(request: NextRequest) {
         dataset,
         statistics: {
           totalCollected: examples.length,
-          validExamples: cleanExamples.length,
-          invalidExamples: examples.length - cleanExamples.length,
         },
       },
     })

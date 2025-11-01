@@ -3,10 +3,9 @@
  * Compare différentes versions de l'algorithme de scoring
  */
 
-import type { Devis, TORPScore } from '@/types'
+import type { Devis } from '@/types'
 import { AdvancedScoringEngine } from '@/services/scoring/advanced/advanced-scoring-engine'
 import type { FinalScore } from '@/services/scoring/advanced/types'
-import { prisma } from '@/lib/db'
 
 export interface ABTestConfig {
   testId: string
@@ -161,7 +160,7 @@ export class ABTestEngine {
 
     // Calculer l'amélioration
     const improvement = {
-      scoreAccuracy: ((variantAvg.scoreAccuracy - controlAvg.scoreAccuracy) / controlAvg.scoreAccuracy) * 100,
+      scoreAccuracy: ((variantAvg.metrics.scoreAccuracy - controlAvg.metrics.scoreAccuracy) / controlAvg.metrics.scoreAccuracy) * 100,
       confidence: variantAvg.confidence - controlAvg.confidence,
     }
 
@@ -202,15 +201,15 @@ export class ABTestEngine {
    * Log les résultats d'un test
    */
   private async logTestResult(
-    testId: string,
-    devisId: string,
+    _testId: string,
+    _devisId: string,
     variant: 'control' | 'variant',
     score: FinalScore
   ): Promise<void> {
     try {
       // Stocker dans une table dédiée (ou utiliser les métadonnées du score)
       // Pour l'instant, on log seulement
-      console.log(`[ABTestEngine] 📊 Test ${testId}: ${variant} - Score ${score.totalScore} (${score.grade})`)
+      console.log(`[ABTestEngine] 📊 Test: ${variant} - Score ${score.totalScore} (${score.grade})`)
       
       // TODO: Créer une table ABTestResult dans Prisma si nécessaire
     } catch (error) {
@@ -221,7 +220,7 @@ export class ABTestEngine {
   /**
    * Récupère les résultats d'un test
    */
-  private async getTestResults(testId: string): Promise<ABTestResult[]> {
+  private async getTestResults(_testId: string): Promise<ABTestResult[]> {
     // TODO: Implémenter récupération depuis la base
     // Pour l'instant, retourner des données vides
     return []

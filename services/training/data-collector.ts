@@ -4,7 +4,6 @@
  */
 
 import { prisma } from '@/lib/db'
-import type { Devis, TORPScore } from '@/types'
 import type { MLFeatures } from '@/services/ml/scoring-ml'
 import { ScoringML } from '@/services/ml/scoring-ml'
 
@@ -16,7 +15,7 @@ export interface TrainingExample {
   predictedScore?: number
   predictedGrade?: string
   error?: number
-  enrichmentData?: any
+  enrichmentData: any
   metadata: {
     devisId: string
     createdAt: string
@@ -42,17 +41,23 @@ export interface TrainingDataset {
 }
 
 export class TrainingDataCollector {
-  private readonly mlEngine = new ScoringML()
+  private mlEngine: ScoringML
+
+  constructor() {
+    this.mlEngine = new ScoringML()
+  }
 
   /**
    * Collecte les données d'entraînement depuis les devis existants
    */
-  async collectFromDevis(
-    limit: number = 100,
+  async collectTrainingData(options?: {
+    limit?: number
     dateRange?: { start: Date; end: Date }
-  ): Promise<TrainingExample[]> {
-    console.log(`[TrainingCollector] 🔍 Collecte données depuis ${limit} devis...`)
+  }): Promise<TrainingExample[]> {
+    const limit = options?.limit || 100
+    const dateRange = options?.dateRange
 
+    // Construire la clause WHERE
     const whereClause: any = {}
     if (dateRange) {
       whereClause.createdAt = {
@@ -75,30 +80,30 @@ export class TrainingDataCollector {
 
     const examples: TrainingExample[] = []
 
-    for (const devis of devis) {
+    for (const currentDevis of devis) {
       try {
-        const latestScore = devis.torpScores[0]
+        const latestScore = currentDevis.torpScores[0]
         if (!latestScore) continue // Ignorer les devis sans score
 
         // Extraire les features
-        const extractedData = devis.extractedData as any || {}
-        const enrichedData = devis.enrichedData as any || {}
+        const enrichedData = (currentDevis as any).enrichedData || {}
+        const extractedData = (currentDevis.extractedData as any) || {}
         
-        const features = this.mlEngine.extractFeatures(devis, enrichedData)
+        const features = this.mlEngine.extractFeatures(currentDevis as any, enrichedData)
 
         // Calculer la complétude
-        const dataCompleteness = this.calculateCompleteness(devis, enrichedData)
+        const dataCompleteness = this.calculateCompleteness(currentDevis as any, enrichedData)
         const sourcesCount = this.countSources(enrichedData)
 
         const example: TrainingExample = {
-          id: `training_${devis.id}_${Date.now()}`,
+          id: `training_${currentDevis.id}_${Date.now()}`,
           features,
-          actualScore: latestScore.scoreValue,
+          actualScore: Number(latestScore.scoreValue),
           actualGrade: latestScore.scoreGrade,
           enrichmentData: enrichedData,
           metadata: {
-            devisId: devis.id,
-            createdAt: devis.createdAt.toISOString(),
+            devisId: currentDevis.id,
+            createdAt: currentDevis.createdAt.toISOString(),
             region: extractedData.project?.location?.region || 'unknown',
             projectType: extractedData.project?.type || 'unknown',
             dataCompleteness,
@@ -108,17 +113,17 @@ export class TrainingDataCollector {
 
         // Calculer l'erreur si prédiction disponible
         try {
-          const prediction = await this.mlEngine.predictScore(features, latestScore.scoreValue)
+          const prediction = await this.mlEngine.predictScore(features, Number(latestScore.scoreValue))
           example.predictedScore = prediction.predictedScore
           example.predictedGrade = prediction.predictedGrade
-          example.error = Math.abs(prediction.predictedScore - latestScore.scoreValue)
+          example.error = Math.abs(prediction.predictedScore - Number(latestScore.scoreValue))
         } catch (error) {
-          console.warn(`[TrainingCollector] Erreur prédiction pour ${devis.id}:`, error)
+          console.warn(`[TrainingCollector] Erreur prédiction pour ${currentDevis.id}:`, error)
         }
 
         examples.push(example)
       } catch (error) {
-        console.error(`[TrainingCollector] Erreur traitement devis ${devis.id}:`, error)
+        console.error(`[TrainingCollector] Erreur traitement devis ${currentDevis.id}:`, error)
       }
     }
 
@@ -129,11 +134,7 @@ export class TrainingDataCollector {
   /**
    * Crée un dataset d'entraînement complet
    */
-  async createTrainingDataset(
-    examples: TrainingExample[],
-    version: string = '1.0.0'
-  ): Promise<TrainingDataset> {
-    // Statistiques
+  async createDataset(examples: TrainingExample[], version = '1.0.0'): Promise<TrainingDataset> {
     const byGrade: Record<string, number> = {}
     let totalScore = 0
     let totalCompleteness = 0
@@ -164,97 +165,48 @@ export class TrainingDataCollector {
   }
 
   /**
-   * Exporte le dataset en JSON
+   * Exporte les données en JSON
    */
-  async exportDataset(dataset: TrainingDataset, filePath: string): Promise<void> {
-    const fs = await import('fs/promises')
-    await fs.writeFile(filePath, JSON.stringify(dataset, null, 2))
-    console.log(`[TrainingCollector] 💾 Dataset exporté: ${filePath}`)
+  async exportToJson(dataset: TrainingDataset): Promise<string> {
+    return JSON.stringify(dataset, null, 2)
   }
 
   /**
-   * Calcule la complétude des données
+   * Calcule la complétude des données d'un devis
    */
   private calculateCompleteness(devis: any, enrichedData: any): number {
-    let total = 0
-    let filled = 0
+    let completeness = 0
+    let max = 0
 
-    // Données extraites
-    const extractedData = devis.extractedData as any || {}
-    if (extractedData.company?.siret) filled++
-    total++
-    if (extractedData.company?.name) filled++
-    total++
-    if (extractedData.items?.length) filled++
-    total++
-    if (extractedData.project?.type) filled++
-    total++
+    // Données de base
+    max += 3
+    if (devis.extractedData) completeness += 1
+    if (enrichedData.company) completeness += 1
+    if (enrichedData.priceReferences?.length > 0) completeness += 1
 
     // Données enrichies
-    if (enrichedData?.company?.financialData) filled++
-    total++
-    if (enrichedData?.priceReferences?.length) filled++
-    total++
-    if (enrichedData?.regionalData) filled++
-    total++
-    if (enrichedData?.complianceData) filled++
-    total++
+    max += 5
+    if (enrichedData.regionalData) completeness += 1
+    if (enrichedData.complianceData) completeness += 1
+    if (enrichedData.weatherData) completeness += 1
+    if (enrichedData.dtus?.length > 0) completeness += 1
+    if (enrichedData.certifications?.length > 0) completeness += 1
 
-    return total > 0 ? (filled / total) * 100 : 0
+    return max > 0 ? (completeness / max) * 100 : 0
   }
 
   /**
-   * Compte les sources de données
+   * Compte le nombre de sources utilisées
    */
   private countSources(enrichedData: any): number {
     let count = 0
-    if (enrichedData?.company?.siret) count++
-    if (enrichedData?.company?.financialData) count++
-    if (enrichedData?.priceReferences?.length) count++
-    if (enrichedData?.regionalData) count++
-    if (enrichedData?.complianceData) count++
+    if (enrichedData.company) count++
+    if (enrichedData.priceReferences?.length > 0) count++
+    if (enrichedData.regionalData) count++
+    if (enrichedData.complianceData) count++
+    if (enrichedData.weatherData) count++
+    if (enrichedData.dtus?.length > 0) count++
+    if (enrichedData.certifications?.length > 0) count++
     return count
   }
-
-  /**
-   * Valide un exemple d'entraînement
-   */
-  validateExample(example: TrainingExample): { valid: boolean; errors: string[] } {
-    const errors: string[] = []
-
-    // Vérifier les features essentielles
-    if (!example.features.totalAmount || example.features.totalAmount <= 0) {
-      errors.push('totalAmount manquant ou invalide')
-    }
-    if (example.features.itemsCount <= 0) {
-      errors.push('itemsCount doit être > 0')
-    }
-    if (!example.actualScore || example.actualScore < 0 || example.actualScore > 1000) {
-      errors.push('actualScore invalide')
-    }
-
-    // Vérifier la complétude
-    if (example.metadata.dataCompleteness < 30) {
-      errors.push('dataCompleteness trop faible (<30%)')
-    }
-
-    return {
-      valid: errors.length === 0,
-      errors,
-    }
-  }
-
-  /**
-   * Nettoie et filtre les exemples invalides
-   */
-  cleanDataset(examples: TrainingExample[]): TrainingExample[] {
-    return examples.filter((ex) => {
-      const validation = this.validateExample(ex)
-      if (!validation.valid) {
-        console.warn(`[TrainingCollector] Exemple invalide ignoré:`, validation.errors)
-      }
-      return validation.valid
-    })
-  }
 }
-

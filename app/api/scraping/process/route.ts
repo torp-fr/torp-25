@@ -6,7 +6,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { globalScraper } from '@/services/scraping/data-scraper'
 
-export async function POST(request: NextRequest) {
+export async function POST(_request: NextRequest) {
   try {
     console.log('[API Scraping] 🚀 Démarrage traitement queue...')
     

@@ -11,8 +11,6 @@ import { PriceEnrichmentService } from './price-service'
 import { ComplianceEnrichmentService } from './compliance-service'
 import { WeatherEnrichmentService } from './weather-service'
 import { CertificationsEnrichmentService } from './certifications-service'
-import { ParallelExecutor } from '@/services/performance/parallel-executor'
-import { globalCache } from '@/services/cache/data-cache'
 import type { EnrichedCompanyData, ScoringEnrichmentData } from '../scoring/advanced/types'
 import type { ExtractedDevisData } from '@/services/llm/document-analyzer'
 
