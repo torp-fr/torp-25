@@ -42,12 +42,33 @@ export async function GET(
     // Extraire les caractéristiques
     const enrichmentService = new BuildingProfileEnrichmentService()
     
+    // Utiliser enrichedData comme source principale, avec fallback sur les champs séparés
+    const enrichedData = profile.enrichedData || {}
+    
+    // S'assurer que toutes les données sont bien présentes dans enrichedData
+    if (profile.dpeData && !enrichedData.energy && !enrichedData.dpe) {
+      enrichedData.energy = profile.dpeData
+      enrichedData.dpe = profile.dpeData
+    }
+    if (profile.cadastralData && !enrichedData.cadastre) {
+      enrichedData.cadastre = profile.cadastralData
+    }
+    if (profile.pluData && !enrichedData.plu) {
+      enrichedData.plu = profile.pluData
+    }
+    if (profile.rnbData && !enrichedData.rnb) {
+      enrichedData.rnb = profile.rnbData
+    }
+    
+    // Extraire georisques de enrichedData si disponible
+    const georisquesData = enrichedData.georisques || profile.enrichedData?.georisques || null
+    
     const characteristics = enrichmentService.extractCharacteristics(
-      profile.enrichedData,
+      enrichedData,
       profile.dpeData,
-      profile.enrichedData?.georisques,
-      profile.enrichedData?.cadastre || profile.cadastralData,
-      profile.enrichedData?.dvf
+      georisquesData,
+      profile.cadastralData || enrichedData.cadastre,
+      enrichedData.dvf
     )
 
     // Grouper par catégorie

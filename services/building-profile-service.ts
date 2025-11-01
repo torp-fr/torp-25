@@ -223,22 +223,44 @@ export class BuildingProfileService {
       // 1. Enrichissement via BuildingService (agrégation complète)
       let aggregatedData: AggregatedBuildingData | null = null
       try {
+        console.log('[BuildingProfileService] 🚀 Démarrage enrichissement pour:', addressData.formatted)
         aggregatedData = await this.buildingService.getAggregatedData(addressData.formatted)
         if (aggregatedData) {
+          console.log('[BuildingProfileService] ✅ Données agrégées récupérées:', {
+            hasCadastre: !!aggregatedData.cadastre,
+            hasPLU: !!aggregatedData.plu,
+            hasRNB: !!aggregatedData.rnb,
+            hasDPE: !!aggregatedData.energy || !!aggregatedData.dpe,
+            hasGeorisques: !!aggregatedData.georisques,
+            sources: aggregatedData.sources,
+          })
           sources.push(...aggregatedData.sources)
+          
+          // Construire enrichedData complet avec toutes les données
+          const enrichedDataComplete = {
+            ...aggregatedData,
+            // S'assurer que georisques est présent
+            georisques: aggregatedData.georisques || null,
+            // S'assurer que dvf sera ajouté après
+            dvf: null, // Sera rempli par l'étape DVF
+          }
+          
           await prisma.buildingProfile.update({
             where: { id: profileId },
             data: {
-              enrichedData: aggregatedData as any,
+              enrichedData: enrichedDataComplete as any,
               pluData: aggregatedData.plu ? (aggregatedData.plu as any) : null,
               rnbData: aggregatedData.rnb ? (aggregatedData.rnb as any) : null,
-              dpeData: aggregatedData.energy ? (aggregatedData.energy as any) : null,
+              dpeData: aggregatedData.energy || aggregatedData.dpe ? ((aggregatedData.energy || aggregatedData.dpe) as any) : null,
               urbanismData: aggregatedData.urbanism ? (aggregatedData.urbanism as any) : null,
             },
           })
+          console.log('[BuildingProfileService] ✅ Données enrichies sauvegardées')
+        } else {
+          console.warn('[BuildingProfileService] ⚠️ Aucune donnée agrégée récupérée')
         }
       } catch (error) {
-        console.error('[BuildingProfileService] Erreur enrichissement BuildingService:', error)
+        console.error('[BuildingProfileService] ❌ Erreur enrichissement BuildingService:', error)
         errors.push(`Enrichissement bâti: ${error instanceof Error ? error.message : 'Unknown error'}`)
       }
 
@@ -267,21 +289,27 @@ export class BuildingProfileService {
 
       // 3. Enrichissement DVF (valeurs foncières pour estimation et comparaison)
       try {
+        console.log('[BuildingProfileService] 📊 Récupération données DVF...')
         const dvfData = await this.dvfService.getDVFData(addressData, {
           rayon: 1000, // 1km de rayon
           annee_min: new Date().getFullYear() - 5, // 5 dernières années
         })
         
         if (dvfData) {
+          console.log('[BuildingProfileService] ✅ Données DVF récupérées:', {
+            hasEstimation: !!dvfData.estimation,
+            hasStatistics: !!dvfData.statistics,
+            hasComparables: !!dvfData.comparables?.length,
+          })
           sources.push('DVF (Demandes de Valeurs Foncières)')
           
           // Mettre à jour le profil avec les données DVF dans enrichedData
-          const currentEnriched = await prisma.buildingProfile.findUnique({
+          const currentProfile = await prisma.buildingProfile.findUnique({
             where: { id: profileId },
             select: { enrichedData: true },
           })
           
-          const enrichedData = currentEnriched?.enrichedData as any || {}
+          const enrichedData = (currentProfile?.enrichedData as any) || {}
           enrichedData.dvf = dvfData
           
           await prisma.buildingProfile.update({
@@ -290,9 +318,12 @@ export class BuildingProfileService {
               enrichedData: enrichedData as any,
             },
           })
+          console.log('[BuildingProfileService] ✅ Données DVF sauvegardées')
+        } else {
+          console.warn('[BuildingProfileService] ⚠️ Aucune donnée DVF récupérée')
         }
       } catch (error) {
-        console.error('[BuildingProfileService] Erreur enrichissement DVF:', error)
+        console.error('[BuildingProfileService] ❌ Erreur enrichissement DVF:', error)
         errors.push(`Enrichissement DVF: ${error instanceof Error ? error.message : 'Unknown error'}`)
       }
 

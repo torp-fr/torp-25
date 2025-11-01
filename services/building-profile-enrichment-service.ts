@@ -30,8 +30,24 @@ export interface BuildingCharacteristic {
 export class BuildingProfileEnrichmentService {
   /**
    * Transforme les données techniques en caractéristiques lisibles
+   * @param enrichedData - Données enrichies complètes (AggregatedBuildingData)
+   * @param profileDpeData - Données DPE du profil (si stockées séparément)
+   * @param profileRiskData - Données de risque du profil (si stockées séparément)
+   * @param profileCadastralData - Données cadastrales du profil (si stockées séparément)
+   * @param profileDvfData - Données DVF du profil (si stockées séparément)
    */
-  extractCharacteristics(enrichedData: any, dpeData: any, riskData: any, cadastralData: any, dvfData: any): BuildingCharacteristic[] {
+  extractCharacteristics(
+    enrichedData: any = {}, 
+    profileDpeData: any = null, 
+    profileRiskData: any = null, 
+    profileCadastralData: any = null, 
+    profileDvfData: any = null
+  ): BuildingCharacteristic[] {
+    // Utiliser les données du profil si disponibles, sinon celles de enrichedData
+    const dpeData = profileDpeData || enrichedData?.energy || enrichedData?.dpe
+    const riskData = profileRiskData || enrichedData?.georisques
+    const cadastralData = profileCadastralData || enrichedData?.cadastre
+    const dvfData = profileDvfData || enrichedData?.dvf
     const characteristics: BuildingCharacteristic[] = []
 
     // ============================================
