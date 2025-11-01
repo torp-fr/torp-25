@@ -24,20 +24,26 @@ export async function GET(
       )
     }
 
-    // Récupérer le profil complet
-    const profileResponse = await fetch(
-      `${request.nextUrl.origin}/api/building-profiles/${profileId}?userId=${userId}`
-    )
-
-    if (!profileResponse.ok) {
+    // Récupérer le profil complet directement depuis Prisma
+    const { BuildingProfileService } = await import('@/services/building-profile-service')
+    const buildingProfileService = new BuildingProfileService()
+    
+    let profile
+    try {
+      profile = await buildingProfileService.getProfileById(profileId, userId)
+      if (!profile) {
+        return NextResponse.json(
+          { error: 'Profil non trouvé ou non autorisé' },
+          { status: 404 }
+        )
+      }
+    } catch (error) {
+      console.error('[API Characteristics] Erreur récupération profil:', error)
       return NextResponse.json(
-        { error: 'Profil non trouvé' },
-        { status: 404 }
+        { error: 'Erreur lors de la récupération du profil' },
+        { status: 500 }
       )
     }
-
-    const profileData = await profileResponse.json()
-    const profile = profileData.data
 
     // Extraire les caractéristiques
     const enrichmentService = new BuildingProfileEnrichmentService()
