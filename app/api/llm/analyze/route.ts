@@ -169,6 +169,15 @@ export async function POST(request: NextRequest) {
 
     console.log(`[LLM Analyze] Devis créé: ${devis.id}`)
 
+    // Programmer le scraping pour enrichissement asynchrone
+    try {
+      const { globalScraper } = await import('@/services/scraping/data-scraper')
+      await globalScraper.scheduleDevisScraping(devis.id)
+      console.log(`[LLM Analyze] Scraping programmé pour devis ${devis.id}`)
+    } catch (error) {
+      console.warn('[LLM Analyze] Erreur programmation scraping (non bloquant):', error)
+    }
+
     // 3. Calculer le score avec le système avancé
     console.log('[LLM Analyze] Calcul du score avancé avec 8 axes...')
     
