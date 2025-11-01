@@ -771,10 +771,18 @@ export class BuildingProfileEnrichmentService {
       partial: sorted.filter(c => c.status === 'partial').length,
     })
     
+    console.log('[BuildingProfileEnrichmentService] ✅ Caractéristiques extraites:', {
+      total: sorted.length,
+      known: sorted.filter(c => c.status === 'known').length,
+      unknown: sorted.filter(c => c.status === 'unknown').length,
+      partial: sorted.filter(c => c.status === 'partial').length,
+      categories: Array.from(new Set(sorted.map(c => c.category))),
+    })
+    
     // GARANTIE : Toujours retourner au moins quelques caractéristiques de base
     if (sorted.length === 0) {
       console.warn('[BuildingProfileEnrichmentService] ⚠️ Aucune caractéristique générée, ajout caractéristiques de base')
-      return [
+      const baseCharacteristics = [
         {
           id: 'structure-property-type',
           category: 'structure',
@@ -800,8 +808,11 @@ export class BuildingProfileEnrichmentService {
           description: 'Nombre de pièces principales',
         },
       ]
+      console.log('[BuildingProfileEnrichmentService] ✅ Retour caractéristiques de base:', baseCharacteristics.length)
+      return baseCharacteristics
     }
     
+    console.log('[BuildingProfileEnrichmentService] ✅ Retour', sorted.length, 'caractéristiques')
     return sorted
   }
 
