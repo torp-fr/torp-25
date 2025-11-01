@@ -168,7 +168,6 @@ export default function AnalysisPage() {
 
   const fetchInsights = async () => {
     try {
-      setLoadingInsights(true)
       const response = await fetch(`/api/analysis/${devisId}/insights`)
       if (response.ok) {
         const data = await response.json()
@@ -176,8 +175,6 @@ export default function AnalysisPage() {
       }
     } catch (err) {
       console.error('Erreur chargement insights:', err)
-    } finally {
-      setLoadingInsights(false)
     }
   }
 
