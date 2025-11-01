@@ -15,20 +15,13 @@ import {
 import {
   AlertTriangle,
   Lightbulb,
-  TrendingUp,
   CheckCircle2,
   XCircle,
   MessageSquare,
-  ChevronDown,
-  ChevronRight,
   Shield,
-  Building2,
-  Clock,
   Euro,
-  Zap,
   AlertCircle,
   Target,
-  FileCheck,
   Sparkles,
 } from 'lucide-react'
 import { AppHeader } from '@/components/app-header'
@@ -134,22 +127,9 @@ export default function AnalysisPage() {
   const [score, setScore] = useState<TORPScore | null>(null)
   const [insights, setInsights] = useState<AnalysisInsights | null>(null)
   const [loading, setLoading] = useState(true)
-  const [loadingInsights, setLoadingInsights] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [calculatingScore, setCalculatingScore] = useState(false)
   const [showChat, setShowChat] = useState(false)
-  const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set())
   const DEMO_USER_ID = 'demo-user-id'
-
-  const toggleSection = (sectionId: string) => {
-    const newExpanded = new Set(expandedSections)
-    if (newExpanded.has(sectionId)) {
-      newExpanded.delete(sectionId)
-    } else {
-      newExpanded.add(sectionId)
-    }
-    setExpandedSections(newExpanded)
-  }
 
   const fetchData = useCallback(async () => {
     try {

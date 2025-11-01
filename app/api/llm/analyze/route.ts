@@ -173,11 +173,16 @@ export async function POST(request: NextRequest) {
         console.log(`[LLM Analyze] ✅ Enrichissement asynchrone terminé et mis en cache (sources: ${sources.join(', ') || 'aucune'})`)
         
         // Mettre à jour le devis avec les données enrichies pour les insights futurs
+        // Note: enrichedData n'est pas dans le schema Prisma, on stocke dans extractedData pour l'instant
         try {
+          const currentExtractedData = devis.extractedData as any || {}
           await prisma.devis.update({
             where: { id: devis.id },
             data: {
-              enrichedData: fullEnrichmentData as any,
+              extractedData: {
+                ...currentExtractedData,
+                enrichedData: fullEnrichmentData,
+              } as any,
             },
           })
         } catch (err) {

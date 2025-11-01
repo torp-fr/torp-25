@@ -9,7 +9,7 @@ import { InsightsGenerator } from '@/services/llm/insights-generator'
 export const dynamic = 'force-dynamic'
 
 export async function GET(
-  request: NextRequest,
+  _request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
@@ -35,7 +35,7 @@ export async function GET(
 
     const score = devis.torpScores[0]
     const extractedData = devis.extractedData as any
-    const enrichedData = (devis.enrichedData as any) || {}
+    const enrichedData = ((devis as any).enrichedData) || {}
 
     // Récupérer les données d'entreprise si disponibles
     let companyData: any = null
