@@ -409,7 +409,26 @@ export class BuildingProfileService {
       })
 
       // Sauvegarder enrichedData final - TOUJOURS sauvegarder même si partiel
-      const finalEnrichedData = Object.keys(enrichedData).length > 0 ? enrichedData : { address: addressData }
+      // GARANTIR qu'on a au moins l'adresse
+      const finalEnrichedData = {
+        ...enrichedData,
+        address: enrichedData.address || addressData, // Toujours avoir l'adresse
+        sources: Array.from(new Set([...(enrichedData.sources || []), ...uniqueSources])),
+        lastUpdated: new Date().toISOString(),
+      }
+      
+      console.log('[BuildingProfileService] 💾 Sauvegarde enrichedData final:', {
+        keys: Object.keys(finalEnrichedData),
+        hasAddress: !!finalEnrichedData.address,
+        hasCadastre: !!finalEnrichedData.cadastre,
+        hasPLU: !!finalEnrichedData.plu,
+        hasRNB: !!finalEnrichedData.rnb,
+        hasEnergy: !!finalEnrichedData.energy,
+        hasDpe: !!finalEnrichedData.dpe,
+        hasGeorisques: !!finalEnrichedData.georisques,
+        hasDVF: !!finalEnrichedData.dvf,
+        sources: finalEnrichedData.sources,
+      })
       
       await prisma.buildingProfile.update({
         where: { id: profileId },
@@ -422,7 +441,20 @@ export class BuildingProfileService {
         },
       })
       
-      console.log('[BuildingProfileService] ✅ Profil mis à jour en base avec enrichedData final')
+      console.log('[BuildingProfileService] ✅ Profil mis à jour en base avec enrichedData final (vérification)')
+      
+      // VÉRIFICATION POST-SAUVEGARDE : Re-lire pour confirmer
+      const verification = await prisma.buildingProfile.findUnique({
+        where: { id: profileId },
+        select: { id: true, enrichedData: true, enrichmentStatus: true },
+      })
+      if (verification) {
+        console.log('[BuildingProfileService] ✅ Vérification post-sauvegarde:', {
+          hasEnrichedData: !!verification.enrichedData,
+          enrichedDataType: typeof verification.enrichedData,
+          enrichmentStatus: verification.enrichmentStatus,
+        })
+      }
 
       return {
         success: uniqueSources.length > 0 || hasData,

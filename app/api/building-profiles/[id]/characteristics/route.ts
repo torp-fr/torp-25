@@ -89,26 +89,47 @@ export async function GET(
       enrichedData.address = profile.address
     }
     
-    // Log pour déboguer
+    // Log pour déboguer - DÉTAILLÉ
     console.log('[API Characteristics] 📊 Données disponibles:', {
       profileId,
       hasEnrichedData: !!profile.enrichedData,
+      enrichedDataType: typeof profile.enrichedData,
+      enrichedDataIsArray: Array.isArray(profile.enrichedData),
       enrichedDataKeys: Object.keys(enrichedData),
+      enrichedDataStringified: JSON.stringify(enrichedData).substring(0, 200),
       enrichedDataStructure: {
         hasCadastre: !!enrichedData.cadastre,
+        cadastreKeys: enrichedData.cadastre ? Object.keys(enrichedData.cadastre) : [],
         hasPLU: !!enrichedData.plu,
         hasRNB: !!enrichedData.rnb,
         hasEnergy: !!enrichedData.energy,
         hasDPE: !!enrichedData.dpe,
         hasGeorisques: !!enrichedData.georisques,
         hasDVF: !!enrichedData.dvf,
+        hasAddress: !!enrichedData.address,
       },
       hasCadastralData: !!profile.cadastralData,
+      cadastralDataType: typeof profile.cadastralData,
       hasPLUData: !!profile.pluData,
       hasRNBData: !!profile.rnbData,
       hasDPEData: !!profile.dpeData,
+      hasAddress: !!profile.address,
       enrichmentStatus: profile.enrichmentStatus,
     })
+    
+    // VÉRIFICATION CRITIQUE : Si enrichedData est vraiment vide, utiliser au moins l'adresse
+    if (Object.keys(enrichedData).length === 0 || (!enrichedData.address && profile.address)) {
+      console.warn('[API Characteristics] ⚠️ enrichedData vide ou incomplet, utilisation données de base')
+      enrichedData = {
+        address: profile.address || enrichedData.address,
+        cadastre: profile.cadastralData || enrichedData.cadastre || null,
+      }
+      console.log('[API Characteristics] ✅ enrichedData corrigé:', {
+        keys: Object.keys(enrichedData),
+        hasAddress: !!enrichedData.address,
+        hasCadastre: !!enrichedData.cadastre,
+      })
+    }
     
     // Extraire georisques (peut être dans enrichedData.georisques OU directement)
     const georisquesData = enrichedData.georisques || null
