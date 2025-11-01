@@ -11,6 +11,8 @@ import { PriceEnrichmentService } from './price-service'
 import { ComplianceEnrichmentService } from './compliance-service'
 import { WeatherEnrichmentService } from './weather-service'
 import { CertificationsEnrichmentService } from './certifications-service'
+import { ParallelExecutor } from '@/services/performance/parallel-executor'
+import { globalCache } from '@/services/cache/data-cache'
 import type { EnrichedCompanyData, ScoringEnrichmentData } from '../scoring/advanced/types'
 import type { ExtractedDevisData } from '@/services/llm/document-analyzer'
 
@@ -70,23 +72,23 @@ export class AdvancedEnrichmentService {
           confidence += 10
         }
 
-        // Source 2: Infogreffe (si disponible)
+        // Source 2: Infogreffe (si disponible) - Parallélisé
         if (enrichedCompany?.siren) {
           try {
-            const financialData = await this.infogreffeService.enrichFinancialData(
-              enrichedCompany.siren
-            )
-            if (financialData) {
-              enrichedCompany.financialData = financialData
+            // Récupérer données financières et juridiques en parallèle
+            const [financialData, legalStatus] = await Promise.allSettled([
+              this.infogreffeService.enrichFinancialData(enrichedCompany.siren),
+              this.infogreffeService.checkCollectiveProcedures(enrichedCompany.siren),
+            ])
+
+            if (financialData.status === 'fulfilled' && financialData.value) {
+              enrichedCompany.financialData = financialData.value
               sources.push('Infogreffe (données financières)')
               confidence += 5
             }
 
-            const legalStatus = await this.infogreffeService.checkCollectiveProcedures(
-              enrichedCompany.siren
-            )
-            if (legalStatus) {
-              enrichedCompany.legalStatusDetails = legalStatus
+            if (legalStatus.status === 'fulfilled' && legalStatus.value) {
+              enrichedCompany.legalStatusDetails = legalStatus.value
               sources.push('Infogreffe/BODACC (procédures)')
               confidence += 5
             }
@@ -170,29 +172,49 @@ export class AdvancedEnrichmentService {
       }
     }
 
-    // 2. Prix et données régionales
+    // 2. Prix et données régionales (parallélisé)
     let priceReferences: any[] = []
     let regionalData: any = null
 
     try {
+      // Paralléliser la récupération des prix par catégorie
       if (extractedData.items && extractedData.items.length > 0) {
         const categories = this.extractCategories(extractedData.items)
-        for (const category of categories) {
-          const refs = await this.priceService.getPriceReferences(category, region)
-          priceReferences.push(...refs)
+        
+        // Récupérer tous les prix en parallèle
+        const pricePromises = [
+          ...categories.map((category) => 
+            this.priceService.getPriceReferences(category, region).catch(() => [])
+          ),
+          this.priceService.getPriceReferences(projectType, region).catch(() => [])
+        ]
+        
+        const priceResults = await Promise.allSettled(pricePromises)
+        priceReferences = priceResults
+          .filter((result) => result.status === 'fulfilled')
+          .flatMap((result) => (result as PromiseFulfilledResult<any[]>).value)
+        
+        if (priceReferences.length > 0) {
+          sources.push('Service prix de référence')
+          confidence += 5
+        }
+      } else {
+        // Si pas d'items, récupérer au moins les prix globaux
+        const globalRefs = await this.priceService.getPriceReferences(projectType, region).catch(() => [])
+        priceReferences.push(...globalRefs)
+        if (globalRefs.length > 0) {
+          sources.push('Service prix de référence')
+          confidence += 5
         }
       }
-      const globalRefs = await this.priceService.getPriceReferences(projectType, region)
-      priceReferences.push(...globalRefs)
-      sources.push('Service prix de référence')
-      confidence += 5
     } catch (error) {
       console.error('[AdvancedEnrichment] Erreur prix:', error)
       confidence -= 5
     }
 
+    // Récupérer données régionales en parallèle avec prix
     try {
-      regionalData = await this.priceService.getRegionalData(region)
+      regionalData = await this.priceService.getRegionalData(region).catch(() => null)
       if (regionalData) {
         sources.push('Service données régionales')
         confidence += 3

@@ -87,24 +87,32 @@ export async function POST(request: NextRequest) {
     console.log(`[LLM Analyze] Fichier sauvegardé: ${tempFilePath}`)
 
     // 1. Analyse initiale rapide pour obtenir les données de base
+    const analysisStartTime = Date.now()
     console.log('[LLM Analyze] Début de l\'analyse avec Claude...')
     const analyzer = new DocumentAnalyzer()
-    const quickAnalysis = await analyzer.analyzeDevis(tempFilePath)
-
-    console.log('[LLM Analyze] Analyse initiale terminée, enrichissement avancé des données...')
-
-    // Parser les données CCF si fournies
+    
+    // Parser les données CCF si fournies (en parallèle avec analyse)
     let ccfData: any = null
-    if (ccfDataStr) {
-      try {
-        ccfData = JSON.parse(ccfDataStr)
-        console.log('[LLM Analyze] Données CCF reçues, utilisation pour l\'enrichissement')
-      } catch (error) {
-        console.warn('[LLM Analyze] Erreur parsing CCF data:', error)
-      }
+    const ccfParsePromise = ccfDataStr 
+      ? Promise.resolve(JSON.parse(ccfDataStr)).catch(() => null)
+      : Promise.resolve(null)
+
+    // Lancer analyse et parsing CCF en parallèle
+    const [quickAnalysis, parsedCcfData] = await Promise.all([
+      analyzer.analyzeDevis(tempFilePath),
+      ccfParsePromise,
+    ])
+    
+    ccfData = parsedCcfData
+    if (ccfData) {
+      console.log('[LLM Analyze] Données CCF reçues, utilisation pour l\'enrichissement')
     }
 
-    // 2. Enrichissement avancé des données (multi-sources)
+    const analysisDuration = Date.now() - analysisStartTime
+    console.log(`[LLM Analyze] Analyse initiale terminée (${analysisDuration}ms), enrichissement avancé des données...`)
+
+    // 2. Enrichissement avancé des données (multi-sources) - Optimisé
+    const enrichmentStartTime = Date.now()
     let enrichmentData = null
     try {
       const enrichmentService = new AdvancedEnrichmentService()
@@ -125,16 +133,21 @@ export async function POST(request: NextRequest) {
         region
       )
 
-      console.log('[LLM Analyze] Enrichissement avancé terminé:', {
+      const enrichmentDuration = Date.now() - enrichmentStartTime
+      console.log(`[LLM Analyze] Enrichissement avancé terminé (${enrichmentDuration}ms):`, {
         sources: extractSourcesFromEnrichment(enrichmentData),
       })
     } catch (error) {
-      console.warn('[LLM Analyze] Erreur lors de l\'enrichissement (continuation sans données enrichies):', error)
+      const enrichmentDuration = Date.now() - enrichmentStartTime
+      console.warn(`[LLM Analyze] Erreur lors de l'enrichissement (${enrichmentDuration}ms, continuation sans données enrichies):`, error)
       // On continue sans données enrichies si l'enrichissement échoue
     }
 
     // 3. Analyse finale avec données enrichies (pour l'extraction LLM)
+    const finalAnalysisStartTime = Date.now()
     const analysis = await analyzer.analyzeDevis(tempFilePath, enrichmentData || undefined)
+    const finalAnalysisDuration = Date.now() - finalAnalysisStartTime
+    console.log(`[LLM Analyze] Analyse finale terminée (${finalAnalysisDuration}ms)`)
 
     console.log('[LLM Analyze] Analyse terminée, création en DB...')
 

@@ -228,10 +228,20 @@ export class DataScraper {
     const batch = readyTasks.slice(0, this.batchSize)
     console.log(`[DataScraper] 🚀 Traitement batch de ${batch.length} tâches`)
 
-    // Exécuter en parallèle (avec limite)
+    // Exécuter en parallèle avec timeout et gestion d'erreurs optimisée
+    const batchStartTime = Date.now()
     const results = await Promise.allSettled(
-      batch.map((task) => this.executeScraping(task))
+      batch.map((task) =>
+        Promise.race([
+          this.executeScraping(task),
+          new Promise<boolean>((_, reject) =>
+            setTimeout(() => reject(new Error('Timeout')), 30000)
+          ),
+        ])
+      )
     )
+    const batchDuration = Date.now() - batchStartTime
+    console.log(`[DataScraper] ⏱️  Batch traité en ${batchDuration}ms (${(batchDuration / batch.length).toFixed(0)}ms/tâche)`)
 
     // Mettre à jour les statuts
     results.forEach((result, index) => {
