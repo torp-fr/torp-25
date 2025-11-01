@@ -376,7 +376,7 @@ export class BuildingProfileEnrichmentService {
     if (enrichedData?.plu?.zone) {
       characteristics.push({
         id: 'urbanism-plu-zone',
-        category: 'urbanism',
+        category: 'urbanisme',
         label: 'Zone PLU',
         value: enrichedData.plu.zone,
         valueDisplay: enrichedData.plu.zone,
