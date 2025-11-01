@@ -614,12 +614,27 @@ function extractSourcesFromEnrichment(enrichmentData: any): string[] {
  * Trouver le score d'un axe spécifique (pour rétrocompatibilité)
  */
 function findAxisScore(advancedScore: any, axisId: string): any {
+  // Vérifier si axisScores existe et est un tableau
+  if (!advancedScore || !('axisScores' in advancedScore) || !Array.isArray(advancedScore.axisScores)) {
+    // Si pas d'axisScores, chercher dans breakdown
+    const breakdown = advancedScore?.breakdown || {}
+    const axisData = breakdown[axisId]
+    if (axisData) {
+      return {
+        score: axisData.score || 0,
+        weight: axisData.weight || 0,
+        justification: axisData.justification || 'Non calculé',
+      }
+    }
+    return { score: 0, weight: 0, justification: 'Non calculé' }
+  }
+  
   const axis = advancedScore.axisScores.find((a: any) => a.axisId === axisId)
   if (!axis) return { score: 0, weight: 0, justification: 'Non calculé' }
   
   return {
     score: axis.score,
     weight: axis.maxPoints / 1200,
-    justification: `Score: ${axis.score}/${axis.maxPoints} (${axis.percentage.toFixed(1)}%)`,
+    justification: `Score: ${axis.score}/${axis.maxPoints} (${axis.percentage?.toFixed(1) || 0}%)`,
   }
 }
