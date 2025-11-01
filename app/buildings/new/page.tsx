@@ -97,7 +97,8 @@ export default function NewBuildingPage() {
       setLoading(true)
       setError(null)
 
-      const response = await fetch('/api/building-profiles', {
+      // 1. Créer le profil
+      const createResponse = await fetch('/api/building-profiles', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -110,18 +111,36 @@ export default function NewBuildingPage() {
         }),
       })
 
-      if (!response.ok) {
-        const errorData = await response.json()
+      if (!createResponse.ok) {
+        const errorData = await createResponse.json()
         throw new Error(errorData.error || 'Erreur lors de la création')
       }
 
-      const data = await response.json()
+      const createData = await createResponse.json()
+      const profileId = createData.data.id
       
-      // Rediriger vers la page de détail du profil créé
-      router.push(`/buildings/${data.data.id}`)
+      console.log('✅ Profil créé:', profileId)
+      
+      // 2. Lancer l'enrichissement immédiatement et attendre qu'il démarre
+      try {
+        const enrichResponse = await fetch(`/api/building-profiles/${profileId}/enrich?userId=${DEMO_USER_ID}`, {
+          method: 'POST',
+        })
+
+        if (enrichResponse.ok) {
+          console.log('✅ Enrichissement lancé pour:', profileId)
+          // Attendre 1 seconde pour que le statut se mette à jour
+          await new Promise(resolve => setTimeout(resolve, 1000))
+        }
+      } catch (enrichErr) {
+        console.warn('⚠️ Erreur lors du lancement de l\'enrichissement:', enrichErr)
+        // Ne pas bloquer, l'enrichissement pourra être lancé manuellement
+      }
+      
+      // 3. Rediriger vers la page de détail
+      router.push(`/buildings/${profileId}`)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erreur lors de la création')
-    } finally {
       setLoading(false)
     }
   }
@@ -235,7 +254,7 @@ export default function NewBuildingPage() {
                   )}
 
                   <p className="mt-1 text-xs text-muted-foreground">
-                    Les données seront enrichies automatiquement après création (cadastre, PLU, DPE, etc.)
+                    L&apos;enrichissement automatique démarre immédiatement après création
                   </p>
                 </div>
 
