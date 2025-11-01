@@ -289,8 +289,15 @@ export default function BuildingDetailPage() {
     try {
       setLoadingCharacteristics(true)
       console.log('[Frontend] 🔄 Chargement caractéristiques pour:', profileId)
+      console.log('[Frontend] 📡 URL:', `/api/building-profiles/${profileId}/characteristics?userId=${DEMO_USER_ID}`)
       
       const response = await fetch(`/api/building-profiles/${profileId}/characteristics?userId=${DEMO_USER_ID}`)
+      
+      console.log('[Frontend] 📥 Réponse HTTP:', {
+        status: response.status,
+        statusText: response.statusText,
+        ok: response.ok,
+      })
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}))
