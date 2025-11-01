@@ -166,37 +166,62 @@ export default function BuildingDetailPage() {
   const [expirationDate, setExpirationDate] = useState('')
 
   useEffect(() => {
+    if (!profileId) return
+
+    console.log('[Building Detail] 🔄 Initialisation page, profileId:', profileId)
     fetchProfile()
   }, [profileId])
 
+  // Charger les caractéristiques et recommandations quand le profil est chargé
   useEffect(() => {
-    if (profile) {
-      console.log('[Building Detail] 📋 Profil chargé, lancement récupération données:', {
+    if (profile && profile.id) {
+      console.log('[Building Detail] 📋 Profil chargé, récupération caractéristiques et recommandations...', {
         id: profile.id,
         enrichmentStatus: profile.enrichmentStatus,
         hasEnrichedData: !!profile.enrichedData,
       })
-      
-      // TOUJOURS charger les caractéristiques, même si pas encore enrichi
       fetchCharacteristics()
       fetchRecommendations()
-      
-      // Si l'enrichissement est en cours, poller régulièrement
-      if (profile.enrichmentStatus === 'in_progress') {
-        console.log('[Building Detail] 🔄 Enrichissement en cours, activation polling...')
-        const interval = setInterval(() => {
-          console.log('[Building Detail] 🔄 Polling: rechargement données...')
-          fetchProfile()
-          fetchCharacteristics()
-        }, 3000) // Toutes les 3 secondes
-        
-        return () => {
-          console.log('[Building Detail] 🛑 Arrêt polling')
-          clearInterval(interval)
-        }
-      }
     }
-  }, [profile])
+  }, [profile?.id])
+
+  // Polling automatique si enrichissement en cours
+  useEffect(() => {
+    if (!profile || profile.enrichmentStatus !== 'in_progress') {
+      return
+    }
+
+    console.log('[Building Detail] 🔄 Enrichissement en cours, démarrage polling automatique...')
+    const interval = setInterval(async () => {
+      console.log('[Building Detail] 🔄 Polling automatique: vérification statut enrichissement...')
+      await fetchProfile()
+      
+      // Re-vérifier le statut depuis l'API
+      try {
+        const statusResponse = await fetch(`/api/building-profiles/${profileId}?userId=${DEMO_USER_ID}`)
+        if (statusResponse.ok) {
+          const statusData = await statusResponse.json()
+          const currentStatus = statusData.data?.enrichmentStatus
+          
+          // Si le statut a changé, arrêter le polling et recharger les données
+          if (currentStatus !== 'in_progress') {
+            console.log('[Building Detail] ✅ Enrichissement terminé (statut:', currentStatus, '), arrêt polling')
+            clearInterval(interval)
+            await fetchProfile()
+            await fetchCharacteristics()
+            await fetchRecommendations()
+          }
+        }
+      } catch (err) {
+        console.error('[Building Detail] ❌ Erreur vérification statut:', err)
+      }
+    }, 3000) // Toutes les 3 secondes
+
+    return () => {
+      console.log('[Building Detail] 🛑 Arrêt polling automatique')
+      clearInterval(interval)
+    }
+  }, [profile?.enrichmentStatus, profileId])
 
   const fetchProfile = async () => {
     try {
@@ -436,24 +461,29 @@ export default function BuildingDetailPage() {
       setRefreshing(true)
       setError(null)
       
+      console.log('[Building Detail] 🚀 Lancement enrichissement manuel...')
+      
       const response = await fetch(`/api/building-profiles/${profileId}/enrich?userId=${DEMO_USER_ID}`, {
         method: 'POST',
       })
 
       if (!response.ok) {
-        const errorData = await response.json()
+        const errorData = await response.json().catch(() => ({}))
+        console.error('[Building Detail] ❌ Erreur enrichissement:', errorData)
         throw new Error(errorData.error || 'Erreur lors de l\'enrichissement')
       }
 
       const data = await response.json()
-      console.log('✅ Enrichissement terminé:', data.data)
+      console.log('[Building Detail] ✅ Enrichissement lancé:', data.data)
 
-      // Polling pour vérifier le statut toutes les 2 secondes
+      // Polling pour vérifier le statut toutes les 3 secondes
       let attempts = 0
-      const maxAttempts = 30 // 60 secondes max
+      const maxAttempts = 40 // 2 minutes max
       
       const checkStatus = async () => {
         attempts++
+        console.log(`[Building Detail] 🔄 Vérification statut enrichissement (tentative ${attempts}/${maxAttempts})...`)
+        
         await fetchProfile()
         await fetchCharacteristics()
         
@@ -463,23 +493,38 @@ export default function BuildingDetailPage() {
           const currentProfileData = await currentProfileResponse.json()
           const currentStatus = currentProfileData.data?.enrichmentStatus
           
+          console.log(`[Building Detail] 📊 Statut actuel: ${currentStatus}`)
+          
           if (currentStatus === 'completed' || currentStatus === 'failed' || attempts >= maxAttempts) {
+            console.log('[Building Detail] ✅ Enrichissement terminé ou timeout')
             setRefreshing(false)
-            // Recharger une dernière fois
+            // Recharger une dernière fois pour avoir les données fraîches
             await fetchProfile()
             await fetchCharacteristics()
-          } else {
-            setTimeout(checkStatus, 2000)
+            
+            if (currentStatus === 'failed') {
+              const errors = currentProfileData.data?.enrichmentErrors
+              if (errors && Array.isArray(errors) && errors.length > 0) {
+                setError(`Enrichissement terminé avec erreurs: ${errors.join(', ')}`)
+              } else {
+                setError('L\'enrichissement a échoué. Veuillez réessayer.')
+              }
+            }
+            return
           }
+          
+          // Continuer le polling
+          setTimeout(checkStatus, 3000)
         } else {
+          console.error('[Building Detail] ❌ Erreur récupération statut')
           setRefreshing(false)
         }
       }
       
       // Démarrer le polling après un court délai
-      setTimeout(checkStatus, 2000)
+      setTimeout(checkStatus, 3000)
     } catch (err) {
-      console.error('❌ Erreur enrichissement:', err)
+      console.error('[Building Detail] ❌ Erreur enrichissement:', err)
       setError(err instanceof Error ? err.message : 'Erreur lors de l\'enrichissement')
       setRefreshing(false)
     }
