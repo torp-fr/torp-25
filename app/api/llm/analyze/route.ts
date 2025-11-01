@@ -171,6 +171,18 @@ export async function POST(request: NextRequest) {
         // Logger les sources utilisées
         const sources = extractSourcesFromEnrichment(fullEnrichmentData)
         console.log(`[LLM Analyze] ✅ Enrichissement asynchrone terminé et mis en cache (sources: ${sources.join(', ') || 'aucune'})`)
+        
+        // Mettre à jour le devis avec les données enrichies pour les insights futurs
+        try {
+          await prisma.devis.update({
+            where: { id: devis.id },
+            data: {
+              enrichedData: fullEnrichmentData as any,
+            },
+          })
+        } catch (err) {
+          console.warn('[LLM Analyze] Erreur mise à jour devis avec données enrichies:', err)
+        }
       } catch (error) {
         console.warn('[LLM Analyze] ⚠️ Erreur enrichissement asynchrone (non-bloquant):', error)
       }

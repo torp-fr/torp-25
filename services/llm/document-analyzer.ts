@@ -278,9 +278,10 @@ Structure JSON exacte:
 IMPORTANT: Retourne UNIQUEMENT le JSON, pas de texte explicatif avant ou après.`
 
       // Appel à Claude
+      // Utiliser un modèle plus rapide pour réduire le délai
       const message = await this.client.messages.create({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 16000,
+        model: 'claude-3-5-sonnet-20241022', // Version plus rapide
+        max_tokens: 12000, // Réduit pour accélérer
         messages: [
           {
             role: 'user',
