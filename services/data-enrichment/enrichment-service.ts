@@ -52,6 +52,12 @@ export class DataEnrichmentService {
         if (companyData) {
           sources.push('API Sirene (data.gouv.fr)')
           confidence = Math.min(confidence + 10, 100)
+          
+          // Ajouter Infogreffe aux sources si données financières/juridiques présentes
+          if (companyData.financialData || companyData.legalStatusDetails) {
+            sources.push('Infogreffe (RCS)')
+            confidence = Math.min(confidence + 5, 100)
+          }
         }
       } catch (error) {
         console.error('[EnrichmentService] Erreur enrichissement entreprise:', error)

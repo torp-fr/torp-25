@@ -144,6 +144,23 @@ ${enrichmentData.company ? `
 - **Entreprise vérifiée**: ${JSON.stringify(enrichmentData.company, null, 2)}
   - Utilise ces informations pour vérifier la cohérence avec le devis
   - Vérifie que le SIRET correspond
+  ${enrichmentData.company.financialData ? `
+  - **⚠️ DONNÉES FINANCIÈRES (Infogreffe)**:
+    - Chiffre d'affaires: ${enrichmentData.company.financialData.ca?.length ? enrichmentData.company.financialData.ca.map((ca, i) => `Année ${new Date().getFullYear() - i}: ${ca.toLocaleString('fr-FR')}€`).join(', ') : 'Non disponible'}
+    - Résultat net: ${enrichmentData.company.financialData.result?.length ? enrichmentData.company.financialData.result.map((r, i) => `Année ${new Date().getFullYear() - i}: ${r.toLocaleString('fr-FR')}€`).join(', ') : 'Non disponible'}
+    - Dettes: ${enrichmentData.company.financialData.debt ? `${enrichmentData.company.financialData.debt.toLocaleString('fr-FR')}€` : 'Non disponible'}
+    - **⚠️ ALERTES À DÉTECTER**:
+      * CA en baisse significative d'une année sur l'autre
+      * Résultat net négatif ou en forte baisse
+      * Dettes élevées par rapport au CA
+      * Tendance financière défavorable
+  ` : ''}
+  ${enrichmentData.company.legalStatusDetails?.hasCollectiveProcedure ? `
+  - **🚨 ALERTE CRITIQUE - PROCÉDURE COLLECTIVE**:
+    - Type: ${enrichmentData.company.legalStatusDetails.procedureType || 'Type inconnu'}
+    - Date de début: ${enrichmentData.company.legalStatusDetails.procedureDate || 'Date inconnue'}
+    - **ACTION REQUISE**: Recommander fortement la vérification des garanties (décennale, RC), questionner la viabilité de l'entreprise pour ce projet, alerter sur les risques de non-achèvement
+  ` : ''}
 ` : ''}
 ${enrichmentData.priceReferences && enrichmentData.priceReferences.length > 0 ? `
 - **Prix de référence marché**: ${JSON.stringify(enrichmentData.priceReferences, null, 2)}
