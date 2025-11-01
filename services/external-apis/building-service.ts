@@ -49,16 +49,75 @@ export class BuildingService {
       sources.push('API Adresse')
 
       // 2. Récupération des données depuis différentes sources
-      const [urbanism, building, energy, plu, cadastre, rnb, dpe, georisques] = await Promise.all([
-        this.getUrbanismData(addressData),
-        this.getBuildingData(addressData),
-        this.getEnergyData(addressData),
-        this.pluService.getPLUData(addressData),
-        this.cadastreService.getCadastralData(addressData),
-        this.rnbService.getBuildingData(addressData),
-        this.dpeService.getDPEData(addressData),
-        this.georisquesService.getRiskData(addressData),
+      // Utiliser Promise.allSettled pour ne pas échouer si une API échoue
+      const [
+        urbanismResult,
+        buildingResult,
+        energyResult,
+        pluResult,
+        cadastreResult,
+        rnbResult,
+        dpeResult,
+        georisquesResult,
+      ] = await Promise.allSettled([
+        this.getUrbanismData(addressData).catch(err => {
+          console.warn('[BuildingService] Erreur getUrbanismData:', err)
+          return null
+        }),
+        this.getBuildingData(addressData).catch(err => {
+          console.warn('[BuildingService] Erreur getBuildingData:', err)
+          return null
+        }),
+        this.getEnergyData(addressData).catch(err => {
+          console.warn('[BuildingService] Erreur getEnergyData:', err)
+          return null
+        }),
+        this.pluService.getPLUData(addressData).catch(err => {
+          console.warn('[BuildingService] Erreur getPLUData:', err)
+          return null
+        }),
+        this.cadastreService.getCadastralData(addressData).catch(err => {
+          console.warn('[BuildingService] Erreur getCadastralData:', err)
+          return null
+        }),
+        this.rnbService.getBuildingData(addressData).catch(err => {
+          console.warn('[BuildingService] Erreur getRNBData:', err)
+          return null
+        }),
+        this.dpeService.getDPEData(addressData).catch(err => {
+          console.warn('[BuildingService] Erreur getDPEData:', err)
+          return null
+        }),
+        this.georisquesService.getRiskData(addressData).catch(err => {
+          console.warn('[BuildingService] Erreur getRiskData:', err)
+          return null
+        }),
       ])
+
+      // Extraire les valeurs des résultats
+      const urbanism = urbanismResult.status === 'fulfilled' ? urbanismResult.value : null
+      const building = buildingResult.status === 'fulfilled' ? buildingResult.value : null
+      const energy = energyResult.status === 'fulfilled' ? energyResult.value : null
+      const plu = pluResult.status === 'fulfilled' ? pluResult.value : null
+      const cadastre = cadastreResult.status === 'fulfilled' ? cadastreResult.value : null
+      const rnb = rnbResult.status === 'fulfilled' ? rnbResult.value : null
+      const dpe = dpeResult.status === 'fulfilled' ? dpeResult.value : null
+      const georisques = georisquesResult.status === 'fulfilled' ? georisquesResult.value : null
+
+      console.log('[BuildingService] ✅ Résultats récupération données:', {
+        urbanism: !!urbanism,
+        building: !!building,
+        energy: !!energy,
+        plu: !!plu,
+        cadastre: !!cadastre,
+        rnb: !!rnb,
+        dpe: !!dpe,
+        georisques: !!georisques,
+        pluKeys: plu ? Object.keys(plu) : [],
+        rnbKeys: rnb ? Object.keys(rnb) : [],
+        dpeKeys: dpe ? Object.keys(dpe) : [],
+        georisquesKeys: georisques ? Object.keys(georisques) : [],
+      })
 
       if (urbanism) sources.push('APU Urbanisme')
       if (building) sources.push('ONTB')
@@ -66,7 +125,12 @@ export class BuildingService {
       if (cadastre) sources.push('Cadastre Géoportail')
       if (rnb) sources.push('RNB')
       if (dpe) sources.push('DPE certifié data.gouv.fr')
-      if (georisques) sources.push(...georisques.sources)
+      if (georisques && (georisques as any).sources && Array.isArray((georisques as any).sources)) {
+        sources.push(...(georisques as any).sources)
+      } else if (georisques) {
+        // Si géorisques existe mais n'a pas de sources, ajouter le nom générique
+        sources.push('Géorisques')
+      }
       
       // Enrichir energyData avec les données DPE certifiées (priorité) ou RNB (fallback)
       let enrichedEnergy = energy
@@ -111,7 +175,7 @@ export class BuildingService {
         }
       }
 
-      return {
+      const result: AggregatedBuildingData = {
         address: addressData,
         urbanism: urbanism || undefined,
         building: enrichedBuilding || undefined,
@@ -124,6 +188,20 @@ export class BuildingService {
         sources,
         lastUpdated: new Date().toISOString(),
       }
+
+      console.log('[BuildingService] ✅ Données agrégées finales:', {
+        keys: Object.keys(result),
+        hasAddress: !!result.address,
+        hasPLU: !!result.plu,
+        hasRNB: !!result.rnb,
+        hasEnergy: !!result.energy,
+        hasDPE: !!result.dpe,
+        hasGeorisques: !!result.georisques,
+        hasCadastre: !!result.cadastre,
+        sources: result.sources,
+      })
+
+      return result
     } catch (error) {
       console.error('[BuildingService] Erreur agrégation données:', error)
       return addressData

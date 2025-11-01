@@ -261,6 +261,8 @@ export class BuildingProfileService {
       // ============================================
       try {
         console.log('📊 Récupération données agrégées du bâti...')
+        console.log('📍 Adresse formatée:', addressData.formatted)
+        
         const aggregatedData = await this.buildingService.getAggregatedData(addressData.formatted)
         
         if (aggregatedData) {
