@@ -798,21 +798,22 @@ export default function BuildingDetailPage() {
                       </div>
                     ) : (
                       <div className="space-y-6">
-                        {Object.entries(groupedCharacteristics).length > 0 ? Object.entries(groupedCharacteristics).map(([category, chars]) => (
-                        <div key={category} className="space-y-3">
-                          <h3 className="text-lg font-semibold border-b pb-2">
-                            {category === 'risques' && '🛡️ Risques et Sécurité'}
-                            {category === 'energie' && '⚡ Performance Énergétique'}
-                            {category === 'cadastre' && '📋 Informations Cadastrales'}
-                            {category === 'valorisation' && '💰 Valorisation Immobilière'}
-                            {category === 'urbanisme' && '🏛️ Urbanisme'}
-                            {category === 'structure' && '🏠 Caractéristiques du Bâti'}
-                            {category === 'environnement' && '🌱 Environnement'}
-                            {category === 'documentation' && '📄 Documents'}
-                            {!['risques', 'energie', 'cadastre', 'valorisation', 'urbanisme', 'structure', 'environnement', 'documentation'].includes(category) && category}
-                          </h3>
-                          <div className="grid gap-3 md:grid-cols-2">
-                            {chars.map((char: any) => {
+                        {Object.entries(groupedCharacteristics).length > 0 ? (
+                          Object.entries(groupedCharacteristics).map(([category, chars]) => (
+                            <div key={category} className="space-y-3">
+                              <h3 className="text-lg font-semibold border-b pb-2">
+                                {category === 'risques' && '🛡️ Risques et Sécurité'}
+                                {category === 'energie' && '⚡ Performance Énergétique'}
+                                {category === 'cadastre' && '📋 Informations Cadastrales'}
+                                {category === 'valorisation' && '💰 Valorisation Immobilière'}
+                                {category === 'urbanisme' && '🏛️ Urbanisme'}
+                                {category === 'structure' && '🏠 Caractéristiques du Bâti'}
+                                {category === 'environnement' && '🌱 Environnement'}
+                                {category === 'documentation' && '📄 Documents'}
+                                {!['risques', 'energie', 'cadastre', 'valorisation', 'urbanisme', 'structure', 'environnement', 'documentation'].includes(category) && category}
+                              </h3>
+                              <div className="grid gap-3 md:grid-cols-2">
+                                {chars.map((char: any) => {
                               const iconMap: Record<string, any> = {
                                 AlertTriangle,
                                 Battery,
@@ -910,12 +911,34 @@ export default function BuildingDetailPage() {
                                   </div>
                                 </div>
                               )
-                            })}
+                                })}
+                              </div>
+                            </div>
+                          ))
+                        ) : (
+                          <div className="py-8 text-center text-muted-foreground">
+                            <p>Aucune catégorie disponible. Total caractéristiques: {characteristics.length}</p>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="mt-4"
+                              onClick={() => {
+                                console.log('[Frontend] 🔍 Debug:', {
+                                  characteristics,
+                                  groupedCharacteristics,
+                                  characteristicsLength: characteristics.length,
+                                  groupedKeys: Object.keys(groupedCharacteristics),
+                                })
+                                fetchCharacteristics()
+                              }}
+                            >
+                              <RefreshCw className="mr-2 h-4 w-4" />
+                              Recharger
+                            </Button>
                           </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
+                        )}
+                      </div>
+                    )}
               </CardContent>
             </Card>
 
