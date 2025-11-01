@@ -143,13 +143,13 @@ export class BuildingProfileEnrichmentService {
 
     // Retrait-gonflement des argiles
     const clayRisk = riskData?.rga?.potentiel
+    const clayLabels: Record<string, string> = {
+      faible: 'Faible',
+      moyen: 'Moyen',
+      fort: 'Fort',
+      'très fort': 'Très fort',
+    }
     if (clayRisk) {
-      const clayLabels: Record<string, string> = {
-        faible: 'Faible',
-        moyen: 'Moyen',
-        fort: 'Fort',
-        'très fort': 'Très fort',
-      }
       characteristics.push({
         id: 'risk-clay',
         category: 'risques',
@@ -161,6 +161,19 @@ export class BuildingProfileEnrichmentService {
         priority: 'high',
         icon: 'AlertTriangle',
         description: `Potentiel ${clayLabels[clayRisk] || clayRisk} pour le retrait-gonflement des argiles`,
+      })
+    } else {
+      characteristics.push({
+        id: 'risk-clay',
+        category: 'risques',
+        label: 'Retrait-gonflement des argiles',
+        value: null,
+        valueDisplay: 'Non renseigné',
+        status: 'unknown',
+        editable: true,
+        priority: 'high',
+        icon: 'AlertTriangle',
+        description: 'Potentiel de retrait-gonflement des argiles à renseigner',
       })
     }
 
@@ -194,24 +207,37 @@ export class BuildingProfileEnrichmentService {
         icon: 'AlertTriangle',
         description: `Zone sismique de niveau ${seismicZone}`,
       })
+    } else {
+      characteristics.push({
+        id: 'risk-seismic',
+        category: 'risques',
+        label: 'Zone sismique',
+        value: null,
+        valueDisplay: 'Non renseignée',
+        status: 'unknown',
+        editable: true,
+        priority: 'medium',
+        icon: 'AlertTriangle',
+        description: 'Zone sismique à renseigner',
+      })
     }
 
     // Installations classées à proximité
     const icpeCount = riskData?.installations_classees?.length || 0
-    if (icpeCount > 0) {
-      characteristics.push({
-        id: 'risk-icpe',
-        category: 'risques',
-        label: 'Installations classées à proximité',
-        value: icpeCount,
-        valueDisplay: `${icpeCount} installation(s)`,
-        status: 'known',
-        editable: false,
-        priority: 'medium',
-        icon: 'Factory',
-        description: `${icpeCount} installation(s) classée(s) pour la protection de l'environnement à proximité`,
-      })
-    }
+    characteristics.push({
+      id: 'risk-icpe',
+      category: 'risques',
+      label: 'Installations classées à proximité',
+      value: icpeCount > 0 ? icpeCount : null,
+      valueDisplay: icpeCount > 0 ? `${icpeCount} installation(s)` : 'Aucune connue',
+      status: 'known', // Toujours connu (0 ou plus)
+      editable: false,
+      priority: 'medium',
+      icon: 'Factory',
+      description: icpeCount > 0 
+        ? `${icpeCount} installation(s) classée(s) pour la protection de l'environnement à proximité`
+        : 'Aucune installation classée identifiée à proximité',
+    })
 
     // ============================================
     // CATÉGORIE : ÉNERGIE
@@ -292,6 +318,20 @@ export class BuildingProfileEnrichmentService {
         icon: 'Leaf',
         description: 'Émissions annuelles de gaz à effet de serre',
       })
+    } else {
+      characteristics.push({
+        id: 'energy-ghg',
+        category: 'energie',
+        label: 'Émissions de gaz à effet de serre',
+        value: null,
+        valueDisplay: 'Inconnues',
+        status: 'unknown',
+        editable: true,
+        priority: 'medium',
+        unit: 'kg CO₂/m²/an',
+        icon: 'Leaf',
+        description: 'Émissions annuelles de gaz à effet de serre',
+      })
     }
 
     // ============================================
@@ -307,6 +347,20 @@ export class BuildingProfileEnrichmentService {
         value: cadastralData.parcelle.surface,
         valueDisplay: `${cadastralData.parcelle.surface} m²`,
         status: 'known',
+        editable: true,
+        priority: 'medium',
+        unit: 'm²',
+        icon: 'Ruler',
+        description: 'Surface totale de la parcelle cadastrale',
+      })
+    } else {
+      characteristics.push({
+        id: 'cadastre-surface',
+        category: 'cadastre',
+        label: 'Surface de la parcelle',
+        value: null,
+        valueDisplay: 'Inconnue',
+        status: 'unknown',
         editable: true,
         priority: 'medium',
         unit: 'm²',
@@ -329,6 +383,19 @@ export class BuildingProfileEnrichmentService {
         icon: 'MapPin',
         description: 'Référence cadastrale de la parcelle',
       })
+    } else {
+      characteristics.push({
+        id: 'cadastre-parcelle',
+        category: 'cadastre',
+        label: 'Parcelle cadastrale',
+        value: null,
+        valueDisplay: 'Non renseignée',
+        status: 'unknown',
+        editable: true,
+        priority: 'low',
+        icon: 'MapPin',
+        description: 'Référence cadastrale de la parcelle',
+      })
     }
 
     // Section cadastrale
@@ -340,6 +407,19 @@ export class BuildingProfileEnrichmentService {
         value: cadastralData.parcelle.section,
         valueDisplay: cadastralData.parcelle.section,
         status: 'known',
+        editable: true,
+        priority: 'low',
+        icon: 'MapPin',
+        description: 'Section cadastrale',
+      })
+    } else {
+      characteristics.push({
+        id: 'cadastre-section',
+        category: 'cadastre',
+        label: 'Section cadastrale',
+        value: null,
+        valueDisplay: 'Non renseignée',
+        status: 'unknown',
         editable: true,
         priority: 'low',
         icon: 'MapPin',
@@ -397,6 +477,20 @@ export class BuildingProfileEnrichmentService {
         icon: 'TrendingUp',
         description: 'Prix estimé par mètre carré',
       })
+    } else {
+      characteristics.push({
+        id: 'valuation-price-per-m2',
+        category: 'valorisation',
+        label: 'Prix au m² estimé',
+        value: null,
+        valueDisplay: 'Non estimé',
+        status: 'unknown',
+        editable: true,
+        priority: 'medium',
+        unit: '€/m²',
+        icon: 'TrendingUp',
+        description: 'Prix estimé par mètre carré',
+      })
     }
 
     // ============================================
@@ -414,7 +508,20 @@ export class BuildingProfileEnrichmentService {
         status: 'known',
         editable: true,
         priority: 'high',
-        icon: 'Map',
+        icon: 'MapPin',
+        description: 'Zone du Plan Local d\'Urbanisme',
+      })
+    } else {
+      characteristics.push({
+        id: 'urbanism-plu-zone',
+        category: 'urbanisme',
+        label: 'Zone PLU',
+        value: null,
+        valueDisplay: 'Non renseignée',
+        status: 'unknown',
+        editable: true,
+        priority: 'high',
+        icon: 'MapPin',
         description: 'Zone du Plan Local d\'Urbanisme',
       })
     }
