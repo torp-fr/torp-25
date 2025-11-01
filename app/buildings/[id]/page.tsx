@@ -39,6 +39,18 @@ import {
   Info,
   CheckCircle,
   X,
+  Ruler,
+  Battery,
+  Euro,
+  TrendingUp,
+  Calendar,
+  Home,
+  DoorOpen,
+  Layers,
+  Factory,
+  Bug,
+  Shield,
+  FileCheck as FileCheckIcon,
 } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { AppHeader } from '@/components/app-header'
@@ -142,6 +154,11 @@ export default function BuildingDetailPage() {
   const [recommendations, setRecommendations] = useState<Recommendation[]>([])
   const [notifications, setNotifications] = useState<Notification[]>([])
   const [loadingRecommendations, setLoadingRecommendations] = useState(false)
+  const [characteristics, setCharacteristics] = useState<any[]>([])
+  const [groupedCharacteristics, setGroupedCharacteristics] = useState<Record<string, any[]>>({})
+  const [loadingCharacteristics, setLoadingCharacteristics] = useState(false)
+  const [editingChar, setEditingChar] = useState<string | null>(null)
+  const [editValue, setEditValue] = useState<string>('')
 
   const [file, setFile] = useState<File | null>(null)
   const [documentType, setDocumentType] = useState('')
@@ -157,6 +174,7 @@ export default function BuildingDetailPage() {
   useEffect(() => {
     if (profile) {
       fetchRecommendations()
+      fetchCharacteristics()
     }
   }, [profile])
 
@@ -202,6 +220,56 @@ export default function BuildingDetailPage() {
     setNotifications(prev =>
       prev.map(n => n.id === notificationId ? { ...n, read: true } : n)
     )
+  }
+
+  const fetchCharacteristics = async () => {
+    try {
+      setLoadingCharacteristics(true)
+      const response = await fetch(`/api/building-profiles/${profileId}/characteristics?userId=${DEMO_USER_ID}`)
+
+      if (!response.ok) {
+        throw new Error('Erreur lors du chargement des caractéristiques')
+      }
+
+      const data = await response.json()
+      setCharacteristics(data.data.characteristics || [])
+      setGroupedCharacteristics(data.data.grouped || {})
+    } catch (err) {
+      console.error('Erreur chargement caractéristiques:', err)
+    } finally {
+      setLoadingCharacteristics(false)
+    }
+  }
+
+  const handleEditCharacteristic = (charId: string, currentValue: any) => {
+    setEditingChar(charId)
+    setEditValue(currentValue?.toString() || '')
+  }
+
+  const handleSaveCharacteristic = async (charId: string) => {
+    try {
+      const response = await fetch(`/api/building-profiles/${profileId}/characteristics?userId=${DEMO_USER_ID}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: DEMO_USER_ID,
+          characteristicId: charId,
+          value: editValue,
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error('Erreur lors de la mise à jour')
+      }
+
+      // Recharger les caractéristiques
+      await fetchCharacteristics()
+      setEditingChar(null)
+      setEditValue('')
+    } catch (err) {
+      console.error('Erreur sauvegarde caractéristique:', err)
+      setError(err instanceof Error ? err.message : 'Erreur lors de la sauvegarde')
+    }
   }
 
   const handleRefreshEnrichment = async () => {
@@ -499,8 +567,172 @@ export default function BuildingDetailPage() {
               </Card>
             )}
 
-            {/* Enrichment Status */}
-            <Card>
+            {/* Carte d'Identité - Caractéristiques */}
+            {loadingCharacteristics ? (
+              <Card>
+                <CardContent className="py-12 text-center">
+                  <Loader2 className="mx-auto mb-4 h-8 w-8 animate-spin text-primary" />
+                  <p className="text-muted-foreground">Chargement des caractéristiques...</p>
+                </CardContent>
+              </Card>
+            ) : (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <FileText className="h-5 w-5" />
+                    Carte d&apos;Identité du Logement
+                  </CardTitle>
+                  <CardDescription>
+                    Informations complètes de votre logement
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {characteristics.length === 0 ? (
+                    <div className="py-8 text-center text-muted-foreground">
+                      <FileText className="mx-auto mb-2 h-8 w-8" />
+                      <p>Aucune caractéristique disponible</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-6">
+                      {Object.entries(groupedCharacteristics).map(([category, chars]) => (
+                        <div key={category} className="space-y-3">
+                          <h3 className="text-lg font-semibold border-b pb-2">
+                            {category === 'risques' && '🛡️ Risques et Sécurité'}
+                            {category === 'energie' && '⚡ Performance Énergétique'}
+                            {category === 'cadastre' && '📋 Informations Cadastrales'}
+                            {category === 'valorisation' && '💰 Valorisation Immobilière'}
+                            {category === 'urbanisme' && '🏛️ Urbanisme'}
+                            {category === 'structure' && '🏠 Caractéristiques du Bâti'}
+                            {category === 'environnement' && '🌱 Environnement'}
+                            {category === 'documentation' && '📄 Documents'}
+                            {!['risques', 'energie', 'cadastre', 'valorisation', 'urbanisme', 'structure', 'environnement', 'documentation'].includes(category) && category}
+                          </h3>
+                          <div className="grid gap-3 md:grid-cols-2">
+                            {chars.map((char: any) => {
+                              const iconMap: Record<string, any> = {
+                                AlertTriangle,
+                                Battery,
+                                Zap,
+                                Leaf,
+                                Ruler,
+                                MapPin,
+                                Euro,
+                                TrendingUp,
+                                Calendar,
+                                Home,
+                                DoorOpen,
+                                Layers,
+                                Factory,
+                                Bug,
+                                Shield,
+                                FileCheck: FileCheckIcon,
+                              }
+                              const IconComponent = char.icon ? iconMap[char.icon] || FileText : FileText
+                              const isEditing = editingChar === char.id
+                              
+                              return (
+                                <div
+                                  key={char.id}
+                                  className={`rounded-lg border p-4 ${
+                                    char.status === 'known' ? 'border-green-200 bg-green-50' :
+                                    char.status === 'partial' ? 'border-yellow-200 bg-yellow-50' :
+                                    'border-gray-200 bg-gray-50'
+                                  }`}
+                                >
+                                  <div className="flex items-start justify-between gap-3">
+                                    <div className="flex-1">
+                                      <div className="flex items-center gap-2 mb-2">
+                                        <IconComponent className="h-4 w-4 text-muted-foreground" />
+                                        <span className="font-medium text-sm">{char.label}</span>
+                                        {char.status === 'known' && (
+                                          <CheckCircle2 className="h-3 w-3 text-green-600" />
+                                        )}
+                                        {char.status === 'unknown' && (
+                                          <AlertCircle className="h-3 w-3 text-gray-400" />
+                                        )}
+                                      </div>
+                                      
+                                      {isEditing ? (
+                                        <div className="space-y-2">
+                                          <Input
+                                            value={editValue}
+                                            onChange={(e) => setEditValue(e.target.value)}
+                                            className="text-sm"
+                                            placeholder="Valeur..."
+                                          />
+                                          <div className="flex gap-2">
+                                            <Button
+                                              size="sm"
+                                              onClick={() => handleSaveCharacteristic(char.id)}
+                                              className="h-6 text-xs"
+                                            >
+                                              Enregistrer
+                                            </Button>
+                                            <Button
+                                              size="sm"
+                                              variant="outline"
+                                              onClick={() => {
+                                                setEditingChar(null)
+                                                setEditValue('')
+                                              }}
+                                              className="h-6 text-xs"
+                                            >
+                                              Annuler
+                                            </Button>
+                                          </div>
+                                        </div>
+                                      ) : (
+                                        <>
+                                          <div className="text-lg font-semibold">
+                                            {char.valueDisplay}
+                                            {char.unit && <span className="text-sm text-muted-foreground ml-1">{char.unit}</span>}
+                                          </div>
+                                          {char.description && (
+                                            <p className="text-xs text-muted-foreground mt-1">{char.description}</p>
+                                          )}
+                                          {char.editable && (
+                                            <Button
+                                              variant="ghost"
+                                              size="sm"
+                                              onClick={() => handleEditCharacteristic(char.id, char.value)}
+                                              className="mt-2 h-6 text-xs"
+                                            >
+                                              {char.status === 'unknown' ? 'Ajouter' : 'Modifier'}
+                                            </Button>
+                                          )}
+                                        </>
+                                      )}
+                                    </div>
+                                  </div>
+                                </div>
+                              )
+                            })}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Statut enrichissement - Simplifié */}
+            {profile.enrichmentStatus === 'in_progress' && (
+              <Card className="border-blue-200 bg-blue-50">
+                <CardContent className="pt-6">
+                  <div className="flex items-center gap-3">
+                    <Loader2 className="h-5 w-5 animate-spin text-blue-600" />
+                    <div>
+                      <div className="font-medium">Mise à jour des données en cours...</div>
+                      <div className="text-sm text-muted-foreground">Vos informations sont en cours d&apos;actualisation</div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Enrichment Status - MASQUÉ */}
+            {/* <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Zap className="h-5 w-5" />
@@ -530,21 +762,6 @@ export default function BuildingDetailPage() {
                     </div>
                   </div>
 
-                  {profile.enrichmentSources.length > 0 && (
-                    <div>
-                      <span className="text-sm text-muted-foreground">Sources enrichies</span>
-                      <div className="mt-2 flex flex-wrap gap-2">
-                        {profile.enrichmentSources.map((source, idx) => (
-                          <span
-                            key={idx}
-                            className="rounded-full bg-blue-100 px-3 py-1 text-xs font-medium text-blue-700"
-                          >
-                            {source}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                  )}
 
                   {profile.lastEnrichedAt && (
                     <div className="text-xs text-muted-foreground">
@@ -555,191 +772,7 @@ export default function BuildingDetailPage() {
               </CardContent>
             </Card>
 
-            {/* Cadastral Data */}
-            {profile.cadastralData && (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Building2 className="h-5 w-5" />
-                    Données Cadastrales
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-2 text-sm">
-                    {profile.parcelleNumber && (
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Parcelle</span>
-                        <span className="font-medium">{profile.parcelleNumber}</span>
-                      </div>
-                    )}
-                    {profile.sectionCadastrale && (
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Section</span>
-                        <span className="font-medium">{profile.sectionCadastrale}</span>
-                      </div>
-                    )}
-                    {profile.codeINSEE && (
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Code INSEE</span>
-                        <span className="font-medium">{profile.codeINSEE}</span>
-                      </div>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-
-            {/* DPE Data */}
-            {profile.dpeData && (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Leaf className="h-5 w-5" />
-                    Diagnostic de Performance Energétique
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  {profile.dpeData.dpeClass && (
-                    <div className="text-center">
-                      <div className="text-4xl font-bold text-green-600">
-                        {profile.dpeData.dpeClass}
-                      </div>
-                      <div className="text-sm text-muted-foreground mt-1">Classe énergétique</div>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            )}
-
-            {/* DVF Data - Estimation et Valeurs Foncières */}
-            {profile.enrichedData?.dvf && (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Building2 className="h-5 w-5" />
-                    Estimation & Valeurs Foncières
-                  </CardTitle>
-                  <CardDescription>
-                    Données issues des Demandes de Valeurs Foncières (DVF)
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-6">
-                    {/* Estimation */}
-                    {profile.enrichedData.dvf.estimation && (
-                      <div className="rounded-lg border bg-blue-50 p-4">
-                        <div className="mb-2 text-sm font-medium text-blue-900">Estimation</div>
-                        <div className="text-2xl font-bold text-blue-700">
-                          {profile.enrichedData.dvf.estimation.valeur_estimee?.toLocaleString('fr-FR')} €
-                        </div>
-                        {profile.enrichedData.dvf.estimation.prix_m2_estime && (
-                          <div className="mt-1 text-sm text-blue-600">
-                            {profile.enrichedData.dvf.estimation.prix_m2_estime.toLocaleString('fr-FR')} €/m²
-                          </div>
-                        )}
-                        {profile.enrichedData.dvf.estimation.fourchette_basse && profile.enrichedData.dvf.estimation.fourchette_haute && (
-                          <div className="mt-2 text-xs text-blue-600">
-                            Fourchette: {profile.enrichedData.dvf.estimation.fourchette_basse.toLocaleString('fr-FR')} € - {profile.enrichedData.dvf.estimation.fourchette_haute.toLocaleString('fr-FR')} €
-                          </div>
-                        )}
-                        {profile.enrichedData.dvf.estimation.confiance && (
-                          <div className="mt-2 flex items-center gap-2">
-                            <div className="flex-1 bg-gray-200 rounded-full h-2">
-                              <div
-                                className="bg-blue-600 h-2 rounded-full"
-                                style={{ width: `${profile.enrichedData.dvf.estimation.confiance}%` }}
-                              />
-                            </div>
-                            <span className="text-xs text-blue-600">
-                              Confiance: {profile.enrichedData.dvf.estimation.confiance}%
-                            </span>
-                          </div>
-                        )}
-                      </div>
-                    )}
-
-                    {/* Statistiques */}
-                    {profile.enrichedData.dvf.statistics && (
-                      <div className="space-y-3">
-                        <div className="text-sm font-medium">Statistiques du secteur</div>
-                        <div className="grid grid-cols-2 gap-4 text-sm">
-                          <div>
-                            <div className="text-muted-foreground">Transactions</div>
-                            <div className="font-semibold">{profile.enrichedData.dvf.statistics.total_transactions}</div>
-                          </div>
-                          {profile.enrichedData.dvf.statistics.prix_m2_median && (
-                            <div>
-                              <div className="text-muted-foreground">Prix médian/m²</div>
-                              <div className="font-semibold">
-                                {Math.round(profile.enrichedData.dvf.statistics.prix_m2_median).toLocaleString('fr-FR')} €
-                              </div>
-                            </div>
-                          )}
-                          {profile.enrichedData.dvf.statistics.valeur_median && (
-                            <div>
-                              <div className="text-muted-foreground">Valeur médiane</div>
-                              <div className="font-semibold">
-                                {Math.round(profile.enrichedData.dvf.statistics.valeur_median).toLocaleString('fr-FR')} €
-                              </div>
-                            </div>
-                          )}
-                          {profile.enrichedData.dvf.statistics.date_min && profile.enrichedData.dvf.statistics.date_max && (
-                            <div>
-                              <div className="text-muted-foreground">Période</div>
-                              <div className="font-semibold text-xs">
-                                {new Date(profile.enrichedData.dvf.statistics.date_min).getFullYear()} - {new Date(profile.enrichedData.dvf.statistics.date_max).getFullYear()}
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Comparables */}
-                    {profile.enrichedData.dvf.comparables && profile.enrichedData.dvf.comparables.length > 0 && (
-                      <div className="space-y-3">
-                        <div className="text-sm font-medium">
-                          Biens comparables ({profile.enrichedData.dvf.comparables.length})
-                        </div>
-                        <div className="space-y-2 max-h-64 overflow-y-auto">
-                          {profile.enrichedData.dvf.comparables.slice(0, 5).map((comp: any, idx: number) => (
-                            <div key={idx} className="rounded border bg-gray-50 p-3 text-sm">
-                              <div className="flex justify-between items-start">
-                                <div>
-                                  <div className="font-medium">
-                                    {comp.transaction.valeur_fonciere?.toLocaleString('fr-FR')} €
-                                  </div>
-                                  {comp.transaction.surface_reelle_bati && (
-                                    <div className="text-muted-foreground">
-                                      {comp.transaction.surface_reelle_bati}m²
-                                      {comp.transaction.valeur_fonciere && (
-                                        <span className="ml-2">
-                                          ({Math.round(comp.transaction.valeur_fonciere / comp.transaction.surface_reelle_bati).toLocaleString('fr-FR')} €/m²)
-                                        </span>
-                                      )}
-                                    </div>
-                                  )}
-                                  {comp.transaction.date_mutation && (
-                                    <div className="text-xs text-muted-foreground mt-1">
-                                      {formatDate(comp.transaction.date_mutation)}
-                                    </div>
-                                  )}
-                                </div>
-                                {comp.similarite && (
-                                  <div className="text-xs text-blue-600 font-medium">
-                                    {comp.similarite}% similaire
-                                  </div>
-                                )}
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            )}
+            {/* Sections techniques masquées - Données intégrées dans la Carte d'Identité */}
 
             {/* Documents */}
             <Card>
