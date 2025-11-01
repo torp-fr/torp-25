@@ -28,7 +28,6 @@ import {
   CheckCircle2,
   AlertCircle,
   Loader2,
-  Building2,
   Leaf,
   Zap,
   FileCheck,
