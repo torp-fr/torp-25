@@ -287,21 +287,24 @@ export async function POST(request: NextRequest) {
           extractedData: analysis.extractedData,
         } as any
 
+        // Convertir MinimalEnrichmentData en ScoringEnrichmentData
+        const scoringEnrichmentData: any = {
+          company: resolvedMinimalEnrichment?.company || {
+            siret: analysis.extractedData.company.siret || '',
+            siren: analysis.extractedData.company.siret?.substring(0, 9) || '',
+            name: analysis.extractedData.company.name,
+          },
+          priceReferences: [],
+          regionalData: null,
+          complianceData: null,
+          weatherData: null,
+          dtus: [],
+          certifications: [],
+        }
+
         advancedScore = await scoringEngine.calculateScore(
           devisForScoring,
-          resolvedMinimalEnrichment || {
-            company: {
-              siret: analysis.extractedData.company.siret || '',
-              siren: analysis.extractedData.company.siret?.substring(0, 9) || '',
-              name: analysis.extractedData.company.name,
-            },
-            priceReferences: [],
-            regionalData: null,
-            complianceData: null,
-            weatherData: null,
-            dtus: [],
-            certifications: [],
-          },
+          scoringEnrichmentData,
           {
             profile: userProfile,
             projectType: projectTypeForScoring,
