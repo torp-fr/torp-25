@@ -118,6 +118,13 @@ export class DataCache {
   }
 
   /**
+   * Récupère des données enrichies depuis le cache
+   */
+  getEnrichment<T>(key: string): T | null {
+    return this.get<T>(key)
+  }
+
+  /**
    * Statistiques du cache
    */
   getStats(): { size: number; keys: string[] } {
