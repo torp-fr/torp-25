@@ -123,12 +123,19 @@ export async function POST(request: NextRequest) {
 
     const minimalEnrichmentDuration = Date.now() - minimalEnrichmentStartTime
     
-    // 2. Analyse LLM UNIQUE avec enrichissement minimal
-    // On évite la double analyse (initiale + finale) pour gagner du temps
+    // 2. Analyse LLM UNIQUE (une seule fois, avec enrichissement minimal si disponible)
+    // On évite la double analyse (initiale + finale) pour gagner ~2-3s
     const llmStartTime = Date.now()
-    const analysis = await analyzer.analyzeDevis(tempFilePath, minimalEnrichmentData || undefined)
+    
+    // Attendre enrichissement minimal (très rapide, <50ms)
+    const resolvedMinimalEnrichment = await minimalEnrichmentPromise
+    
+    const analysis = await analyzer.analyzeDevis(
+      tempFilePath, 
+      resolvedMinimalEnrichment || undefined
+    )
     const llmDuration = Date.now() - llmStartTime
-    console.log(`[LLM Analyze] Analyse LLM terminée (${llmDuration}ms)`)
+    console.log(`[LLM Analyze] Analyse LLM terminée (${llmDuration}ms, objectif: <3500ms)`)
 
     // 3. Enrichissement asynchrone (non-bloquant) pour mise à jour ultérieure
     // On lance l'enrichissement complet en arrière-plan sans attendre
