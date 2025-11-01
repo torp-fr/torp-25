@@ -775,8 +775,7 @@ export default function BuildingDetailPage() {
                     <Loader2 className="mx-auto mb-4 h-8 w-8 animate-spin text-primary" />
                     <p className="text-muted-foreground">Chargement des caractéristiques...</p>
                   </div>
-                ) : (
-                    {characteristics.length === 0 && Object.keys(groupedCharacteristics).length === 0 ? (
+                ) : characteristics.length === 0 && Object.keys(groupedCharacteristics).length === 0 ? (
                       <div className="py-8 space-y-4">
                         <div className="text-center text-muted-foreground">
                           <FileText className="mx-auto mb-2 h-8 w-8" />
