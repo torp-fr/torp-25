@@ -16,6 +16,11 @@ import { globalCache } from '@/services/cache/data-cache'
 import type { EnrichedCompanyData, ScoringEnrichmentData } from '../scoring/advanced/types'
 import type { ExtractedDevisData } from '@/services/llm/document-analyzer'
 
+/**
+ * NOTE: Ce service est maintenant utilisé en ASYNCHRONE pour ne pas bloquer la réponse
+ * Pour enrichissement minimal (<50ms), utiliser MinimalEnrichmentService
+ */
+
 export class AdvancedEnrichmentService {
   private companyService: CompanyEnrichmentService
   private infogreffeService: InfogreffeEnrichmentService

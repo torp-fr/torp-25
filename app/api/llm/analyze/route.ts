@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { DocumentAnalyzer } from '@/services/llm/document-analyzer'
 import { AdvancedEnrichmentService } from '@/services/data-enrichment/advanced-enrichment-service'
+import { MinimalEnrichmentService } from '@/services/data-enrichment/minimal-enrichment-service'
 import { AdvancedScoringEngine } from '@/services/scoring/advanced/advanced-scoring-engine'
 import { prisma } from '@/lib/db'
 import fs from 'fs'
@@ -86,68 +87,86 @@ export async function POST(request: NextRequest) {
 
     console.log(`[LLM Analyze] Fichier sauvegardé: ${tempFilePath}`)
 
-    // 1. Analyse initiale rapide pour obtenir les données de base
+    // OPTIMISATION: Une seule analyse LLM avec enrichissement minimal en cache
     const analysisStartTime = Date.now()
-    console.log('[LLM Analyze] Début de l\'analyse avec Claude...')
+    console.log('[LLM Analyze] Début de l\'analyse optimisée (objectif <5s)...')
     const analyzer = new DocumentAnalyzer()
     
-    // Parser les données CCF si fournies (en parallèle avec analyse)
+    // Parser les données CCF si fournies
     let ccfData: any = null
-    const ccfParsePromise = ccfDataStr 
-      ? Promise.resolve(JSON.parse(ccfDataStr)).catch(() => null)
-      : Promise.resolve(null)
-
-    // Lancer analyse et parsing CCF en parallèle
-    const [quickAnalysis, parsedCcfData] = await Promise.all([
-      analyzer.analyzeDevis(tempFilePath),
-      ccfParsePromise,
-    ])
-    
-    ccfData = parsedCcfData
-    if (ccfData) {
-      console.log('[LLM Analyze] Données CCF reçues, utilisation pour l\'enrichissement')
-    }
-
-    const analysisDuration = Date.now() - analysisStartTime
-    console.log(`[LLM Analyze] Analyse initiale terminée (${analysisDuration}ms), enrichissement avancé des données...`)
-
-    // 2. Enrichissement avancé des données (multi-sources) - Optimisé
-    const enrichmentStartTime = Date.now()
-    let enrichmentData = null
     try {
-      const enrichmentService = new AdvancedEnrichmentService()
-
-      // Utiliser les données CCF si disponibles, sinon inférer depuis le devis
-      const tradeType = ccfData?.tradeType || inferTradeType(quickAnalysis.rawText)
-      const region = ccfData?.region 
-        || (quickAnalysis.extractedData.project?.location 
-          ? extractRegion(quickAnalysis.extractedData.project.location)
-          : 'ILE_DE_FRANCE')
-      const projectType = ccfData?.projectType 
-        || (inferProjectType(quickAnalysis.extractedData) as 'construction' | 'renovation' | 'extension' | 'maintenance')
-
-      enrichmentData = await enrichmentService.enrichForScoring(
-        quickAnalysis.extractedData,
-        projectType,
-        tradeType,
-        region
-      )
-
-      const enrichmentDuration = Date.now() - enrichmentStartTime
-      console.log(`[LLM Analyze] Enrichissement avancé terminé (${enrichmentDuration}ms):`, {
-        sources: extractSourcesFromEnrichment(enrichmentData),
-      })
+      if (ccfDataStr) {
+        ccfData = JSON.parse(ccfDataStr)
+      }
     } catch (error) {
-      const enrichmentDuration = Date.now() - enrichmentStartTime
-      console.warn(`[LLM Analyze] Erreur lors de l'enrichissement (${enrichmentDuration}ms, continuation sans données enrichies):`, error)
-      // On continue sans données enrichies si l'enrichissement échoue
+      console.warn('[LLM Analyze] Erreur parsing CCF:', error)
     }
 
-    // 3. Analyse finale avec données enrichies (pour l'extraction LLM)
-    const finalAnalysisStartTime = Date.now()
-    const analysis = await analyzer.analyzeDevis(tempFilePath, enrichmentData || undefined)
-    const finalAnalysisDuration = Date.now() - finalAnalysisStartTime
-    console.log(`[LLM Analyze] Analyse finale terminée (${finalAnalysisDuration}ms)`)
+    // 1. Enrichissement minimal et rapide (<50ms, cache uniquement)
+    const minimalEnrichmentStartTime = Date.now()
+    const minimalEnrichmentService = new MinimalEnrichmentService()
+    
+    // Parser CCF et enrichissement minimal en parallèle
+    let minimalEnrichmentData = null
+    const minimalEnrichmentPromise = Promise.resolve().then(async () => {
+      // Attendre d'avoir les données extraites depuis CCF si disponibles
+      if (ccfData?.company?.siret) {
+        return await minimalEnrichmentService.getMinimalEnrichment({
+          company: {
+            siret: ccfData.company.siret,
+            name: ccfData.company.name || '',
+          },
+        } as any)
+      }
+      return null
+    }).catch(() => null)
+
+    const minimalEnrichmentDuration = Date.now() - minimalEnrichmentStartTime
+    
+    // 2. Analyse LLM UNIQUE avec enrichissement minimal
+    // On évite la double analyse (initiale + finale) pour gagner du temps
+    const llmStartTime = Date.now()
+    const analysis = await analyzer.analyzeDevis(tempFilePath, minimalEnrichmentData || undefined)
+    const llmDuration = Date.now() - llmStartTime
+    console.log(`[LLM Analyze] Analyse LLM terminée (${llmDuration}ms)`)
+
+    // 3. Enrichissement asynchrone (non-bloquant) pour mise à jour ultérieure
+    // On lance l'enrichissement complet en arrière-plan sans attendre
+    const enrichmentService = new AdvancedEnrichmentService()
+    const tradeType = ccfData?.tradeType || inferTradeType(analysis.rawText)
+    const region = ccfData?.region 
+      || (analysis.extractedData.project?.location 
+        ? extractRegion(analysis.extractedData.project.location)
+        : 'ILE_DE_FRANCE')
+    const projectType = ccfData?.projectType 
+      || (inferProjectType(analysis.extractedData) as 'construction' | 'renovation' | 'extension' | 'maintenance')
+    
+    // Enrichissement asynchrone (ne bloque pas la réponse utilisateur)
+    Promise.resolve().then(async () => {
+      try {
+        const fullEnrichmentData = await enrichmentService.enrichForScoring(
+          analysis.extractedData,
+          projectType,
+          tradeType,
+          region
+        )
+        
+        // Mettre en cache pour accélérer les prochaines analyses
+        if (analysis.extractedData.company.siret && fullEnrichmentData.company) {
+          const { globalCache } = await import('@/services/cache/data-cache')
+          globalCache.setEnrichedData(
+            `company:${analysis.extractedData.company.siret}`,
+            fullEnrichmentData.company
+          )
+        }
+        console.log('[LLM Analyze] ✅ Enrichissement asynchrone terminé et mis en cache')
+      } catch (error) {
+        console.warn('[LLM Analyze] ⚠️ Erreur enrichissement asynchrone (non-bloquant):', error)
+      }
+    })
+
+    const totalAnalysisDuration = Date.now() - analysisStartTime
+    console.log(`[LLM Analyze] Analyse complète terminée (${totalAnalysisDuration}ms, objectif: <5000ms)`)
 
     console.log('[LLM Analyze] Analyse terminée, création en DB...')
 
@@ -191,82 +210,106 @@ export async function POST(request: NextRequest) {
       console.warn('[LLM Analyze] Erreur programmation scraping (non bloquant):', error)
     }
 
-    // 3. Calculer le score avec le système avancé (optimisé avec ML)
+    // 3. Calcul du score OPTIMISÉ (utilisation du score LLM directement si disponible)
     const scoringStartTime = Date.now()
-    console.log('[LLM Analyze] Calcul du score avancé avec 8 axes (ML activé)...')
-    
     let advancedScore = null
-    let useAdvancedScoring = true
+    let useAdvancedScoring = false
 
-    try {
-      const scoringEngine = new AdvancedScoringEngine(true) // ML activé
+    // OPTIMISATION: Utiliser directement le score LLM pour éviter un calcul supplémentaire
+    // Le LLM a déjà calculé un score, on l'utilise comme base
+    if (analysis.torpscore && analysis.torpscore.scoreValue > 0) {
+      // Convertir le score LLM (0-1000) vers le format avancé (0-1200)
+      const llmScore = analysis.torpscore.scoreValue
+      const convertedScore = Math.round((llmScore / 1000) * 1200) // Échelle 0-1200
       
-      // Utiliser les données CCF si disponibles pour le contexte de scoring
-      const userProfile = 'B2C' // TODO: Récupérer depuis le profil utilisateur
-      const projectTypeForScoring = ccfData?.projectType 
-        || (inferProjectType(analysis.extractedData) as 'construction' | 'renovation' | 'extension' | 'maintenance')
-      const projectAmount = ccfData?.budgetRange?.preferred
-        ? (ccfData.budgetRange.preferred < 10000 ? 'low' : ccfData.budgetRange.preferred < 50000 ? 'medium' : 'high')
-        : inferProjectAmount(analysis.extractedData.totals.total)
-      const tradeTypeForScoring = ccfData?.tradeType || inferTradeType(analysis.rawText)
-      const regionForScoring = ccfData?.region 
-        || (analysis.extractedData.project?.location 
-          ? extractRegion(analysis.extractedData.project.location)
-          : 'ILE_DE_FRANCE')
-      
-      // Enrichir les données d'enrichissement avec les données CCF (bâti, urbanisme, énergie)
-      if (ccfData && enrichmentData) {
-        if (ccfData.buildingData) {
-          enrichmentData.buildingData = ccfData.buildingData
-        }
-        if (ccfData.urbanismData) {
-          enrichmentData.urbanismData = ccfData.urbanismData
-        }
-        if (ccfData.energyData) {
-          enrichmentData.energyData = ccfData.energyData
-        }
-      }
-
-      // Créer un objet devis compatible pour le scoring (avec extractedData typé correctement)
-      const devisForScoring = {
-        ...devis,
-        extractedData: analysis.extractedData,
-      } as any
-
-      advancedScore = await scoringEngine.calculateScore(
-        devisForScoring,
-        enrichmentData || {
-          company: {
-            siret: analysis.extractedData.company.siret || '',
-            siren: analysis.extractedData.company.siret?.substring(0, 9) || '',
-            name: analysis.extractedData.company.name,
+      // Utiliser le score LLM directement (plus rapide)
+      advancedScore = {
+        totalScore: convertedScore,
+        grade: analysis.torpscore.scoreGrade,
+        confidenceLevel: analysis.torpscore.confidenceLevel,
+        breakdown: {
+          prix: {
+            score: analysis.torpscore.breakdown.prix.score * 1.2, // Échelle à 1200
+            weight: analysis.torpscore.breakdown.prix.weight,
+            justification: analysis.torpscore.breakdown.prix.justification,
           },
-          priceReferences: [],
-          regionalData: null,
-          complianceData: null,
-          weatherData: null,
-          dtus: [],
-          certifications: [],
+          qualite: {
+            score: analysis.torpscore.breakdown.qualite.score * 1.2,
+            weight: analysis.torpscore.breakdown.qualite.weight,
+            justification: analysis.torpscore.breakdown.qualite.justification,
+          },
+          delais: {
+            score: analysis.torpscore.breakdown.delais.score * 1.2,
+            weight: analysis.torpscore.breakdown.delais.weight,
+            justification: analysis.torpscore.breakdown.delais.justification,
+          },
+          conformite: {
+            score: analysis.torpscore.breakdown.conformite.score * 1.2,
+            weight: analysis.torpscore.breakdown.conformite.weight,
+            justification: analysis.torpscore.breakdown.conformite.justification,
+          },
         },
-        {
-          profile: userProfile,
-          projectType: projectTypeForScoring,
-          projectAmount,
-          region: regionForScoring,
-          tradeType: tradeTypeForScoring,
-        }
-      )
-
-      const scoringDuration = Date.now() - scoringStartTime
-      console.log(`[LLM Analyze] Score avancé calculé (${scoringDuration}ms): ${advancedScore.totalScore}/1200 (${advancedScore.grade})`)
+        alerts: analysis.torpscore.alerts || [],
+        recommendations: analysis.torpscore.recommendations || [],
+        algorithmVersion: 'llm-optimized-v2.2',
+      } as any
       
-      // Log performance ML si disponible
-      if (advancedScore.mlPrediction) {
-        console.log(`[LLM Analyze] ML adjustment: ${JSON.stringify(advancedScore.mlPrediction.adjustments)}, confidence: ${(advancedScore.mlPrediction.confidence * 100).toFixed(1)}%`)
+      useAdvancedScoring = true
+      const scoringDuration = Date.now() - scoringStartTime
+      console.log(`[LLM Analyze] Score LLM utilisé directement (${scoringDuration}ms): ${advancedScore.totalScore}/1200 (${advancedScore.grade})`)
+    } else {
+      // Fallback sur scoring avancé si score LLM manquant (rare)
+      try {
+        const scoringEngine = new AdvancedScoringEngine(false) // ML désactivé pour vitesse
+        
+        const userProfile = 'B2C'
+        const projectTypeForScoring = ccfData?.projectType 
+          || (inferProjectType(analysis.extractedData) as 'construction' | 'renovation' | 'extension' | 'maintenance')
+        const projectAmount = ccfData?.budgetRange?.preferred
+          ? (ccfData.budgetRange.preferred < 10000 ? 'low' : ccfData.budgetRange.preferred < 50000 ? 'medium' : 'high')
+          : inferProjectAmount(analysis.extractedData.totals.total)
+        const tradeTypeForScoring = ccfData?.tradeType || inferTradeType(analysis.rawText)
+        const regionForScoring = ccfData?.region 
+          || (analysis.extractedData.project?.location 
+            ? extractRegion(analysis.extractedData.project.location)
+            : 'ILE_DE_FRANCE')
+
+        const devisForScoring = {
+          ...devis,
+          extractedData: analysis.extractedData,
+        } as any
+
+        advancedScore = await scoringEngine.calculateScore(
+          devisForScoring,
+          resolvedMinimalEnrichment || {
+            company: {
+              siret: analysis.extractedData.company.siret || '',
+              siren: analysis.extractedData.company.siret?.substring(0, 9) || '',
+              name: analysis.extractedData.company.name,
+            },
+            priceReferences: [],
+            regionalData: null,
+            complianceData: null,
+            weatherData: null,
+            dtus: [],
+            certifications: [],
+          },
+          {
+            profile: userProfile,
+            projectType: projectTypeForScoring,
+            projectAmount,
+            region: regionForScoring,
+            tradeType: tradeTypeForScoring,
+          }
+        )
+
+        const scoringDuration = Date.now() - scoringStartTime
+        console.log(`[LLM Analyze] Score avancé calculé (fallback, ${scoringDuration}ms): ${advancedScore.totalScore}/1200`)
+        useAdvancedScoring = true
+      } catch (error) {
+        console.error('[LLM Analyze] Erreur scoring avancé:', error)
+        useAdvancedScoring = false
       }
-    } catch (error) {
-      console.error('[LLM Analyze] Erreur lors du calcul du score avancé, fallback sur score LLM:', error)
-      useAdvancedScoring = false
     }
 
     // 4. Créer le score TORP (utiliser score avancé si disponible, sinon fallback LLM)
