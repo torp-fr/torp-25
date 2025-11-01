@@ -201,16 +201,34 @@ export default function BuildingDetailPage() {
   const fetchProfile = async () => {
     try {
       setLoading(true)
+      console.log('[Building Detail] 🔄 Chargement profil:', profileId)
+      
       const response = await fetch(`/api/building-profiles/${profileId}?userId=${DEMO_USER_ID}`)
 
       if (!response.ok) {
-        throw new Error('Erreur lors du chargement du profil')
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(errorData.error || 'Erreur lors du chargement du profil')
       }
 
       const data = await response.json()
+      
+      if (!data.success || !data.data) {
+        throw new Error('Données du profil invalides')
+      }
+      
+      console.log('[Building Detail] ✅ Profil chargé:', {
+        id: data.data.id,
+        enrichmentStatus: data.data.enrichmentStatus,
+        hasEnrichedData: !!data.data.enrichedData,
+        hasCadastralData: !!data.data.cadastralData,
+        hasDPEData: !!data.data.dpeData,
+        enrichedDataKeys: data.data.enrichedData ? Object.keys(data.data.enrichedData) : [],
+      })
+      
       setProfile(data.data)
       setError(null)
     } catch (err) {
+      console.error('[Building Detail] ❌ Erreur chargement profil:', err)
       setError(err instanceof Error ? err.message : 'Erreur inconnue')
     } finally {
       setLoading(false)
