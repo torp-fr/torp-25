@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { BANIndexer } from '@/services/external-apis/ban-indexer'
+import { AddressService } from '@/services/external-apis/address-service'
 
 export const dynamic = 'force-dynamic'
 
 /**
  * GET /api/addresses/search?q={query}&department={dept}&postalCode={code}&limit={limit}
- * Recherche d'adresses depuis l'index BAN local
+ * Recherche d'adresses depuis l'index BAN local avec fallback sur API Adresse
  */
 export async function GET(request: NextRequest) {
   try {
@@ -24,12 +25,24 @@ export async function GET(request: NextRequest) {
       )
     }
 
+    // 1. Essayer d'abord l'index BAN local
     const indexer = new BANIndexer()
-    
     let addresses
+    
     if (query) {
       // Recherche simple par texte
       addresses = await indexer.searchAddress(query, limit)
+      
+      // Si aucun résultat dans l'index local, utiliser l'API Adresse externe
+      if (addresses.length === 0) {
+        console.log('[API Addresses Search] Index BAN vide, utilisation API Adresse externe')
+        const addressService = new AddressService()
+        addresses = await addressService.searchAddress(query)
+        // Limiter les résultats
+        if (addresses.length > limit) {
+          addresses = addresses.slice(0, limit)
+        }
+      }
     } else {
       // Recherche avancée par critères
       addresses = await indexer.searchAddresses({
@@ -43,7 +56,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       success: true,
       count: addresses.length,
-      addresses,
+      data: addresses, // Format: AddressData[] avec formatted, city, postalCode, coordinates
     })
   } catch (error) {
     console.error('[API Addresses Search] Erreur:', error)

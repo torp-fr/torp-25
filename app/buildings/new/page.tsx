@@ -57,9 +57,16 @@ export default function NewBuildingPage() {
       }
 
       const data = await response.json()
+      
+      if (!data.success) {
+        throw new Error(data.error || 'Erreur lors de la recherche')
+      }
+      
+      // Le format attendu est AddressData[] avec formatted, city, postalCode, coordinates
       setSuggestions(data.data || [])
     } catch (err) {
       console.error('Erreur recherche adresse:', err)
+      setError(err instanceof Error ? err.message : 'Erreur lors de la recherche d\'adresse')
       setSuggestions([])
     } finally {
       setSearching(false)
