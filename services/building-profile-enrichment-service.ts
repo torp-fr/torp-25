@@ -585,14 +585,18 @@ export class BuildingProfileEnrichmentService {
     // CATÉGORIE : URBANISME
     // ============================================
 
-    // Zone PLU
-    if (enrichedData?.plu?.zone) {
+    // Zone PLU (peut être dans enrichedData.plu.zone, enrichedData.plu.zonage.type, ou enrichedData.building.pluZone)
+    const pluZone = enrichedData?.plu?.zone || 
+                    enrichedData?.plu?.zonage?.type ||
+                    enrichedData?.building?.pluZone
+    
+    if (pluZone) {
       characteristics.push({
         id: 'urbanism-plu-zone',
         category: 'urbanisme',
         label: 'Zone PLU',
-        value: enrichedData.plu.zone,
-        valueDisplay: enrichedData.plu.zone,
+        value: pluZone,
+        valueDisplay: pluZone,
         status: 'known',
         editable: true,
         priority: 'high',
