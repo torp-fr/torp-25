@@ -782,28 +782,28 @@ export class BuildingProfileEnrichmentService {
     // GARANTIE : Toujours retourner au moins quelques caractéristiques de base
     if (sorted.length === 0) {
       console.warn('[BuildingProfileEnrichmentService] ⚠️ Aucune caractéristique générée, ajout caractéristiques de base')
-      const baseCharacteristics = [
+      const baseCharacteristics: BuildingCharacteristic[] = [
         {
           id: 'structure-property-type',
-          category: 'structure',
+          category: 'structure' as const,
           label: 'Type de bien',
           value: null,
           valueDisplay: 'Non renseigné',
-          status: 'unknown',
+          status: 'unknown' as const,
           editable: true,
-          priority: 'high',
+          priority: 'high' as const,
           icon: 'Home',
           description: 'Type de bien (Maison, Appartement, etc.)',
         },
         {
           id: 'structure-rooms',
-          category: 'structure',
+          category: 'structure' as const,
           label: 'Nombre de pièces',
           value: null,
           valueDisplay: 'Non renseigné',
-          status: 'unknown',
+          status: 'unknown' as const,
           editable: true,
-          priority: 'high',
+          priority: 'high' as const,
           icon: 'DoorOpen',
           description: 'Nombre de pièces principales',
         },
