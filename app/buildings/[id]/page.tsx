@@ -275,24 +275,126 @@ export default function BuildingDetailPage() {
 
       const data = await response.json()
       
-      if (!data.success) {
-        throw new Error(data.error || 'Erreur lors de l\'extraction')
-      }
-      
-      console.log('[Frontend] ✅ Caractéristiques reçues:', {
-        total: data.data?.characteristics?.length || 0,
-        grouped: Object.keys(data.data?.grouped || {}).length,
-        known: data.data?.counts?.known || 0,
-        unknown: data.data?.counts?.unknown || 0,
+      console.log('[Frontend] 📦 Données brutes reçues:', {
+        success: data.success,
+        hasData: !!data.data,
+        hasCharacteristics: !!data.data?.characteristics,
+        characteristicsLength: data.data?.characteristics?.length || 0,
+        hasGrouped: !!data.data?.grouped,
+        groupedKeys: data.data?.grouped ? Object.keys(data.data.grouped) : [],
       })
       
-      setCharacteristics(data.data?.characteristics || [])
-      setGroupedCharacteristics(data.data?.grouped || {})
+      if (!data.success) {
+        console.warn('[Frontend] ⚠️ API retourne success=false:', data.error)
+        // Générer des caractéristiques de base même en cas d'erreur
+        const baseCharacteristics = [
+          {
+            id: 'structure-property-type',
+            category: 'structure',
+            label: 'Type de bien',
+            value: null,
+            valueDisplay: 'Non renseigné',
+            status: 'unknown',
+            editable: true,
+            priority: 'high',
+            icon: 'Home',
+            description: 'Type de bien (Maison, Appartement, etc.)',
+          },
+          {
+            id: 'structure-rooms',
+            category: 'structure',
+            label: 'Nombre de pièces',
+            value: null,
+            valueDisplay: 'Non renseigné',
+            status: 'unknown',
+            editable: true,
+            priority: 'high',
+            icon: 'DoorOpen',
+            description: 'Nombre de pièces principales',
+          },
+        ]
+        setCharacteristics(baseCharacteristics)
+        setGroupedCharacteristics({ structure: baseCharacteristics })
+        return
+      }
+      
+      const characteristics = data.data?.characteristics || []
+      const grouped = data.data?.grouped || {}
+      
+      console.log('[Frontend] ✅ Caractéristiques traitées:', {
+        total: characteristics.length,
+        grouped: Object.keys(grouped).length,
+        known: data.data?.counts?.known || 0,
+        unknown: data.data?.counts?.unknown || 0,
+        groupedKeys: Object.keys(grouped),
+      })
+      
+      // GARANTIE : Si aucune caractéristique, créer des caractéristiques de base
+      if (characteristics.length === 0) {
+        console.warn('[Frontend] ⚠️ Aucune caractéristique, génération de base')
+        const baseCharacteristics = [
+          {
+            id: 'structure-property-type',
+            category: 'structure',
+            label: 'Type de bien',
+            value: null,
+            valueDisplay: 'Non renseigné',
+            status: 'unknown',
+            editable: true,
+            priority: 'high',
+            icon: 'Home',
+            description: 'Type de bien (Maison, Appartement, etc.)',
+          },
+          {
+            id: 'structure-rooms',
+            category: 'structure',
+            label: 'Nombre de pièces',
+            value: null,
+            valueDisplay: 'Non renseigné',
+            status: 'unknown',
+            editable: true,
+            priority: 'high',
+            icon: 'DoorOpen',
+            description: 'Nombre de pièces principales',
+          },
+        ]
+        setCharacteristics(baseCharacteristics)
+        setGroupedCharacteristics({ structure: baseCharacteristics })
+      } else {
+        setCharacteristics(characteristics)
+        setGroupedCharacteristics(grouped)
+      }
     } catch (err) {
-      console.error('❌ Erreur chargement caractéristiques:', err)
-      // Même en cas d'erreur, définir un tableau vide plutôt que undefined
-      setCharacteristics([])
-      setGroupedCharacteristics({})
+      console.error('[Frontend] ❌ Erreur chargement caractéristiques:', err)
+      // Générer des caractéristiques de base même en cas d'erreur
+      const baseCharacteristics = [
+        {
+          id: 'structure-property-type',
+          category: 'structure',
+          label: 'Type de bien',
+          value: null,
+          valueDisplay: 'Non renseigné',
+          status: 'unknown',
+          editable: true,
+          priority: 'high',
+          icon: 'Home',
+          description: 'Type de bien (Maison, Appartement, etc.)',
+        },
+        {
+          id: 'structure-rooms',
+          category: 'structure',
+          label: 'Nombre de pièces',
+          value: null,
+          valueDisplay: 'Non renseigné',
+          status: 'unknown',
+          editable: true,
+          priority: 'high',
+          icon: 'DoorOpen',
+          description: 'Nombre de pièces principales',
+        },
+      ]
+      setCharacteristics(baseCharacteristics)
+      setGroupedCharacteristics({ structure: baseCharacteristics })
     } finally {
       setLoadingCharacteristics(false)
     }
@@ -673,30 +775,31 @@ export default function BuildingDetailPage() {
                     <Loader2 className="mx-auto mb-4 h-8 w-8 animate-spin text-primary" />
                     <p className="text-muted-foreground">Chargement des caractéristiques...</p>
                   </div>
-                ) : characteristics.length === 0 ? (
-                  <div className="py-8 space-y-4">
-                    <div className="text-center text-muted-foreground">
-                      <FileText className="mx-auto mb-2 h-8 w-8" />
-                      <p className="mb-2">Aucune caractéristique disponible</p>
-                      <p className="text-xs">L&apos;enrichissement peut être en cours. Rechargez la page dans quelques instants.</p>
-                    </div>
-                    <div className="text-center">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => {
-                          fetchCharacteristics()
-                          fetchProfile()
-                        }}
-                      >
-                        <RefreshCw className="mr-2 h-4 w-4" />
-                        Recharger
-                      </Button>
-                    </div>
-                  </div>
                 ) : (
-                    <div className="space-y-6">
-                      {Object.entries(groupedCharacteristics).map(([category, chars]) => (
+                    {characteristics.length === 0 && Object.keys(groupedCharacteristics).length === 0 ? (
+                      <div className="py-8 space-y-4">
+                        <div className="text-center text-muted-foreground">
+                          <FileText className="mx-auto mb-2 h-8 w-8" />
+                          <p className="mb-2">Aucune caractéristique disponible</p>
+                          <p className="text-xs">L&apos;enrichissement peut être en cours. Rechargez la page dans quelques instants.</p>
+                        </div>
+                        <div className="text-center">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              fetchCharacteristics()
+                              fetchProfile()
+                            }}
+                          >
+                            <RefreshCw className="mr-2 h-4 w-4" />
+                            Recharger
+                          </Button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="space-y-6">
+                        {Object.entries(groupedCharacteristics).length > 0 ? Object.entries(groupedCharacteristics).map(([category, chars]) => (
                         <div key={category} className="space-y-3">
                           <h3 className="text-lg font-semibold border-b pb-2">
                             {category === 'risques' && '🛡️ Risques et Sécurité'}
