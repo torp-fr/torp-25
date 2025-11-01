@@ -33,7 +33,14 @@ import {
   Leaf,
   Zap,
   FileCheck,
+  Bell,
+  Lightbulb,
+  AlertTriangle,
+  Info,
+  CheckCircle,
+  X,
 } from 'lucide-react'
+import { Badge } from '@/components/ui/badge'
 import { AppHeader } from '@/components/app-header'
 
 export const dynamic = 'force-dynamic'
@@ -81,6 +88,29 @@ interface BuildingDocument {
   createdAt: string
 }
 
+interface Recommendation {
+  id: string
+  priority: 'high' | 'medium' | 'low'
+  category: string
+  title: string
+  description: string
+  actionable: boolean
+  estimatedCost?: number
+  estimatedImpact?: 'high' | 'medium' | 'low'
+  deadline?: string
+}
+
+interface Notification {
+  id: string
+  type: 'info' | 'warning' | 'alert' | 'success'
+  category: string
+  title: string
+  message: string
+  actionUrl?: string
+  createdAt: string
+  read: boolean
+}
+
 const DOCUMENT_TYPES = [
   { value: 'TITLE_DEED', label: 'Titre de propriété' },
   { value: 'INSURANCE_HOME', label: 'Assurance habitation' },
@@ -109,6 +139,9 @@ export default function BuildingDetailPage() {
   const [deleting, setDeleting] = useState<string | null>(null)
   const [refreshing, setRefreshing] = useState(false)
   const [showUploadForm, setShowUploadForm] = useState(false)
+  const [recommendations, setRecommendations] = useState<Recommendation[]>([])
+  const [notifications, setNotifications] = useState<Notification[]>([])
+  const [loadingRecommendations, setLoadingRecommendations] = useState(false)
 
   const [file, setFile] = useState<File | null>(null)
   const [documentType, setDocumentType] = useState('')
@@ -120,6 +153,12 @@ export default function BuildingDetailPage() {
   useEffect(() => {
     fetchProfile()
   }, [profileId])
+
+  useEffect(() => {
+    if (profile) {
+      fetchRecommendations()
+    }
+  }, [profile])
 
   const fetchProfile = async () => {
     try {
@@ -138,6 +177,31 @@ export default function BuildingDetailPage() {
     } finally {
       setLoading(false)
     }
+  }
+
+  const fetchRecommendations = async () => {
+    try {
+      setLoadingRecommendations(true)
+      const response = await fetch(`/api/building-profiles/${profileId}/recommendations?userId=${DEMO_USER_ID}`)
+
+      if (!response.ok) {
+        throw new Error('Erreur lors du chargement des recommandations')
+      }
+
+      const data = await response.json()
+      setRecommendations(data.data.recommendations || [])
+      setNotifications(data.data.notifications || [])
+    } catch (err) {
+      console.error('Erreur chargement recommandations:', err)
+    } finally {
+      setLoadingRecommendations(false)
+    }
+  }
+
+  const markNotificationAsRead = (notificationId: string) => {
+    setNotifications(prev =>
+      prev.map(n => n.id === notificationId ? { ...n, read: true } : n)
+    )
   }
 
   const handleRefreshEnrichment = async () => {
@@ -322,9 +386,119 @@ export default function BuildingDetailPage() {
           </Card>
         )}
 
+        {/* Notifications */}
+        {notifications.length > 0 && (
+          <Card className="mb-6 border-blue-200 bg-blue-50">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Bell className="h-5 w-5" />
+                Notifications ({notifications.filter(n => !n.read).length})
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2">
+                {notifications.slice(0, 5).map((notif) => (
+                  <div
+                    key={notif.id}
+                    className={`flex items-start gap-3 rounded-lg border p-3 ${
+                      notif.type === 'alert' ? 'border-red-200 bg-red-50' :
+                      notif.type === 'warning' ? 'border-yellow-200 bg-yellow-50' :
+                      notif.type === 'success' ? 'border-green-200 bg-green-50' :
+                      'border-blue-200 bg-blue-50'
+                    } ${notif.read ? 'opacity-60' : ''}`}
+                  >
+                    <div className="mt-0.5">
+                      {notif.type === 'alert' && <AlertTriangle className="h-4 w-4 text-red-600" />}
+                      {notif.type === 'warning' && <AlertCircle className="h-4 w-4 text-yellow-600" />}
+                      {notif.type === 'success' && <CheckCircle className="h-4 w-4 text-green-600" />}
+                      {notif.type === 'info' && <Info className="h-4 w-4 text-blue-600" />}
+                    </div>
+                    <div className="flex-1">
+                      <div className="font-medium text-sm">{notif.title}</div>
+                      <div className="text-xs text-muted-foreground mt-1">{notif.message}</div>
+                    </div>
+                    {!notif.read && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => markNotificationAsRead(notif.id)}
+                        className="h-6 w-6 p-0"
+                      >
+                        <X className="h-3 w-3" />
+                      </Button>
+                    )}
+                  </div>
+                ))}
+                {notifications.length > 5 && (
+                  <div className="text-center text-sm text-muted-foreground pt-2">
+                    + {notifications.length - 5} notification(s) supplémentaire(s)
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         <div className="grid gap-6 lg:grid-cols-3">
           {/* Main Content */}
           <div className="lg:col-span-2 space-y-6">
+            {/* Recommendations */}
+            {!loadingRecommendations && recommendations.length > 0 && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Lightbulb className="h-5 w-5" />
+                    Recommandations ({recommendations.length})
+                  </CardTitle>
+                  <CardDescription>
+                    Suggestions personnalisées basées sur les données de votre logement
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3">
+                    {recommendations.map((rec) => (
+                      <div
+                        key={rec.id}
+                        className={`rounded-lg border p-4 ${
+                          rec.priority === 'high' ? 'border-red-200 bg-red-50' :
+                          rec.priority === 'medium' ? 'border-yellow-200 bg-yellow-50' :
+                          'border-blue-200 bg-blue-50'
+                        }`}
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-2">
+                              <Badge variant={rec.priority === 'high' ? 'destructive' : rec.priority === 'medium' ? 'default' : 'secondary'}>
+                                {rec.priority}
+                              </Badge>
+                              <Badge variant="outline">{rec.category}</Badge>
+                              {rec.estimatedImpact && (
+                                <Badge variant="outline">
+                                  Impact: {rec.estimatedImpact}
+                                </Badge>
+                              )}
+                            </div>
+                            <h4 className="font-semibold mb-1">{rec.title}</h4>
+                            <p className="text-sm text-muted-foreground">{rec.description}</p>
+                            {rec.estimatedCost && (
+                              <p className="text-xs text-muted-foreground mt-2">
+                                Coût estimé: {rec.estimatedCost.toLocaleString('fr-FR')} €
+                              </p>
+                            )}
+                            {rec.deadline && (
+                              <p className="text-xs text-muted-foreground mt-1">
+                                Échéance: {formatDate(rec.deadline)}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
             {/* Enrichment Status */}
             <Card>
               <CardHeader>
