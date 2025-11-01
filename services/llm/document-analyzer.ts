@@ -146,8 +146,8 @@ ${enrichmentData.company ? `
   - Vérifie que le SIRET correspond
   ${enrichmentData.company.financialData ? `
   - **⚠️ DONNÉES FINANCIÈRES (Infogreffe)**:
-    - Chiffre d'affaires: ${enrichmentData.company.financialData.ca?.length ? enrichmentData.company.financialData.ca.map((ca, i) => `Année ${new Date().getFullYear() - i}: ${ca.toLocaleString('fr-FR')}€`).join(', ') : 'Non disponible'}
-    - Résultat net: ${enrichmentData.company.financialData.result?.length ? enrichmentData.company.financialData.result.map((r, i) => `Année ${new Date().getFullYear() - i}: ${r.toLocaleString('fr-FR')}€`).join(', ') : 'Non disponible'}
+    - Chiffre d'affaires: ${enrichmentData.company.financialData.ca?.length ? enrichmentData.company.financialData.ca.map((ca: number, i: number) => `Année ${new Date().getFullYear() - i}: ${ca.toLocaleString('fr-FR')}€`).join(', ') : 'Non disponible'}
+    - Résultat net: ${enrichmentData.company.financialData.result?.length ? enrichmentData.company.financialData.result.map((r: number, i: number) => `Année ${new Date().getFullYear() - i}: ${r.toLocaleString('fr-FR')}€`).join(', ') : 'Non disponible'}
     - Dettes: ${enrichmentData.company.financialData.debt ? `${enrichmentData.company.financialData.debt.toLocaleString('fr-FR')}€` : 'Non disponible'}
     - **⚠️ ALERTES À DÉTECTER**:
       * CA en baisse significative d'une année sur l'autre
