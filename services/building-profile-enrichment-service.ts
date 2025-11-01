@@ -103,6 +103,14 @@ export class BuildingProfileEnrichmentService {
       hasRnbData: !!rnbData,
       rnbDataKeys: rnbData ? Object.keys(rnbData) : [],
     })
+    
+    // Surface habitable (calculée une seule fois, utilisée dans STRUCTURE et VALORISATION)
+    const surface = enrichedData?.rnb?.surface || 
+                    rnbData?.surface ||
+                    enrichedData?.rnb?.surface_habitable ||
+                    enrichedData?.building?.surface ||
+                    dpeData?.surface
+    
     const characteristics: BuildingCharacteristic[] = []
 
     // ============================================
@@ -500,14 +508,8 @@ export class BuildingProfileEnrichmentService {
     // CATÉGORIE : VALORISATION
     // ============================================
 
-    // Surface habitable (déjà calculée dans la section STRUCTURE, réutiliser ici pour DVF)
-    const surface = enrichedData?.rnb?.surface || 
-                    rnbData?.surface ||
-                    enrichedData?.rnb?.surface_habitable ||
-                    enrichedData?.building?.surface ||
-                    dpeData?.surface
-
     // Estimation valeur (peut être dans dvfData.estimation.valeur_estimee ou calculée depuis prix_m2_estime × surface)
+    // Note: surface est déjà déclarée au début de la fonction
     let estimationValue = dvfData?.estimation?.valeur_estimee
     // Si pas d'estimation directe mais prix/m² et surface disponibles, calculer
     if (!estimationValue && dvfData?.estimation?.prix_m2_estime && surface) {
@@ -663,13 +665,7 @@ export class BuildingProfileEnrichmentService {
       })
     }
 
-    // Surface habitable (peut être dans RNB, enrichedData.rnb, enrichedData.building, ou dpeData)
-    const surface = enrichedData?.rnb?.surface || 
-                    rnbData?.surface ||
-                    enrichedData?.rnb?.surface_habitable ||
-                    enrichedData?.building?.surface ||
-                    dpeData?.surface
-    
+    // Surface habitable (déjà calculée au début de la fonction)
     if (surface) {
       characteristics.push({
         id: 'structure-living-area',
