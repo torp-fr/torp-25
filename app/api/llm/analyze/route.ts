@@ -107,7 +107,6 @@ export async function POST(request: NextRequest) {
     const minimalEnrichmentService = new MinimalEnrichmentService()
     
     // Parser CCF et enrichissement minimal en parallèle
-    let minimalEnrichmentData = null
     const minimalEnrichmentPromise = Promise.resolve().then(async () => {
       // Attendre d'avoir les données extraites depuis CCF si disponibles
       if (ccfData?.company?.siret) {
