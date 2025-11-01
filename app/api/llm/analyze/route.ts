@@ -162,7 +162,7 @@ export async function POST(request: NextRequest) {
         // Mettre en cache pour accélérer les prochaines analyses
         if (analysis.extractedData.company.siret && fullEnrichmentData.company) {
           const { globalCache } = await import('@/services/cache/data-cache')
-          globalCache.setEnrichedData(
+          globalCache.setEnrichment(
             `company:${analysis.extractedData.company.siret}`,
             fullEnrichmentData.company
           )
