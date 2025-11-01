@@ -194,6 +194,7 @@ export class BuildingProfileService {
    */
   /**
    * Enrichit un profil selon le flux : Adresse → Parcelle → Bâti → Données associées
+   * Cette méthode est appelée de manière asynchrone pour ne pas bloquer
    */
   async enrichProfile(profileId: string): Promise<BuildingProfileEnrichmentResult> {
     try {

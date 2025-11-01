@@ -119,25 +119,33 @@ export default function NewBuildingPage() {
       const createData = await createResponse.json()
       const profileId = createData.data.id
       
-      console.log('✅ Profil créé:', profileId)
+      console.log('[New Building] ✅ Profil créé:', profileId)
       
       // 2. Lancer l'enrichissement immédiatement et attendre qu'il démarre
       try {
+        console.log('[New Building] 🚀 Lancement enrichissement...')
         const enrichResponse = await fetch(`/api/building-profiles/${profileId}/enrich?userId=${DEMO_USER_ID}`, {
           method: 'POST',
         })
 
-        if (enrichResponse.ok) {
-          console.log('✅ Enrichissement lancé pour:', profileId)
-          // Attendre 1 seconde pour que le statut se mette à jour
-          await new Promise(resolve => setTimeout(resolve, 1000))
+        if (!enrichResponse.ok) {
+          const errorData = await enrichResponse.json().catch(() => ({}))
+          console.error('[New Building] ❌ Erreur enrichissement:', errorData)
+          throw new Error(errorData.error || 'Erreur lors de l\'enrichissement')
         }
+
+        const enrichData = await enrichResponse.json()
+        console.log('[New Building] ✅ Enrichissement lancé:', enrichData)
+        
+        // Attendre 2 secondes pour que l'enrichissement commence
+        await new Promise(resolve => setTimeout(resolve, 2000))
       } catch (enrichErr) {
-        console.warn('⚠️ Erreur lors du lancement de l\'enrichissement:', enrichErr)
-        // Ne pas bloquer, l'enrichissement pourra être lancé manuellement
+        console.error('[New Building] ❌ Erreur enrichissement:', enrichErr)
+        // Ne pas bloquer la redirection, mais loguer l'erreur
       }
       
       // 3. Rediriger vers la page de détail
+      console.log('[New Building] 🔄 Redirection vers:', `/buildings/${profileId}`)
       router.push(`/buildings/${profileId}`)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erreur lors de la création')

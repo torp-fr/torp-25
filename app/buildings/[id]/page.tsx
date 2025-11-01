@@ -627,31 +627,44 @@ export default function BuildingDetailPage() {
             )}
 
             {/* Carte d'Identité - Caractéristiques */}
-            {loadingCharacteristics ? (
-              <Card>
-                <CardContent className="py-12 text-center">
-                  <Loader2 className="mx-auto mb-4 h-8 w-8 animate-spin text-primary" />
-                  <p className="text-muted-foreground">Chargement des caractéristiques...</p>
-                </CardContent>
-              </Card>
-            ) : (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <FileText className="h-5 w-5" />
-                    Carte d&apos;Identité du Logement
-                  </CardTitle>
-                  <CardDescription>
-                    Informations complètes de votre logement
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  {characteristics.length === 0 ? (
-                    <div className="py-8 text-center text-muted-foreground">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <FileText className="h-5 w-5" />
+                  Carte d&apos;Identité du Logement
+                </CardTitle>
+                <CardDescription>
+                  Informations complètes de votre logement
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {loadingCharacteristics ? (
+                  <div className="py-12 text-center">
+                    <Loader2 className="mx-auto mb-4 h-8 w-8 animate-spin text-primary" />
+                    <p className="text-muted-foreground">Chargement des caractéristiques...</p>
+                  </div>
+                ) : characteristics.length === 0 ? (
+                  <div className="py-8 space-y-4">
+                    <div className="text-center text-muted-foreground">
                       <FileText className="mx-auto mb-2 h-8 w-8" />
-                      <p>Aucune caractéristique disponible</p>
+                      <p className="mb-2">Aucune caractéristique disponible</p>
+                      <p className="text-xs">L&apos;enrichissement peut être en cours. Rechargez la page dans quelques instants.</p>
                     </div>
-                  ) : (
+                    <div className="text-center">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          fetchCharacteristics()
+                          fetchProfile()
+                        }}
+                      >
+                        <RefreshCw className="mr-2 h-4 w-4" />
+                        Recharger
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
                     <div className="space-y-6">
                       {Object.entries(groupedCharacteristics).map(([category, chars]) => (
                         <div key={category} className="space-y-3">
@@ -771,9 +784,8 @@ export default function BuildingDetailPage() {
                       ))}
                     </div>
                   )}
-                </CardContent>
-              </Card>
-            )}
+              </CardContent>
+            </Card>
 
             {/* Statut enrichissement */}
             {(profile.enrichmentStatus === 'pending' || profile.enrichmentStatus === 'in_progress' || profile.enrichmentStatus === 'failed') && (
