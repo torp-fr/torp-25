@@ -283,7 +283,7 @@ export class AdvancedScoringEngine {
     allRecommendations.push(...finalRecommendations)
 
     return {
-      totalScore: Math.round(totalScore),
+      totalScore: Math.round(finalScore),
       grade,
       percentage: Math.round(percentage * 10) / 10,
       axisScores,
@@ -292,7 +292,12 @@ export class AdvancedScoringEngine {
         const priorityOrder: Record<'high' | 'medium' | 'low', number> = { high: 3, medium: 2, low: 1 }
         return priorityOrder[b.priority] - priorityOrder[a.priority]
       }),
-      confidenceLevel,
+      confidenceLevel: Math.round(confidenceLevel * 10) / 10,
+      mlPrediction: mlPrediction ? {
+        adjustments: mlPrediction.adjustments,
+        featureImportance: mlPrediction.featureImportance,
+        confidence: mlPrediction.confidence,
+      } : undefined,
       metadata: {
         profile: context.profile,
         projectType: context.projectType,

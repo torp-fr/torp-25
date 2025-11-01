@@ -111,6 +111,13 @@ export class DataCache {
   }
 
   /**
+   * Récupère des données cadastrales depuis le cache
+   */
+  getCadastral<T>(key: string): T | null {
+    return this.get<T>(key)
+  }
+
+  /**
    * Statistiques du cache
    */
   getStats(): { size: number; keys: string[] } {
