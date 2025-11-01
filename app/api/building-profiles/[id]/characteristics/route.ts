@@ -139,6 +139,14 @@ export async function GET(
     
     // TOUJOURS extraire les caractéristiques, même si données vides
     // Cela affichera au moins les champs "unknown" avec possibilité de saisie manuelle
+    console.log('[API Characteristics] 🔄 Extraction caractéristiques avec données:', {
+      enrichedDataKeys: Object.keys(enrichedData),
+      hasDPEData: !!profile.dpeData || !!enrichedData.energy || !!enrichedData.dpe,
+      hasGeorisques: !!georisquesData,
+      hasCadastral: !!(profile.cadastralData || enrichedData.cadastre),
+      hasDVF: !!dvfData,
+    })
+    
     const characteristics = enrichmentService.extractCharacteristics(
       enrichedData,
       profile.dpeData || enrichedData.energy || enrichedData.dpe,
@@ -151,12 +159,19 @@ export async function GET(
       total: characteristics.length,
       known: characteristics.filter(c => c.status === 'known').length,
       unknown: characteristics.filter(c => c.status === 'unknown').length,
+      partial: characteristics.filter(c => c.status === 'partial').length,
+      categories: Array.from(new Set(characteristics.map(c => c.category))),
     })
 
     // Grouper par catégorie
     const grouped = enrichmentService.groupByCategory(characteristics)
+    
+    console.log('[API Characteristics] 📊 Caractéristiques groupées:', {
+      groupedCategories: Object.keys(grouped),
+      totalInGrouped: Object.values(grouped).reduce((sum, chars) => sum + chars.length, 0),
+    })
 
-    return NextResponse.json({
+    const response = {
       success: true,
       data: {
         characteristics,
@@ -168,7 +183,16 @@ export async function GET(
           partial: characteristics.filter(c => c.status === 'partial').length,
         },
       },
+    }
+    
+    console.log('[API Characteristics] 📤 Réponse envoyée:', {
+      success: response.success,
+      characteristicsCount: response.data.characteristics.length,
+      groupedCount: Object.keys(response.data.grouped).length,
+      counts: response.data.counts,
     })
+
+    return NextResponse.json(response)
   } catch (error) {
     console.error('[API Building Profiles Characteristics] Erreur:', error)
     return NextResponse.json(
