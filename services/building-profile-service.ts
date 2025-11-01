@@ -266,26 +266,47 @@ export class BuildingProfileService {
         if (aggregatedData) {
           console.log('✅ Données bâti récupérées:', {
             hasPLU: !!aggregatedData.plu,
+            pluKeys: aggregatedData.plu ? Object.keys(aggregatedData.plu) : [],
             hasRNB: !!aggregatedData.rnb,
+            rnbKeys: aggregatedData.rnb ? Object.keys(aggregatedData.rnb) : [],
             hasDPE: !!aggregatedData.energy || !!aggregatedData.dpe,
+            energyKeys: aggregatedData.energy ? Object.keys(aggregatedData.energy) : [],
+            dpeKeys: aggregatedData.dpe ? Object.keys(aggregatedData.dpe) : [],
             hasGeorisques: !!aggregatedData.georisques,
+            georisquesKeys: aggregatedData.georisques ? Object.keys(aggregatedData.georisques) : [],
+            hasBuilding: !!aggregatedData.building,
+            hasUrbanism: !!aggregatedData.urbanism,
+            sources: aggregatedData.sources || [],
           })
           
-          sources.push(...aggregatedData.sources)
+          sources.push(...(aggregatedData.sources || []))
           
-          // Construire enrichedData progressivement
+          // Construire enrichedData progressivement - IMPORTANT : Ne pas mettre null si la clé existe déjà
           enrichedData = {
-            address: aggregatedData.address,
             ...enrichedData, // Conserver cadastre si déjà récupéré
-            urbanism: aggregatedData.urbanism || null,
-            building: aggregatedData.building || null,
-            energy: aggregatedData.energy || aggregatedData.dpe || null,
-            plu: aggregatedData.plu || null,
-            rnb: aggregatedData.rnb || null,
-            georisques: aggregatedData.georisques || null,
-            sources: aggregatedData.sources || [],
+            address: aggregatedData.address || enrichedData.address,
+            urbanism: aggregatedData.urbanism || enrichedData.urbanism || null,
+            building: aggregatedData.building || enrichedData.building || null,
+            energy: aggregatedData.energy || aggregatedData.dpe || enrichedData.energy || null,
+            dpe: aggregatedData.dpe || aggregatedData.energy || enrichedData.dpe || null,
+            plu: aggregatedData.plu || enrichedData.plu || null,
+            rnb: aggregatedData.rnb || enrichedData.rnb || null,
+            georisques: aggregatedData.georisques || enrichedData.georisques || null,
+            cadastre: enrichedData.cadastre || null, // Conserver cadastre de l'étape 1
+            sources: Array.from(new Set([...(aggregatedData.sources || []), ...(enrichedData.sources || [])])),
             lastUpdated: new Date().toISOString(),
           }
+          
+          console.log('[BuildingProfileService] 📦 enrichedData construit:', {
+            keys: Object.keys(enrichedData),
+            hasCadastre: !!enrichedData.cadastre,
+            hasPLU: !!enrichedData.plu,
+            hasRNB: !!enrichedData.rnb,
+            hasEnergy: !!enrichedData.energy,
+            hasDpe: !!enrichedData.dpe,
+            hasGeorisques: !!enrichedData.georisques,
+            cadastreKeys: enrichedData.cadastre ? Object.keys(enrichedData.cadastre) : [],
+          })
           
           // Sauvegarder dans les champs séparés aussi
           await prisma.buildingProfile.update({
@@ -298,8 +319,10 @@ export class BuildingProfileService {
               urbanismData: aggregatedData.urbanism ? (aggregatedData.urbanism as any) : null,
             },
           })
+          
+          console.log('[BuildingProfileService] ✅ Données sauvegardées en base')
         } else {
-          console.warn('⚠️ Aucune donnée bâti récupérée')
+          console.warn('⚠️ Aucune donnée bâti récupérée - aggregatedData est null')
         }
       } catch (error) {
         console.error('❌ Erreur récupération données bâti:', error)
@@ -344,14 +367,33 @@ export class BuildingProfileService {
       // FINALISATION
       // ============================================
       const uniqueSources = Array.from(new Set(sources))
-      const hasData = Object.keys(enrichedData).length > 1 // Plus que juste "address"
+      const enrichedDataKeys = Object.keys(enrichedData)
+      const hasData = enrichedDataKeys.length > 1 // Plus que juste "address"
       
       console.log('[BuildingProfileService] ✅ Enrichissement terminé:', {
         sources: uniqueSources.length,
+        sourcesList: uniqueSources,
         hasData,
+        enrichedDataKeys,
+        enrichedDataStructure: {
+          hasAddress: !!enrichedData.address,
+          hasCadastre: !!enrichedData.cadastre,
+          hasPLU: !!enrichedData.plu,
+          hasRNB: !!enrichedData.rnb,
+          hasEnergy: !!enrichedData.energy,
+          hasDpe: !!enrichedData.dpe,
+          hasGeorisques: !!enrichedData.georisques,
+          hasDVF: !!enrichedData.dvf,
+          hasBuilding: !!enrichedData.building,
+          hasUrbanism: !!enrichedData.urbanism,
+        },
         errors: errors.length,
+        errorsList: errors,
       })
 
+      // Sauvegarder enrichedData final - TOUJOURS sauvegarder même si partiel
+      const finalEnrichedData = Object.keys(enrichedData).length > 0 ? enrichedData : { address: addressData }
+      
       await prisma.buildingProfile.update({
         where: { id: profileId },
         data: {
@@ -359,10 +401,11 @@ export class BuildingProfileService {
           enrichmentSources: uniqueSources,
           enrichmentErrors: errors.length > 0 ? (errors as any) : null,
           lastEnrichedAt: new Date(),
-          // S'assurer que enrichedData est sauvegardé même si partiel
-          enrichedData: Object.keys(enrichedData).length > 0 ? (enrichedData as any) : null,
+          enrichedData: finalEnrichedData as any,
         },
       })
+      
+      console.log('[BuildingProfileService] ✅ Profil mis à jour en base avec enrichedData final')
 
       return {
         success: uniqueSources.length > 0 || hasData,
