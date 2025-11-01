@@ -49,7 +49,20 @@ export async function GET(
     const enrichmentService = new BuildingProfileEnrichmentService()
     
     // Construire enrichedData complet depuis toutes les sources disponibles
-    const enrichedData: any = profile.enrichedData ? { ...profile.enrichedData } : {}
+    // profile.enrichedData est un JsonValue de Prisma, il faut le convertir en objet
+    let enrichedData: any = {}
+    if (profile.enrichedData) {
+      if (typeof profile.enrichedData === 'object' && profile.enrichedData !== null && !Array.isArray(profile.enrichedData)) {
+        enrichedData = { ...(profile.enrichedData as Record<string, any>) }
+      } else {
+        // Si ce n'est pas un objet, essayer de le parser
+        try {
+          enrichedData = typeof profile.enrichedData === 'string' ? JSON.parse(profile.enrichedData) : profile.enrichedData
+        } catch {
+          enrichedData = {}
+        }
+      }
+    }
     
     // Compléter avec les données stockées séparément si enrichedData est vide ou incomplet
     // PRIORITÉ : Utiliser enrichedData d'abord, puis les champs séparés
