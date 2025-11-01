@@ -500,6 +500,13 @@ export class BuildingProfileEnrichmentService {
     // CATÉGORIE : VALORISATION
     // ============================================
 
+    // Surface habitable (déjà calculée dans la section STRUCTURE, réutiliser ici pour DVF)
+    const surface = enrichedData?.rnb?.surface || 
+                    rnbData?.surface ||
+                    enrichedData?.rnb?.surface_habitable ||
+                    enrichedData?.building?.surface ||
+                    dpeData?.surface
+
     // Estimation valeur (peut être dans dvfData.estimation.valeur_estimee ou calculée depuis prix_m2_estime × surface)
     let estimationValue = dvfData?.estimation?.valeur_estimee
     // Si pas d'estimation directe mais prix/m² et surface disponibles, calculer
