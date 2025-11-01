@@ -354,21 +354,8 @@ export async function POST(request: NextRequest) {
           alerts: advancedScore.overallAlerts,
           recommendations: advancedScore.overallRecommendations,
           algorithmVersion: 'advanced-v2.0.0',
-          regionalBenchmark: enrichmentData?.regionalData
-            ? {
-                region: enrichmentData.regionalData.region,
-                averagePriceSqm: enrichmentData.regionalData.averagePriceSqm,
-                percentilePosition: calculatePercentile(
-                  analysis.extractedData.totals.total,
-                  enrichmentData.regionalData
-                ),
-                comparisonData: {
-                  devisPrice: analysis.extractedData.totals.total,
-                  averagePrice: enrichmentData.regionalData.averagePriceSqm,
-                  priceRange: enrichmentData.regionalData.priceRange,
-                },
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              } as any
+          regionalBenchmark: (useAdvancedScoring && advancedScore && 'axisScores' in advancedScore && advancedScore.axisScores)
+            ? null // Les données régionales seront enrichies en arrière-plan
             : {
                 region: finalRegion,
                 averagePriceSqm: 1500,
@@ -649,6 +636,7 @@ function extractRegion(location: string): string {
  */
 function extractSourcesFromEnrichment(enrichmentData: any): string[] {
   const sources: string[] = []
+  if (!enrichmentData) return sources
   if (enrichmentData?.company?.siret) sources.push('Sirene')
   if (enrichmentData?.company?.financialData) sources.push('Infogreffe')
   if (enrichmentData?.company?.reputation) sources.push('Réputation')
@@ -656,6 +644,7 @@ function extractSourcesFromEnrichment(enrichmentData: any): string[] {
   if (enrichmentData?.regionalData) sources.push('Données Régionales')
   if (enrichmentData?.complianceData) sources.push('Conformité')
   if (enrichmentData?.weatherData) sources.push('Météo')
+  return sources
   return sources
 }
 
