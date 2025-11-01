@@ -496,28 +496,6 @@ export async function POST(request: NextRequest) {
   }
 }
 
-/**
- * Calcule le percentile d'un prix par rapport aux données régionales
- */
-function calculatePercentile(
-  price: number,
-  regionalData: { priceRange: { min: number; max: number; percentile25: number; percentile75: number } }
-): number {
-  const { min, max, percentile25, percentile75 } = regionalData.priceRange
-
-  if (price <= min) return 0
-  if (price >= max) return 100
-  if (price <= percentile25) {
-    // Entre min et percentile25 (0-25%)
-    return (price - min) / (percentile25 - min) * 25
-  }
-  if (price <= percentile75) {
-    // Entre percentile25 et percentile75 (25-75%)
-    return 25 + ((price - percentile25) / (percentile75 - percentile25)) * 50
-  }
-  // Entre percentile75 et max (75-100%)
-  return 75 + ((price - percentile75) / (max - percentile75)) * 25
-}
 
 /**
  * Inférer le type de métier depuis le texte brut
