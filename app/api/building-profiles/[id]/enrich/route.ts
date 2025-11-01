@@ -28,13 +28,19 @@ export async function POST(
     const service = new BuildingProfileService()
     
     // Appeler refreshEnrichment qui va appeler enrichProfile
-    console.log('[API Enrich] 📞 Appel refreshEnrichment...')
+    console.log('[API Enrich] 📞 Appel refreshEnrichment pour profileId:', id)
+    const startTime = Date.now()
+    
     const result = await service.refreshEnrichment(id, userId)
     
-    console.log('[API Enrich] ✅ Enrichissement terminé:', {
+    const duration = Date.now() - startTime
+    console.log('[API Enrich] ✅ Enrichissement terminé en', duration, 'ms:', {
       success: result.success,
-      sources: result.sources.length,
-      errors: result.errors?.length || 0,
+      sourcesCount: result.sources.length,
+      sources: result.sources,
+      errorsCount: result.errors?.length || 0,
+      errors: result.errors,
+      enrichedAt: result.enrichedAt,
     })
 
     return NextResponse.json({

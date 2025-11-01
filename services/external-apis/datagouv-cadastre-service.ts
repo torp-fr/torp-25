@@ -117,6 +117,7 @@ export class DataGouvCadastreService {
   async getParcellesByCommune(codeInsee: string): Promise<CadastreDataGouvParcelle[]> {
     try {
       console.log(`[DataGouvCadastreService] 🔍 Récupération parcelles pour commune: ${codeInsee}`)
+      console.log(`[DataGouvCadastreService] 📡 URL: ${this.cadastreApiBase}/communes/${codeInsee}/parcelles`)
       
       const response = await fetch(
         `${this.cadastreApiBase}/communes/${codeInsee}/parcelles`,
@@ -127,12 +128,22 @@ export class DataGouvCadastreService {
         }
       )
 
+      console.log(`[DataGouvCadastreService] 📥 Réponse HTTP: ${response.status} ${response.statusText}`)
+
       if (!response.ok) {
-        console.warn(`[DataGouvCadastreService] ⚠️ Erreur HTTP ${response.status} pour commune ${codeInsee}`)
+        const errorText = await response.text().catch(() => '')
+        console.warn(`[DataGouvCadastreService] ⚠️ Erreur HTTP ${response.status} pour commune ${codeInsee}:`, errorText.substring(0, 200))
         return []
       }
 
       const data = await response.json()
+      
+      console.log(`[DataGouvCadastreService] 📦 Données reçues:`, {
+        hasFeatures: !!(data.features),
+        featuresType: Array.isArray(data.features) ? 'array' : typeof data.features,
+        featuresLength: Array.isArray(data.features) ? data.features.length : 'N/A',
+        dataKeys: Object.keys(data),
+      })
       
       if (data.features && Array.isArray(data.features)) {
         const parcelles = data.features.map((feature: any) => {
@@ -150,12 +161,24 @@ export class DataGouvCadastreService {
         })
 
         console.log(`[DataGouvCadastreService] ✅ ${parcelles.length} parcelle(s) trouvée(s) pour ${codeInsee}`)
+        if (parcelles.length > 0) {
+          console.log(`[DataGouvCadastreService] 📋 Exemple parcelle:`, {
+            id: parcelles[0].id,
+            section: parcelles[0].section,
+            numero: parcelles[0].numero,
+            hasSurface: !!parcelles[0].surface,
+          })
+        }
         return parcelles
       }
 
+      console.warn(`[DataGouvCadastreService] ⚠️ Pas de features dans la réponse pour ${codeInsee}`)
       return []
     } catch (error) {
       console.error('[DataGouvCadastreService] ❌ Erreur récupération parcelles:', error)
+      if (error instanceof Error) {
+        console.error('[DataGouvCadastreService] ❌ Détails erreur:', error.message, error.stack)
+      }
       return []
     }
   }
@@ -304,6 +327,7 @@ export class DataGouvCadastreService {
       let codeInsee: string | null = null
       
       try {
+        console.log(`[DataGouvCadastreService] 🔄 Reverse geocoding pour:`, { lat: coordinates.lat, lng: coordinates.lng })
         const reverseGeoResponse = await fetch(
           `https://api-adresse.data.gouv.fr/reverse/?lat=${coordinates.lat}&lon=${coordinates.lng}`,
           {
@@ -311,13 +335,27 @@ export class DataGouvCadastreService {
           }
         )
         
+        console.log(`[DataGouvCadastreService] 📥 Reverse geocoding réponse: ${reverseGeoResponse.status} ${reverseGeoResponse.statusText}`)
+        
         if (reverseGeoResponse.ok) {
           const reverseData = await reverseGeoResponse.json()
+          console.log(`[DataGouvCadastreService] 📦 Reverse geocoding données:`, {
+            hasFeatures: !!(reverseData.features),
+            featuresLength: Array.isArray(reverseData.features) ? reverseData.features.length : 0,
+          })
+          
           if (reverseData.features && reverseData.features.length > 0) {
             const feature = reverseData.features[0]
-            const props = feature.properties
+            const props = feature.properties || {}
             // Le code INSEE est dans citycode
             codeInsee = props.citycode || null
+            
+            console.log(`[DataGouvCadastreService] 📍 Reverse geocoding résultat:`, {
+              hasCitycode: !!props.citycode,
+              citycode: props.citycode,
+              city: props.city,
+              postcode: props.postcode,
+            })
             
             if (codeInsee) {
               console.log(`[DataGouvCadastreService] ✅ Commune identifiée depuis coordonnées: ${codeInsee}`)
@@ -330,12 +368,24 @@ export class DataGouvCadastreService {
               if (parcelles.length > 0) {
                 console.log(`[DataGouvCadastreService] ✅ ${parcelles.length} parcelle(s) trouvée(s), retour de la première`)
                 return parcelles[0]
+              } else {
+                console.warn(`[DataGouvCadastreService] ⚠️ Aucune parcelle trouvée pour la commune ${codeInsee}`)
               }
+            } else {
+              console.warn(`[DataGouvCadastreService] ⚠️ Code INSEE non trouvé dans reverse geocoding`)
             }
+          } else {
+            console.warn(`[DataGouvCadastreService] ⚠️ Aucune feature dans reverse geocoding`)
           }
+        } else {
+          const errorText = await reverseGeoResponse.text().catch(() => '')
+          console.warn(`[DataGouvCadastreService] ⚠️ Reverse geocoding échoué: ${reverseGeoResponse.status}`, errorText.substring(0, 200))
         }
       } catch (error) {
-        console.warn('[DataGouvCadastreService] ⚠️ Erreur reverse geocoding:', error)
+        console.error('[DataGouvCadastreService] ❌ Erreur reverse geocoding:', error)
+        if (error instanceof Error) {
+          console.error('[DataGouvCadastreService] ❌ Détails erreur:', error.message)
+        }
       }
 
       // Si on n'a pas pu identifier via reverse geocoding, retourner null
