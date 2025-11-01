@@ -167,7 +167,10 @@ export async function POST(request: NextRequest) {
             fullEnrichmentData.company
           )
         }
-        console.log('[LLM Analyze] ✅ Enrichissement asynchrone terminé et mis en cache')
+        
+        // Logger les sources utilisées
+        const sources = extractSourcesFromEnrichment(fullEnrichmentData)
+        console.log(`[LLM Analyze] ✅ Enrichissement asynchrone terminé et mis en cache (sources: ${sources.join(', ') || 'aucune'})`)
       } catch (error) {
         console.warn('[LLM Analyze] ⚠️ Erreur enrichissement asynchrone (non-bloquant):', error)
       }
@@ -596,9 +599,7 @@ function extractRegion(location: string): string {
 
 /**
  * Extraire les sources depuis les données enrichies
- * NOTE: Fonction conservée pour usage futur avec enrichissement asynchrone
  */
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function extractSourcesFromEnrichment(enrichmentData: any): string[] {
   const sources: string[] = []
   if (!enrichmentData) return sources
