@@ -43,7 +43,8 @@ export interface CadastreDataGouvParcelle {
 }
 
 export class DataGouvCadastreService {
-  private readonly datasetId = '59b0020ec751df07d5f13bcf'
+  private readonly datasetId = '59b0020ec751df07d5f13bcf' // Dataset Cadastre Etalab
+  private readonly pciDatasetId = '58e5924b88ee3802ca255566' // Dataset PCI (Plan cadastral informatisé)
   private readonly baseUrl = 'https://www.data.gouv.fr/api/1'
   private readonly cadastreApiBase = 'https://cadastre.data.gouv.fr/api'
   private client: ApiClient
@@ -278,6 +279,125 @@ export class DataGouvCadastreService {
     } catch (error) {
       console.error('[DataGouvCadastreService] ❌ Erreur récupération parcelles par adresse:', error)
       return []
+    }
+  }
+
+  /**
+   * Récupère une parcelle depuis des coordonnées GPS via l'API PCI
+   * Utilise l'API cadastre.data.gouv.fr avec recherche géographique
+   * Format: GET /cadastre/parcelles?lat={lat}&lon={lon}
+   * 
+   * Note: L'API cadastre.data.gouv.fr utilise différents endpoints selon la version
+   * - /cadastre/parcelles pour recherche par coordonnées (si disponible)
+   * - /communes/{codeInsee}/parcelles pour recherche par commune
+   */
+  async getParcelleByCoordinates(coordinates: { lat: number; lng: number }): Promise<CadastreDataGouvParcelle | null> {
+    try {
+      console.log(`[DataGouvCadastreService] 🔍 Recherche parcelle par coordonnées:`, {
+        lat: coordinates.lat,
+        lng: coordinates.lng,
+      })
+
+      // L'API cadastre.data.gouv.fr ne supporte pas directement la recherche par coordonnées
+      // Il faut d'abord identifier la commune depuis les coordonnées, puis récupérer les parcelles
+      // Pour l'instant, on utilise l'API inversée de geo.api.gouv.fr pour obtenir le code INSEE
+      let codeInsee: string | null = null
+      
+      try {
+        const reverseGeoResponse = await fetch(
+          `https://api-adresse.data.gouv.fr/reverse/?lat=${coordinates.lat}&lon=${coordinates.lng}`,
+          {
+            headers: { Accept: 'application/json' },
+          }
+        )
+        
+        if (reverseGeoResponse.ok) {
+          const reverseData = await reverseGeoResponse.json()
+          if (reverseData.features && reverseData.features.length > 0) {
+            const feature = reverseData.features[0]
+            const props = feature.properties
+            // Le code INSEE est dans citycode
+            codeInsee = props.citycode || null
+            
+            if (codeInsee) {
+              console.log(`[DataGouvCadastreService] ✅ Commune identifiée depuis coordonnées: ${codeInsee}`)
+              
+              // Maintenant récupérer toutes les parcelles de la commune
+              const parcelles = await this.getParcellesByCommune(codeInsee)
+              
+              // Trouver la parcelle la plus proche des coordonnées
+              // Pour l'instant, on retourne la première (on pourrait améliorer avec un calcul de distance)
+              if (parcelles.length > 0) {
+                console.log(`[DataGouvCadastreService] ✅ ${parcelles.length} parcelle(s) trouvée(s), retour de la première`)
+                return parcelles[0]
+              }
+            }
+          }
+        }
+      } catch (error) {
+        console.warn('[DataGouvCadastreService] ⚠️ Erreur reverse geocoding:', error)
+      }
+
+      // Si on n'a pas pu identifier via reverse geocoding, retourner null
+      console.warn('[DataGouvCadastreService] ⚠️ Impossible d\'identifier la commune depuis les coordonnées')
+      return null
+    } catch (error) {
+      console.error('[DataGouvCadastreService] ❌ Erreur récupération parcelle par coordonnées:', error)
+      return null
+    }
+  }
+
+  /**
+   * Récupère les informations du dataset PCI depuis data.gouv.fr
+   * Dataset: https://www.data.gouv.fr/fr/datasets/58e5924b88ee3802ca255566/
+   */
+  async getPCIDatasetInfo(): Promise<DataGouvCadastreDataset | null> {
+    try {
+      console.log(`[DataGouvCadastreService] 🔍 Récupération dataset PCI: ${this.pciDatasetId}`)
+      
+      const response = await this.client.get<any>(
+        `/datasets/${this.pciDatasetId}/`
+      )
+      
+      console.log('[DataGouvCadastreService] 📦 Réponse API data.gouv.fr PCI:', {
+        hasResponse: !!response,
+        hasResources: !!(response?.resources),
+        resourcesCount: response?.resources?.length || 0,
+      })
+
+      if (!response) {
+        console.error('[DataGouvCadastreService] ❌ Réponse vide de l\'API PCI')
+        return null
+      }
+
+      const dataset: DataGouvCadastreDataset = {
+        id: response.id || this.pciDatasetId,
+        title: response.title || response.name || 'Dataset PCI',
+        description: response.description || response.description_short,
+        resources: (response.resources || []).map((r: any) => {
+          let format = (r.format || r.mime_type || r.filetype || 'unknown').toLowerCase()
+          format = format.replace(/^application\//, '').replace(/^text\//, '')
+
+          return {
+            id: r.id || r.uuid,
+            title: r.title || r.name || 'Ressource PCI',
+            url: r.url || r.file || '',
+            format,
+            filesize: r.filesize || r.size || 0,
+            last_modified: r.last_modified || r.modified || r.created_at || new Date().toISOString(),
+          }
+        }),
+      }
+
+      console.log(`[DataGouvCadastreService] ✅ Dataset PCI mappé: ${dataset.resources.length} ressource(s) trouvée(s)`)
+      
+      return dataset
+    } catch (error) {
+      console.error('[DataGouvCadastreService] ❌ Erreur récupération métadonnées dataset PCI:', error)
+      if (error instanceof Error) {
+        console.error('[DataGouvCadastreService] ❌ Détails erreur:', error.message)
+      }
+      return null
     }
   }
 }

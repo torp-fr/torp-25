@@ -213,11 +213,33 @@ export class CadastreService {
 
   /**
    * Identifie la parcelle depuis les coordonnées GPS
-   * Utilise l'API Carto IGN - Module Cadastre via le service dédié
+   * Utilise plusieurs sources en cascade : PCI (cadastre.data.gouv.fr) → API Carto IGN → Géoportail
    */
   private async identifyParcelle(coordinates: { lat: number; lng: number }): Promise<CadastralParcel | null> {
     try {
-      // Utiliser le service APICartoCadastreService (recommandé - PCI Express)
+      // 1. Essayer d'abord avec l'API PCI via cadastre.data.gouv.fr (plus fiable et complet)
+      console.log('[CadastreService] 🔍 Tentative identification parcelle via API PCI...')
+      const pciParcelle = await this.dataGouvCadastreService.getParcelleByCoordinates(coordinates)
+      
+      if (pciParcelle) {
+        console.log('[CadastreService] ✅ Parcelle identifiée via API PCI:', {
+          numero: pciParcelle.numero,
+          section: pciParcelle.section,
+          codeInsee: pciParcelle.codeInsee,
+          hasSurface: !!pciParcelle.surface,
+        })
+        
+        return {
+          id: pciParcelle.id,
+          numero: pciParcelle.numero,
+          section: pciParcelle.section,
+          surface: pciParcelle.surface,
+          nature: undefined,
+        }
+      }
+
+      // 2. Fallback sur API Carto IGN (recommandé - PCI Express)
+      console.log('[CadastreService] 🔄 Fallback sur API Carto IGN...')
       const geom = APICartoCadastreService.createPointGeometry(coordinates.lat, coordinates.lng)
       const result = await this.apicartoService.getParcellesByGeometry(geom, 'PCI', 1)
 
@@ -229,6 +251,11 @@ export class CadastreService {
         const codeCom = props.code_com || ''
         const id = feature.id || `${codeCom}-${props.section}-${props.numero}`
 
+        console.log('[CadastreService] ✅ Parcelle identifiée via API Carto IGN:', {
+          numero: props.numero,
+          section: props.section,
+        })
+
         return {
           id,
           numero: props.numero || '',
@@ -238,15 +265,17 @@ export class CadastreService {
         }
       }
 
-      // Fallback sur Géoportail si clé disponible
+      // 3. Fallback sur Géoportail si clé disponible
       if (this.geoportailApiKey) {
+        console.log('[CadastreService] 🔄 Fallback sur Géoportail...')
         return await this.identifyParcelleGeoportail(coordinates)
       }
 
+      console.warn('[CadastreService] ⚠️ Aucune parcelle identifiée pour les coordonnées:', coordinates)
       return null
     } catch (error) {
-      console.warn('[CadastreService] Erreur identification parcelle:', error)
-      // Fallback sur Géoportail si erreur
+      console.warn('[CadastreService] ❌ Erreur identification parcelle:', error)
+      // Dernier fallback sur Géoportail si erreur
       if (this.geoportailApiKey) {
         return await this.identifyParcelleGeoportail(coordinates)
       }

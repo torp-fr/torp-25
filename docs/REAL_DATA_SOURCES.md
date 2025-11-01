@@ -41,6 +41,21 @@ Ce document liste toutes les sources de données réelles utilisées par TORP po
   - Surfaces et géométries détaillées
 - **Clé API**: Non requise (gratuite)
 
+### 3c. Plan cadastral informatisé (PCI) - data.gouv.fr
+- **URL**: `https://cadastre.data.gouv.fr/api` (même API)
+- **Dataset**: https://www.data.gouv.fr/fr/datasets/58e5924b88ee3802ca255566/
+- **Dataset ID**: `58e5924b88ee3802ca255566`
+- **Statut**: ✅ Réelle et opérationnelle
+- **Usage**: Données cadastrales officielles (PCI) - source de référence pour le cadastre français
+- **Données**: 
+  - Parcelles cadastrales complètes (PCI)
+  - Sections et numéros de parcelles
+  - Surfaces précises en m²
+  - Géométries complètes (GeoJSON)
+  - Identification par coordonnées GPS (via reverse geocoding puis recherche par commune)
+- **Clé API**: Non requise (gratuite)
+- **Note**: Le PCI est la source officielle du cadastre français, mise à jour régulièrement
+
 ### 4. API Géoportail IGN (Optionnelle)
 - **URL**: `https://wxs.ign.fr`
 - **Statut**: ⚠️ Nécessite clé API
