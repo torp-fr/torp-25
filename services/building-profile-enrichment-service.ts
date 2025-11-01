@@ -45,6 +45,16 @@ export class BuildingProfileEnrichmentService {
   ): BuildingCharacteristic[] {
     console.log('[BuildingProfileEnrichmentService] 🔄 Extraction caractéristiques:', {
       hasEnrichedData: !!enrichedData && Object.keys(enrichedData).length > 0,
+      enrichedDataKeys: enrichedData ? Object.keys(enrichedData) : [],
+      enrichedDataStructure: enrichedData ? {
+        hasCadastre: !!enrichedData.cadastre,
+        hasPLU: !!enrichedData.plu,
+        hasRNB: !!enrichedData.rnb,
+        hasEnergy: !!enrichedData.energy,
+        hasDpe: !!enrichedData.dpe,
+        hasGeorisques: !!enrichedData.georisques,
+        hasDVF: !!enrichedData.dvf,
+      } : {},
       hasDPEData: !!profileDpeData,
       hasRiskData: !!profileRiskData,
       hasCadastralData: !!profileCadastralData,
@@ -56,6 +66,17 @@ export class BuildingProfileEnrichmentService {
     const riskData = profileRiskData || enrichedData?.georisques
     const cadastralData = profileCadastralData || enrichedData?.cadastre
     const dvfData = profileDvfData || enrichedData?.dvf
+    
+    console.log('[BuildingProfileEnrichmentService] 📊 Données extraites pour traitement:', {
+      hasDpeData: !!dpeData,
+      dpeDataKeys: dpeData ? Object.keys(dpeData) : [],
+      hasRiskData: !!riskData,
+      riskDataKeys: riskData ? Object.keys(riskData) : [],
+      hasCadastralData: !!cadastralData,
+      cadastralDataKeys: cadastralData ? Object.keys(cadastralData) : [],
+      hasDvfData: !!dvfData,
+      dvfDataKeys: dvfData ? Object.keys(dvfData) : [],
+    })
     const characteristics: BuildingCharacteristic[] = []
 
     // ============================================
