@@ -153,8 +153,9 @@ export class InfogreffeService {
       // Il faudrait consulter la documentation officielle pour les endpoints exacts
       // Pour l'instant, on retourne null et on utilise le dataset data.gouv.fr en fallback
       
-      console.log(`[InfogreffeService] 🔄 Tentative récupération depuis Explore API v2...`)
+      console.log(`[InfogreffeService] 🔄 Tentative récupération depuis Explore API v2 pour SIREN: ${siren}`)
       // TODO: Implémenter quand l'endpoint exact sera connu
+      // Endpoint potentiel: /api/v2/companies/{siren} ou similaire
       
       return null
     } catch (error) {
