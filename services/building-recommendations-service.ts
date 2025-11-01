@@ -3,8 +3,6 @@
  * Analyse les données enrichies et génère des recommandations personnalisées
  */
 
-import type { AggregatedBuildingData } from './external-apis/types'
-
 export interface BuildingRecommendation {
   id: string
   priority: 'high' | 'medium' | 'low'
