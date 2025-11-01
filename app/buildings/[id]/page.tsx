@@ -171,17 +171,29 @@ export default function BuildingDetailPage() {
 
   useEffect(() => {
     if (profile) {
-      fetchRecommendations()
+      console.log('[Building Detail] 📋 Profil chargé, lancement récupération données:', {
+        id: profile.id,
+        enrichmentStatus: profile.enrichmentStatus,
+        hasEnrichedData: !!profile.enrichedData,
+      })
+      
+      // TOUJOURS charger les caractéristiques, même si pas encore enrichi
       fetchCharacteristics()
+      fetchRecommendations()
       
       // Si l'enrichissement est en cours, poller régulièrement
       if (profile.enrichmentStatus === 'in_progress') {
+        console.log('[Building Detail] 🔄 Enrichissement en cours, activation polling...')
         const interval = setInterval(() => {
+          console.log('[Building Detail] 🔄 Polling: rechargement données...')
           fetchProfile()
           fetchCharacteristics()
         }, 3000) // Toutes les 3 secondes
         
-        return () => clearInterval(interval)
+        return () => {
+          console.log('[Building Detail] 🛑 Arrêt polling')
+          clearInterval(interval)
+        }
       }
     }
   }, [profile])

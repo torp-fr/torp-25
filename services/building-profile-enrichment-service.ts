@@ -55,22 +55,27 @@ export class BuildingProfileEnrichmentService {
     // ============================================
     
     // Zone inondable
-    const isFloodZone = riskData?.tri?.length > 0 || 
-                       riskData?.azi?.length > 0 || 
-                       riskData?.papi?.length > 0 ||
-                       cadastralData?.constraints?.isFloodZone
+    const hasTri = riskData?.tri && Array.isArray(riskData.tri) && riskData.tri.length > 0
+    const hasAzi = riskData?.azi && Array.isArray(riskData.azi) && riskData.azi.length > 0
+    const hasPapi = riskData?.papi && Array.isArray(riskData.papi) && riskData.papi.length > 0
+    const hasCadastralFlood = cadastralData?.constraints?.isFloodZone === true
+    
+    const isFloodZone = hasTri || hasAzi || hasPapi || hasCadastralFlood
+    const hasFloodData = hasTri || hasAzi || hasPapi || cadastralData?.constraints?.isFloodZone !== undefined
     
     characteristics.push({
       id: 'risk-flood',
       category: 'risques',
       label: 'Zone inondable',
       value: isFloodZone,
-      valueDisplay: isFloodZone ? 'Oui' : 'Non',
-      status: isFloodZone !== undefined ? 'known' : 'unknown',
+      valueDisplay: hasFloodData ? (isFloodZone ? 'Oui' : 'Non') : 'Non renseignée',
+      status: hasFloodData ? 'known' : 'unknown',
       editable: true,
       priority: 'high',
       icon: 'AlertTriangle',
-      description: isFloodZone ? 'Le terrain est situé en zone à risque d\'inondation' : 'Aucun risque d\'inondation identifié',
+      description: hasFloodData 
+        ? (isFloodZone ? 'Le terrain est situé en zone à risque d\'inondation' : 'Aucun risque d\'inondation identifié')
+        : 'Risque d\'inondation à renseigner',
     })
 
     // Exposition au radon
@@ -110,21 +115,23 @@ export class BuildingProfileEnrichmentService {
     }
 
     // Mouvements de terrain
-    const hasGroundMovement = riskData?.mvt?.length > 0
-    if (hasGroundMovement !== undefined) {
-      characteristics.push({
-        id: 'risk-ground-movement',
-        category: 'risques',
-        label: 'Mouvements de terrain',
-        value: hasGroundMovement,
-        valueDisplay: hasGroundMovement ? 'Présents' : 'Aucun',
-        status: 'known',
-        editable: true,
-        priority: 'high',
-        icon: 'AlertTriangle',
-        description: hasGroundMovement ? 'Des mouvements de terrain ont été identifiés' : 'Aucun mouvement de terrain identifié',
-      })
-    }
+    const hasMvtData = riskData?.mvt && Array.isArray(riskData.mvt)
+    const hasGroundMovement = hasMvtData && riskData.mvt.length > 0
+    
+    characteristics.push({
+      id: 'risk-ground-movement',
+      category: 'risques',
+      label: 'Mouvements de terrain',
+      value: hasGroundMovement || null,
+      valueDisplay: hasMvtData ? (hasGroundMovement ? 'Présents' : 'Aucun') : 'Non renseignés',
+      status: hasMvtData ? 'known' : 'unknown',
+      editable: true,
+      priority: 'high',
+      icon: 'AlertTriangle',
+      description: hasMvtData 
+        ? (hasGroundMovement ? 'Des mouvements de terrain ont été identifiés' : 'Aucun mouvement de terrain identifié')
+        : 'Mouvements de terrain à renseigner',
+    })
 
     // Retrait-gonflement des argiles
     const clayRisk = riskData?.rga?.potentiel
