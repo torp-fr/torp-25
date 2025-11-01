@@ -107,10 +107,26 @@ export class CadastreService {
       }
 
       // 1. Identifier la parcelle depuis les coordonnées
-      const parcelle = await this.identifyParcelle(coordinates)
+      let parcelle = await this.identifyParcelle(coordinates)
       if (!parcelle) {
-        return this.getBasicCadastralData(address)
+        console.warn('[CadastreService] ⚠️ Parcelle non identifiée, utilisation données de base')
+        const basicData = await this.getBasicCadastralData(address)
+        if (basicData) {
+          console.log('[CadastreService] ✅ Données cadastrales de base retournées:', {
+            hasCommune: !!basicData.commune,
+            hasCodeINSEE: !!basicData.codeINSEE,
+            codeINSEE: basicData.codeINSEE,
+            hasCoordinates: !!basicData.coordinates,
+          })
+        }
+        return basicData
       }
+      
+      console.log('[CadastreService] ✅ Parcelle identifiée:', {
+        numero: parcelle.numero,
+        section: parcelle.section,
+        hasSurface: !!parcelle.surface,
+      })
 
       // 2. Récupérer les détails de la parcelle
       const [parcelleDetails, constraints, connectivity] = await Promise.all([
@@ -183,8 +199,15 @@ export class CadastreService {
         lastUpdated: new Date().toISOString(),
       }
     } catch (error) {
-      console.error('[CadastreService] Erreur récupération données cadastrales:', error)
-      return this.getBasicCadastralData(address)
+      console.error('[CadastreService] ❌ Erreur récupération données cadastrales:', error)
+      // En cas d'erreur, retourner au moins les données de base
+      const basicData = await this.getBasicCadastralData(address)
+      console.log('[CadastreService] ✅ Retour données de base après erreur:', {
+        hasCommune: !!basicData.commune,
+        hasCodeINSEE: !!basicData.codeINSEE,
+        codeINSEE: basicData.codeINSEE,
+      })
+      return basicData
     }
   }
 
@@ -499,12 +522,35 @@ export class CadastreService {
   /**
    * Retourne des données cadastrales basiques si l'API n'est pas disponible
    */
-  private getBasicCadastralData(address: AddressData): CadastralData {
+  private async getBasicCadastralData(address: AddressData): Promise<CadastralData> {
+    // Récupérer le code INSEE réel depuis l'API Communes
+    let codeINSEE = address.postalCode?.substring(0, 2) || '' // Fallback temporaire
+    let codeDepartement = address.postalCode?.substring(0, 2) || ''
+    
+    try {
+      if (address.postalCode && address.city) {
+        const communeResponse = await fetch(
+          `https://geo.api.gouv.fr/communes?codePostal=${address.postalCode}&nom=${encodeURIComponent(address.city)}&format=json`,
+          { headers: { Accept: 'application/json' } }
+        )
+        
+        if (communeResponse.ok) {
+          const communes = await communeResponse.json()
+          if (communes && communes.length > 0) {
+            codeINSEE = communes[0].code // Code INSEE complet (5 chiffres)
+            codeDepartement = communes[0].code?.substring(0, 2) || codeDepartement
+          }
+        }
+      }
+    } catch (error) {
+      console.warn('[CadastreService] ⚠️ Erreur récupération code INSEE pour données de base:', error)
+    }
+
     return {
-      commune: address.city,
-      codeINSEE: address.postalCode.substring(0, 2),
-      codeDepartement: address.postalCode.substring(0, 2),
-      coordinates: address.coordinates,
+      commune: address.city || '',
+      codeINSEE,
+      codeDepartement,
+      coordinates: address.coordinates || undefined,
       sources: ['API Adresse'],
       lastUpdated: new Date().toISOString(),
     }

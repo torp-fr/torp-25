@@ -283,21 +283,25 @@ export class BuildingProfileService {
           
           sources.push(...(aggregatedData.sources || []))
           
-          // Construire enrichedData progressivement - IMPORTANT : Ne pas mettre null si la clé existe déjà
-          enrichedData = {
-            ...enrichedData, // Conserver cadastre si déjà récupéré
-            address: aggregatedData.address || enrichedData.address,
-            urbanism: aggregatedData.urbanism || enrichedData.urbanism || null,
-            building: aggregatedData.building || enrichedData.building || null,
-            energy: aggregatedData.energy || aggregatedData.dpe || enrichedData.energy || null,
-            dpe: aggregatedData.dpe || aggregatedData.energy || enrichedData.dpe || null,
-            plu: aggregatedData.plu || enrichedData.plu || null,
-            rnb: aggregatedData.rnb || enrichedData.rnb || null,
-            georisques: aggregatedData.georisques || enrichedData.georisques || null,
-            cadastre: enrichedData.cadastre || null, // Conserver cadastre de l'étape 1
-            sources: Array.from(new Set([...(aggregatedData.sources || []), ...(enrichedData.sources || [])])),
-            lastUpdated: new Date().toISOString(),
-          }
+             // Construire enrichedData progressivement - IMPORTANT : Ne pas mettre null si la clé existe déjà
+             // GARANTIR qu'on a au moins l'adresse et le cadastre de base
+             enrichedData = {
+               address: aggregatedData.address || enrichedData.address || addressData,
+               cadastre: enrichedData.cadastre || aggregatedData.cadastre || null, // Conserver cadastre de l'étape 1, même basique
+               urbanism: aggregatedData.urbanism || enrichedData.urbanism || null,
+               building: aggregatedData.building || enrichedData.building || null,
+               energy: aggregatedData.energy || aggregatedData.dpe || enrichedData.energy || null,
+               dpe: aggregatedData.dpe || aggregatedData.energy || enrichedData.dpe || null,
+               plu: aggregatedData.plu || enrichedData.plu || null,
+               rnb: aggregatedData.rnb || enrichedData.rnb || null,
+               georisques: aggregatedData.georisques || enrichedData.georisques || null,
+               sources: Array.from(new Set([
+                 ...(aggregatedData.sources || []), 
+                 ...(enrichedData.sources || []),
+                 'API Adresse', // Toujours présent
+               ])),
+               lastUpdated: new Date().toISOString(),
+             }
           
           console.log('[BuildingProfileService] 📦 enrichedData construit:', {
             keys: Object.keys(enrichedData),
