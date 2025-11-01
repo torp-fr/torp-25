@@ -121,6 +121,9 @@ export async function POST(request: NextRequest) {
     }).catch(() => null)
 
     const minimalEnrichmentDuration = Date.now() - minimalEnrichmentStartTime
+    if (minimalEnrichmentDuration > 10) {
+      console.log(`[LLM Analyze] Enrichissement minimal préparé (${minimalEnrichmentDuration}ms)`)
+    }
     
     // 2. Analyse LLM UNIQUE (une seule fois, avec enrichissement minimal si disponible)
     // On évite la double analyse (initiale + finale) pour gagner ~2-3s
