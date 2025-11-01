@@ -90,6 +90,12 @@ export class DPEService {
    */
   async getDPEData(address: AddressData): Promise<DPEData | null> {
     try {
+      console.log('[DPEService] 🔄 Récupération données DPE pour:', {
+        formatted: address.formatted,
+        city: address.city,
+        postalCode: address.postalCode,
+      })
+
       // 1. Essayer de récupérer depuis un index local (si implémenté)
       // TODO: Implémenter DPEIndexer similaire à RNBIndexer si nécessaire
 
@@ -97,13 +103,20 @@ export class DPEService {
       const dpeData = await this.searchDPEByAddress(address)
       
       if (dpeData) {
+        console.log('[DPEService] ✅ Données DPE récupérées:', {
+          hasDPEClass: !!dpeData.dpeClass,
+          hasEnergyConsumption: !!dpeData.energyConsumption,
+          hasGHGEmissions: !!dpeData.ghgEmissions,
+          dpeClass: dpeData.dpeClass,
+        })
         return dpeData
       }
 
       // 3. Si aucune donnée trouvée, retourner null
+      console.warn('[DPEService] ⚠️ Aucune donnée DPE trouvée pour:', address.formatted)
       return null
     } catch (error) {
-      console.error('[DPEService] Erreur récupération données DPE:', error)
+      console.error('[DPEService] ❌ Erreur récupération données DPE:', error)
       return null
     }
   }

@@ -93,8 +93,16 @@ export class CadastreService {
     try {
       const { coordinates, city, postalCode } = address
 
+      console.log('[CadastreService] 🔄 Récupération données cadastrales pour:', {
+        formatted: address.formatted,
+        city,
+        postalCode,
+        hasCoordinates: !!coordinates,
+        coordinates: coordinates ? { lat: coordinates.lat, lng: coordinates.lng } : null,
+      })
+
       if (!coordinates) {
-        console.warn('[CadastreService] Coordonnées manquantes pour:', address.formatted)
+        console.warn('[CadastreService] ⚠️ Coordonnées manquantes pour:', address.formatted)
         return null
       }
 

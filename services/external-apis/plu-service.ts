@@ -45,24 +45,51 @@ export class PLUService {
     try {
       const { city, postalCode, coordinates } = address
 
+      console.log('[PLUService] 🔄 Récupération données PLU pour:', {
+        formatted: address.formatted,
+        city,
+        postalCode,
+        hasCoordinates: !!coordinates,
+      })
+
       // 1. Identifier la commune depuis le code postal
       const communeData = await this.identifyCommune(city, postalCode)
       if (!communeData) {
-        console.warn('[PLUService] Commune non identifiée pour:', city, postalCode)
+        console.warn('[PLUService] ⚠️ Commune non identifiée pour:', city, postalCode)
         return null
       }
+
+      console.log('[PLUService] ✅ Commune identifiée:', communeData)
 
       // 2. Récupérer les données PLU depuis data.gouv.fr
       const pluData = await this.fetchPLUFromDataGouv(communeData.codeINSEE)
 
       // 3. Si pas de données PLU centralisées, tenter d'autres sources
       if (!pluData && coordinates) {
-        return await this.fetchPLUFromAlternativeSources(communeData, coordinates)
+        const altData = await this.fetchPLUFromAlternativeSources(communeData, coordinates)
+        if (altData) {
+          console.log('[PLUService] ✅ Données PLU récupérées (source alternative):', {
+            hasZone: !!altData.zone,
+            hasZonage: !!altData.zonage,
+            hasContraintes: !!(altData.contraintes && altData.contraintes.length > 0),
+          })
+          return altData
+        }
+      }
+
+      if (pluData) {
+        console.log('[PLUService] ✅ Données PLU récupérées:', {
+          hasZone: !!pluData.zone,
+          hasZonage: !!pluData.zonage,
+          hasContraintes: !!(pluData.contraintes && pluData.contraintes.length > 0),
+        })
+      } else {
+        console.warn('[PLUService] ⚠️ Aucune donnée PLU trouvée pour:', address.formatted)
       }
 
       return pluData
     } catch (error) {
-      console.error('[PLUService] Erreur récupération PLU:', error)
+      console.error('[PLUService] ❌ Erreur récupération PLU:', error)
       return null
     }
   }

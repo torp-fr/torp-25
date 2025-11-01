@@ -120,8 +120,15 @@ export class GeorisquesService {
     try {
       const { coordinates, city, postalCode } = address
 
+      console.log('[GeorisquesService] 🔄 Récupération données risques pour:', {
+        formatted: address.formatted,
+        city,
+        postalCode,
+        hasCoordinates: !!coordinates,
+      })
+
       if (!postalCode) {
-        console.warn('[GeorisquesService] Code postal manquant pour:', address.formatted)
+        console.warn('[GeorisquesService] ⚠️ Code postal manquant pour:', address.formatted)
         return null
       }
 
@@ -184,7 +191,7 @@ export class GeorisquesService {
       if (radon) sources.push('Radon')
       if (sismique) sources.push('Zonage Sismique')
 
-      return {
+      const result = {
         tri,
         azi,
         papi,
@@ -199,6 +206,20 @@ export class GeorisquesService {
         sources,
         lastUpdated: new Date().toISOString(),
       }
+
+      console.log('[GeorisquesService] ✅ Données risques récupérées:', {
+        hasTri: !!(tri && tri.length > 0),
+        hasAzi: !!(azi && azi.length > 0),
+        hasRga: !!rga,
+        hasRadon: !!radon,
+        hasSismique: !!sismique,
+        hasMvt: !!(mvt && mvt.length > 0),
+        hasSSP: !!ssp,
+        hasInstallations: !!(installations && installations.length > 0),
+        sources,
+      })
+
+      return result
     } catch (error) {
       console.error('[GeorisquesService] ❌ Erreur récupération données risques:', error)
       return null
