@@ -35,18 +35,23 @@ export async function GET(
 
     const score = devis.torpScores[0]
     const extractedData = devis.extractedData as any
-    const enrichedData = ((devis as any).enrichedData) || {}
+    const enrichedData = (devis as any).enrichedData || {}
 
-    // Récupérer les données d'entreprise si disponibles
+    // Récupérer les données d'entreprise enrichies
     let companyData: any = null
-    if (extractedData?.company?.siret || enrichedData?.company) {
+    const companyEnrichment = enrichedData?.company
+
+    if (extractedData?.company?.siret || companyEnrichment) {
       companyData = {
-        siret: extractedData?.company?.siret || enrichedData?.company?.siret,
-        name: extractedData?.company?.name || enrichedData?.company?.name,
-        financialData: enrichedData?.company?.financialData,
-        legalStatus: enrichedData?.company?.legalStatusDetails,
-        certifications: enrichedData?.company?.certifications,
-        reputation: enrichedData?.company?.reputation,
+        siret: extractedData?.company?.siret || companyEnrichment?.siret,
+        name: extractedData?.company?.name || companyEnrichment?.name,
+        financialData: companyEnrichment?.financialData,
+        legalStatus: companyEnrichment?.legalStatusDetails,
+        certifications: companyEnrichment?.certifications,
+        reputation: companyEnrichment?.reputation,
+        address: companyEnrichment?.address,
+        legalStatusInfo: companyEnrichment?.legalStatus,
+        activities: companyEnrichment?.activities,
       }
     }
 
@@ -80,4 +85,3 @@ export async function GET(
     )
   }
 }
-

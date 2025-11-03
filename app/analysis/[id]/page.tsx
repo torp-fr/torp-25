@@ -149,7 +149,7 @@ export default function AnalysisPage() {
       if (scoreResponse.ok) {
         const scoreData = await scoreResponse.json()
         setScore(scoreData.data)
-        
+
         // Charger les insights si le score existe
         if (scoreData.data) {
           fetchInsights()
@@ -158,9 +158,7 @@ export default function AnalysisPage() {
 
       setError(null)
     } catch (err) {
-      setError(
-        err instanceof Error ? err.message : 'Erreur inconnue'
-      )
+      setError(err instanceof Error ? err.message : 'Erreur inconnue')
     } finally {
       setLoading(false)
     }
@@ -168,6 +166,22 @@ export default function AnalysisPage() {
 
   const fetchInsights = async () => {
     try {
+      // D'abord, enrichir les données d'entreprise si nécessaire
+      if (devis?.extractedData?.company?.siret) {
+        const enrichResponse = await fetch(
+          `/api/analysis/${devisId}/enrich-company`
+        )
+        if (enrichResponse.ok) {
+          // Les données enrichies sont maintenant sauvegardées, recharger le devis
+          const devisResponse = await fetch(`/api/devis/${devisId}`)
+          if (devisResponse.ok) {
+            const devisData = await devisResponse.json()
+            setDevis(devisData.data)
+          }
+        }
+      }
+
+      // Ensuite, charger les insights
       const response = await fetch(`/api/analysis/${devisId}/insights`)
       if (response.ok) {
         const data = await response.json()
@@ -237,7 +251,9 @@ export default function AnalysisPage() {
       <div className="flex min-h-screen items-center justify-center">
         <div className="text-center">
           <div className="mb-4 h-12 w-12 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>
-          <p className="text-muted-foreground">Chargement de l&apos;analyse...</p>
+          <p className="text-muted-foreground">
+            Chargement de l&apos;analyse...
+          </p>
         </div>
       </div>
     )
@@ -262,7 +278,7 @@ export default function AnalysisPage() {
   }
 
   const extractedDataAny = devis.extractedData as any
-  const enrichedCompanyData = extractedDataAny?.enrichedData?.company || {}
+  const enrichedCompanyData = (devis as any).enrichedData?.company || {}
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
@@ -273,19 +289,24 @@ export default function AnalysisPage() {
         <div className="mb-8">
           <div className="flex items-start justify-between">
             <div>
-              <h1 className="text-4xl font-bold mb-2">Analyse TORP</h1>
-              <p className="text-muted-foreground text-lg">
-                {devis.extractedData.company.name} • {devis.extractedData.project.title}
+              <h1 className="mb-2 text-4xl font-bold">Analyse TORP</h1>
+              <p className="text-lg text-muted-foreground">
+                {devis.extractedData.company.name} •{' '}
+                {devis.extractedData.project.title}
               </p>
             </div>
             {score && (
-              <div className={`rounded-2xl border-4 p-6 ${getGradeColor(score.scoreGrade)}`}>
+              <div
+                className={`rounded-2xl border-4 p-6 ${getGradeColor(score.scoreGrade)}`}
+              >
                 <div className="text-center">
-                  <div className="text-6xl font-bold mb-2">{score.scoreGrade}</div>
+                  <div className="mb-2 text-6xl font-bold">
+                    {score.scoreGrade}
+                  </div>
                   <div className="text-2xl font-semibold">
                     {Math.round(Number(score.scoreValue))}/1000
                   </div>
-                  <div className="text-sm mt-1 opacity-75">
+                  <div className="mt-1 text-sm opacity-75">
                     Confiance: {Math.round(Number(score.confidenceLevel))}%
                   </div>
                 </div>
@@ -304,59 +325,268 @@ export default function AnalysisPage() {
               </div>
             </CardHeader>
             <CardContent>
-              <p className="text-lg leading-relaxed">{insights.executiveSummary}</p>
+              <p className="text-lg leading-relaxed">
+                {insights.executiveSummary}
+              </p>
             </CardContent>
           </Card>
         )}
 
-        {/* Company Verification - New Section */}
-        {insights?.companyVerification && (
+        {/* Company Verification - Enriched Section */}
+        {(insights?.companyVerification ||
+          enrichedCompanyData ||
+          devis.extractedData.company.siret) && (
           <Card className="mb-6">
             <CardHeader>
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <Shield className="h-5 w-5 text-green-600" />
+                  <Shield
+                    className={`h-5 w-5 ${insights?.companyVerification?.verified ? 'text-green-600' : 'text-gray-400'}`}
+                  />
                   <CardTitle>Vérification Entreprise</CardTitle>
                 </div>
-                <Badge variant={insights.companyVerification.verified ? "default" : "secondary"}>
-                  {insights.companyVerification.verified ? 'Vérifié' : 'Non vérifié'}
+                <Badge
+                  variant={
+                    insights?.companyVerification?.verified
+                      ? 'default'
+                      : 'secondary'
+                  }
+                >
+                  {insights?.companyVerification?.verified
+                    ? 'Vérifié'
+                    : 'Non vérifié'}
                 </Badge>
               </div>
             </CardHeader>
             <CardContent className="space-y-4">
+              {/* SIRET Info */}
+              {devis.extractedData.company.siret && (
+                <div className="rounded-lg border bg-blue-50 p-4">
+                  <div className="mb-2 flex items-center justify-between">
+                    <p className="text-sm font-semibold">SIRET</p>
+                    <Badge variant="outline">
+                      {devis.extractedData.company.siret}
+                    </Badge>
+                  </div>
+                </div>
+              )}
+
+              {/* Verification Status */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <p className="text-sm text-muted-foreground">Confiance</p>
-                  <p className="text-lg font-semibold">{insights.companyVerification.confidence}%</p>
+                  <p className="text-lg font-semibold">
+                    {insights?.companyVerification?.confidence || 0}%
+                  </p>
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Sources</p>
-                  <p className="text-sm font-medium">
-                    {insights.companyVerification.dataSources.length > 0
-                      ? insights.companyVerification.dataSources.join(', ')
-                      : 'Aucune'}
-                  </p>
+                  <div className="mt-1 flex flex-wrap gap-1">
+                    {insights?.companyVerification?.dataSources &&
+                    insights.companyVerification.dataSources.length > 0
+                      ? insights.companyVerification.dataSources.map(
+                          (source, idx) => (
+                            <Badge
+                              key={idx}
+                              variant="outline"
+                              className="text-xs"
+                            >
+                              {source}
+                            </Badge>
+                          )
+                        )
+                      : enrichedCompanyData?.siret && (
+                          <Badge variant="outline" className="text-xs">
+                            Sirene
+                          </Badge>
+                        )}
+                    {!insights?.companyVerification?.dataSources?.length &&
+                      !enrichedCompanyData?.siret && (
+                        <span className="text-xs text-muted-foreground">
+                          Aucune
+                        </span>
+                      )}
+                  </div>
                 </div>
               </div>
-              
+
+              {/* Financial Data */}
               {enrichedCompanyData.financialData && (
-                <div className="rounded-lg border bg-gray-50 p-4">
-                  <p className="text-sm font-semibold mb-2">Données Financières</p>
-                  {enrichedCompanyData.financialData.capital && (
-                    <p className="text-xs text-muted-foreground">
-                      Capital: {formatCurrency(enrichedCompanyData.financialData.capital)}
+                <div className="space-y-3 rounded-lg border bg-green-50 p-4">
+                  <p className="text-sm font-semibold text-green-800">
+                    Données Financières (Infogreffe)
+                  </p>
+                  {enrichedCompanyData.financialData.ca &&
+                    enrichedCompanyData.financialData.ca.length > 0 && (
+                      <div>
+                        <p className="mb-1 text-xs text-muted-foreground">
+                          Chiffre d&apos;affaires
+                        </p>
+                        <div className="space-y-1">
+                          {enrichedCompanyData.financialData.ca
+                            .slice(0, 3)
+                            .map((ca: number, i: number) => (
+                              <p key={i} className="text-sm font-medium">
+                                {new Date().getFullYear() - i}:{' '}
+                                {formatCurrency(ca)}
+                              </p>
+                            ))}
+                        </div>
+                      </div>
+                    )}
+                  {enrichedCompanyData.financialData.result &&
+                    enrichedCompanyData.financialData.result.length > 0 && (
+                      <div>
+                        <p className="mb-1 text-xs text-muted-foreground">
+                          Résultat net
+                        </p>
+                        <div className="space-y-1">
+                          {enrichedCompanyData.financialData.result
+                            .slice(0, 3)
+                            .map((result: number, i: number) => (
+                              <p
+                                key={i}
+                                className={`text-sm font-medium ${result < 0 ? 'text-red-600' : 'text-green-600'}`}
+                              >
+                                {new Date().getFullYear() - i}:{' '}
+                                {formatCurrency(result)}
+                              </p>
+                            ))}
+                        </div>
+                      </div>
+                    )}
+                  {enrichedCompanyData.financialData.debt && (
+                    <div>
+                      <p className="mb-1 text-xs text-muted-foreground">
+                        Dettes
+                      </p>
+                      <p className="text-sm font-medium">
+                        {formatCurrency(enrichedCompanyData.financialData.debt)}
+                      </p>
+                    </div>
+                  )}
+                  {enrichedCompanyData.financialData.lastUpdate && (
+                    <p className="mt-2 text-xs text-muted-foreground">
+                      Dernière mise à jour:{' '}
+                      {new Date(
+                        enrichedCompanyData.financialData.lastUpdate
+                      ).toLocaleDateString('fr-FR')}
                     </p>
                   )}
                 </div>
               )}
 
-              {insights.companyVerification.notes.length > 0 && (
-                <div className="space-y-1">
-                  {insights.companyVerification.notes.map((note, idx) => (
-                    <p key={idx} className="text-xs text-muted-foreground">• {note}</p>
-                  ))}
+              {/* Legal Status */}
+              {enrichedCompanyData.legalStatusDetails && (
+                <div
+                  className={`rounded-lg border p-4 ${
+                    enrichedCompanyData.legalStatusDetails
+                      .hasCollectiveProcedure
+                      ? 'border-red-200 bg-red-50'
+                      : 'border-green-200 bg-green-50'
+                  }`}
+                >
+                  <div className="mb-2 flex items-center gap-2">
+                    {enrichedCompanyData.legalStatusDetails
+                      .hasCollectiveProcedure ? (
+                      <AlertTriangle className="h-4 w-4 text-red-600" />
+                    ) : (
+                      <CheckCircle2 className="h-4 w-4 text-green-600" />
+                    )}
+                    <p className="text-sm font-semibold">Statut Juridique</p>
+                  </div>
+                  {enrichedCompanyData.legalStatusDetails
+                    .hasCollectiveProcedure ? (
+                    <div className="space-y-1">
+                      <p className="text-xs font-medium text-red-800">
+                        ⚠️ Procédure collective en cours
+                      </p>
+                      {enrichedCompanyData.legalStatusDetails.procedureType && (
+                        <p className="text-xs text-muted-foreground">
+                          Type:{' '}
+                          {enrichedCompanyData.legalStatusDetails.procedureType}
+                        </p>
+                      )}
+                      {enrichedCompanyData.legalStatusDetails.procedureDate && (
+                        <p className="text-xs text-muted-foreground">
+                          Date:{' '}
+                          {new Date(
+                            enrichedCompanyData.legalStatusDetails.procedureDate
+                          ).toLocaleDateString('fr-FR')}
+                        </p>
+                      )}
+                    </div>
+                  ) : (
+                    <p className="text-xs text-green-800">
+                      ✅ Aucune procédure collective en cours
+                    </p>
+                  )}
                 </div>
               )}
+
+              {/* Address */}
+              {enrichedCompanyData.address && (
+                <div className="rounded-lg border bg-gray-50 p-4">
+                  <p className="mb-2 text-sm font-semibold">Adresse</p>
+                  <p className="text-xs text-muted-foreground">
+                    {enrichedCompanyData.address.street}
+                    <br />
+                    {enrichedCompanyData.address.postalCode}{' '}
+                    {enrichedCompanyData.address.city}
+                    {enrichedCompanyData.address.region &&
+                      `, ${enrichedCompanyData.address.region}`}
+                  </p>
+                </div>
+              )}
+
+              {/* Activities */}
+              {enrichedCompanyData.activities &&
+                enrichedCompanyData.activities.length > 0 && (
+                  <div className="rounded-lg border bg-gray-50 p-4">
+                    <p className="mb-2 text-sm font-semibold">Activités</p>
+                    <div className="space-y-1">
+                      {enrichedCompanyData.activities
+                        .slice(0, 3)
+                        .map((activity: any, idx: number) => (
+                          <p
+                            key={idx}
+                            className="text-xs text-muted-foreground"
+                          >
+                            • {activity.label || activity.code}
+                          </p>
+                        ))}
+                    </div>
+                  </div>
+                )}
+
+              {/* Notes from LLM */}
+              {insights?.companyVerification?.notes &&
+                insights.companyVerification.notes.length > 0 && (
+                  <div className="rounded-lg border border-yellow-200 bg-yellow-50 p-4">
+                    <p className="mb-2 text-sm font-semibold text-yellow-800">
+                      Notes d&apos;analyse
+                    </p>
+                    <div className="space-y-1">
+                      {insights.companyVerification.notes.map((note, idx) => (
+                        <p key={idx} className="text-xs text-yellow-900">
+                          • {note}
+                        </p>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+              {/* Fallback if no data */}
+              {!enrichedCompanyData?.siret &&
+                !insights?.companyVerification?.verified && (
+                  <div className="rounded-lg border border-dashed bg-gray-50 p-4 text-center">
+                    <p className="text-sm text-muted-foreground">
+                      Données d&apos;entreprise non disponibles.
+                      {devis.extractedData.company.siret &&
+                        ' Enrichissement en cours...'}
+                    </p>
+                  </div>
+                )}
             </CardContent>
           </Card>
         )}
@@ -378,14 +608,21 @@ export default function AnalysisPage() {
                     </CardHeader>
                     <CardContent className="space-y-3">
                       {insights.keyStrengths.map((strength, idx) => (
-                        <div key={idx} className="rounded-lg border border-green-200 bg-white p-3">
-                          <div className="flex items-start justify-between mb-1">
-                            <p className="font-semibold text-sm">{strength.title}</p>
+                        <div
+                          key={idx}
+                          className="rounded-lg border border-green-200 bg-white p-3"
+                        >
+                          <div className="mb-1 flex items-start justify-between">
+                            <p className="text-sm font-semibold">
+                              {strength.title}
+                            </p>
                             <Badge variant="outline" className="text-xs">
                               {strength.impact}
                             </Badge>
                           </div>
-                          <p className="text-xs text-muted-foreground">{strength.description}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {strength.description}
+                          </p>
                         </div>
                       ))}
                     </CardContent>
@@ -398,21 +635,29 @@ export default function AnalysisPage() {
                     <CardHeader>
                       <CardTitle className="flex items-center gap-2 text-red-700">
                         <AlertTriangle className="h-5 w-5" />
-                        Points d&apos;Attention ({insights.keyWeaknesses.length})
+                        Points d&apos;Attention ({insights.keyWeaknesses.length}
+                        )
                       </CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-3">
                       {insights.keyWeaknesses.map((weakness, idx) => (
-                        <div key={idx} className="rounded-lg border border-red-200 bg-white p-3">
-                          <div className="flex items-start justify-between mb-1">
-                            <p className="font-semibold text-sm">{weakness.title}</p>
+                        <div
+                          key={idx}
+                          className="rounded-lg border border-red-200 bg-white p-3"
+                        >
+                          <div className="mb-1 flex items-start justify-between">
+                            <p className="text-sm font-semibold">
+                              {weakness.title}
+                            </p>
                             <Badge variant="destructive" className="text-xs">
                               {weakness.severity}
                             </Badge>
                           </div>
-                          <p className="text-xs text-muted-foreground mb-2">{weakness.description}</p>
+                          <p className="mb-2 text-xs text-muted-foreground">
+                            {weakness.description}
+                          </p>
                           {weakness.recommendation && (
-                            <p className="text-xs text-blue-600 italic">
+                            <p className="text-xs italic text-blue-600">
                               💡 {weakness.recommendation}
                             </p>
                           )}
@@ -436,33 +681,40 @@ export default function AnalysisPage() {
                 <CardContent>
                   <div className="space-y-3">
                     {insights.priorityActions.map((action, idx) => (
-                      <div
-                        key={idx}
-                        className="rounded-lg border bg-white p-4"
-                      >
-                        <div className="flex items-start justify-between mb-2">
-                          <p className="font-semibold flex-1">{action.action}</p>
+                      <div key={idx} className="rounded-lg border bg-white p-4">
+                        <div className="mb-2 flex items-start justify-between">
+                          <p className="flex-1 font-semibold">
+                            {action.action}
+                          </p>
                           <Badge
                             variant={
                               action.priority === 'urgent'
                                 ? 'destructive'
                                 : action.priority === 'high'
-                                ? 'default'
-                                : 'secondary'
+                                  ? 'default'
+                                  : 'secondary'
                             }
                             className="ml-2"
                           >
                             {action.priority}
                           </Badge>
                         </div>
-                        <div className="grid grid-cols-2 gap-2 mt-2 text-xs">
+                        <div className="mt-2 grid grid-cols-2 gap-2 text-xs">
                           <div>
-                            <span className="text-muted-foreground">Impact: </span>
-                            <span className="font-medium">{action.expectedImpact}</span>
+                            <span className="text-muted-foreground">
+                              Impact:{' '}
+                            </span>
+                            <span className="font-medium">
+                              {action.expectedImpact}
+                            </span>
                           </div>
                           <div>
-                            <span className="text-muted-foreground">Délai: </span>
-                            <span className="font-medium">{action.timeframe}</span>
+                            <span className="text-muted-foreground">
+                              Délai:{' '}
+                            </span>
+                            <span className="font-medium">
+                              {action.timeframe}
+                            </span>
                           </div>
                         </div>
                       </div>
@@ -480,7 +732,8 @@ export default function AnalysisPage() {
                     <div>
                       <CardTitle className="flex items-center gap-2">
                         <Lightbulb className="h-5 w-5 text-yellow-600" />
-                        Recommandations Améliorées ({insights.enhancedRecommendations.length})
+                        Recommandations Améliorées (
+                        {insights.enhancedRecommendations.length})
                       </CardTitle>
                       <CardDescription>
                         Suggestions optimisées par intelligence artificielle
@@ -501,20 +754,24 @@ export default function AnalysisPage() {
                     {insights.enhancedRecommendations.map((rec, index) => (
                       <div
                         key={index}
-                        className="rounded-lg border-2 p-4 bg-gradient-to-r from-blue-50 to-indigo-50"
+                        className="rounded-lg border-2 bg-gradient-to-r from-blue-50 to-indigo-50 p-4"
                       >
-                        <div className="flex items-start justify-between mb-2">
+                        <div className="mb-2 flex items-start justify-between">
                           <div className="flex-1">
-                            <h4 className="font-semibold text-base mb-1">{rec.title}</h4>
-                            <p className="text-sm text-muted-foreground mb-3">{rec.description}</p>
+                            <h4 className="mb-1 text-base font-semibold">
+                              {rec.title}
+                            </h4>
+                            <p className="mb-3 text-sm text-muted-foreground">
+                              {rec.description}
+                            </p>
                           </div>
                           <Badge
                             variant={
                               rec.priority === 'high'
                                 ? 'default'
                                 : rec.priority === 'medium'
-                                ? 'secondary'
-                                : 'outline'
+                                  ? 'secondary'
+                                  : 'outline'
                             }
                             className="ml-2"
                           >
@@ -525,7 +782,9 @@ export default function AnalysisPage() {
                           {rec.estimatedSavings && (
                             <div className="flex items-center gap-1 text-green-600">
                               <Euro className="h-3 w-3" />
-                              <span className="font-medium">{rec.estimatedSavings}</span>
+                              <span className="font-medium">
+                                {rec.estimatedSavings}
+                              </span>
                             </div>
                           )}
                           <Badge variant="outline" className="text-xs">
@@ -540,7 +799,9 @@ export default function AnalysisPage() {
                   </div>
                 </CardContent>
               </Card>
-            ) : score && score.recommendations && score.recommendations.length > 0 ? (
+            ) : score &&
+              score.recommendations &&
+              score.recommendations.length > 0 ? (
               // Fallback to original recommendations
               <Card>
                 <CardHeader>
@@ -571,7 +832,9 @@ export default function AnalysisPage() {
                           category: rec.category,
                           priority: rec.priority,
                           message: rec.suggestion,
-                          actionable: rec.priority === 'high' || rec.priority === 'medium',
+                          actionable:
+                            rec.priority === 'high' ||
+                            rec.priority === 'medium',
                         }}
                         devisId={devisId}
                         userId={DEMO_USER_ID}
@@ -602,7 +865,9 @@ export default function AnalysisPage() {
                         {getSeverityIcon(alert.severity)}
                         <div className="flex-1">
                           <p className="font-medium">{alert.type}</p>
-                          <p className="text-sm text-muted-foreground">{alert.message}</p>
+                          <p className="text-sm text-muted-foreground">
+                            {alert.message}
+                          </p>
                         </div>
                       </div>
                     ))}
@@ -619,33 +884,46 @@ export default function AnalysisPage() {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
-                    {['prix', 'qualite', 'delais', 'conformite'].map((category) => {
-                      const data = score.breakdown[category]
-                      if (!data) return null
-                      const percentage = (data.score / (category === 'prix' || category === 'qualite' ? 300 : 200)) * 100
-                      return (
-                        <div key={category} className="space-y-2">
-                          <div className="flex items-center justify-between">
-                            <span className="font-medium capitalize">{category}</span>
-                            <span className="text-sm font-semibold">
-                              {Math.round(data.score)}/{category === 'prix' || category === 'qualite' ? 300 : 200} ({Math.round(percentage)}%)
-                            </span>
+                    {['prix', 'qualite', 'delais', 'conformite'].map(
+                      (category) => {
+                        const data = score.breakdown[category]
+                        if (!data) return null
+                        const percentage =
+                          (data.score /
+                            (category === 'prix' || category === 'qualite'
+                              ? 300
+                              : 200)) *
+                          100
+                        return (
+                          <div key={category} className="space-y-2">
+                            <div className="flex items-center justify-between">
+                              <span className="font-medium capitalize">
+                                {category}
+                              </span>
+                              <span className="text-sm font-semibold">
+                                {Math.round(data.score)}/
+                                {category === 'prix' || category === 'qualite'
+                                  ? 300
+                                  : 200}{' '}
+                                ({Math.round(percentage)}%)
+                              </span>
+                            </div>
+                            <div className="h-2 overflow-hidden rounded-full bg-gray-200">
+                              <div
+                                className={`h-full transition-all ${
+                                  percentage >= 70
+                                    ? 'bg-green-500'
+                                    : percentage >= 50
+                                      ? 'bg-yellow-500'
+                                      : 'bg-red-500'
+                                }`}
+                                style={{ width: `${percentage}%` }}
+                              />
+                            </div>
                           </div>
-                          <div className="h-2 overflow-hidden rounded-full bg-gray-200">
-                            <div
-                              className={`h-full transition-all ${
-                                percentage >= 70
-                                  ? 'bg-green-500'
-                                  : percentage >= 50
-                                  ? 'bg-yellow-500'
-                                  : 'bg-red-500'
-                              }`}
-                              style={{ width: `${percentage}%` }}
-                            />
-                          </div>
-                        </div>
-                      )
-                    })}
+                        )
+                      }
+                    )}
                   </div>
                 </CardContent>
               </Card>
@@ -665,7 +943,11 @@ export default function AnalysisPage() {
                     <DevisChat
                       devisId={devisId}
                       userId={DEMO_USER_ID}
-                      recommendations={score?.recommendations || insights?.enhancedRecommendations || []}
+                      recommendations={
+                        score?.recommendations ||
+                        insights?.enhancedRecommendations ||
+                        []
+                      }
                     />
                   </div>
                 </CardContent>
@@ -678,16 +960,22 @@ export default function AnalysisPage() {
             {/* Devis Info */}
             <Card>
               <CardHeader>
-                <CardTitle className="text-base">Informations du Devis</CardTitle>
+                <CardTitle className="text-base">
+                  Informations du Devis
+                </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4 text-sm">
                 <div>
                   <p className="text-muted-foreground">Montant Total</p>
-                  <p className="text-lg font-bold">{formatCurrency(Number(devis.totalAmount))}</p>
+                  <p className="text-lg font-bold">
+                    {formatCurrency(Number(devis.totalAmount))}
+                  </p>
                 </div>
                 <div>
                   <p className="text-muted-foreground">Entreprise</p>
-                  <p className="font-medium">{devis.extractedData.company.name}</p>
+                  <p className="font-medium">
+                    {devis.extractedData.company.name}
+                  </p>
                   {devis.extractedData.company.siret && (
                     <p className="text-xs text-muted-foreground">
                       SIRET: {devis.extractedData.company.siret}
@@ -711,23 +999,30 @@ export default function AnalysisPage() {
             {score?.regionalBenchmark && (
               <Card>
                 <CardHeader>
-                  <CardTitle className="text-base">Benchmark Régional</CardTitle>
+                  <CardTitle className="text-base">
+                    Benchmark Régional
+                  </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4 text-sm">
                   <div>
                     <p className="text-muted-foreground">Région</p>
-                    <p className="font-medium">{score.regionalBenchmark.region}</p>
+                    <p className="font-medium">
+                      {score.regionalBenchmark.region}
+                    </p>
                   </div>
                   <div>
                     <p className="text-muted-foreground">Position</p>
                     <p className="font-medium">
-                      {Math.round(score.regionalBenchmark.percentilePosition)}e percentile
+                      {Math.round(score.regionalBenchmark.percentilePosition)}e
+                      percentile
                     </p>
                   </div>
                   <div>
                     <p className="text-muted-foreground">Prix Moyen Régional</p>
                     <p className="font-medium">
-                      {formatCurrency(score.regionalBenchmark.comparisonData.averagePrice)}
+                      {formatCurrency(
+                        score.regionalBenchmark.comparisonData.averagePrice
+                      )}
                     </p>
                   </div>
                 </CardContent>

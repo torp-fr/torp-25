@@ -81,8 +81,26 @@ DONNÉES À ANALYSER:
 - Alertes: ${JSON.stringify(analysisData.score.alerts)}
 - Recommandations: ${JSON.stringify(analysisData.score.recommendations)}
 - Entreprise: ${analysisData.extractedData.company?.name || 'Inconnue'}
-${analysisData.companyData?.financialData ? `- Données financières: ${JSON.stringify(analysisData.companyData.financialData)}` : ''}
-${analysisData.companyData?.legalStatus ? `- Statut légal: ${JSON.stringify(analysisData.companyData.legalStatus)}` : ''}
+- SIRET: ${analysisData.extractedData.company?.siret || analysisData.companyData?.siret || 'Non disponible'}
+${
+  analysisData.companyData?.financialData
+    ? `- **DONNÉES FINANCIÈRES DISPONIBLES (Infogreffe)**:
+  - Chiffre d'affaires: ${analysisData.companyData.financialData.ca?.length ? analysisData.companyData.financialData.ca.map((ca: number, i: number) => `Année ${new Date().getFullYear() - i}: ${ca.toLocaleString('fr-FR')}€`).join(', ') : 'Non disponible'}
+  - Résultat net: ${analysisData.companyData.financialData.result?.length ? analysisData.companyData.financialData.result.map((r: number, i: number) => `Année ${new Date().getFullYear() - i}: ${r.toLocaleString('fr-FR')}€`).join(', ') : 'Non disponible'}
+  - Dettes: ${analysisData.companyData.financialData.debt ? `${analysisData.companyData.financialData.debt.toLocaleString('fr-FR')}€` : 'Non disponible'}
+  - Dernière mise à jour: ${analysisData.companyData.financialData.lastUpdate || 'Non disponible'}`
+    : '- Données financières: Non disponibles'
+}
+${
+  analysisData.companyData?.legalStatus
+    ? `- **STATUT JURIDIQUE**:
+  - Procédure collective en cours: ${analysisData.companyData.legalStatus.hasCollectiveProcedure ? 'OUI ⚠️' : 'NON ✅'}
+  ${analysisData.companyData.legalStatus.procedureType ? `- Type de procédure: ${analysisData.companyData.legalStatus.procedureType}` : ''}
+  ${analysisData.companyData.legalStatus.procedureDate ? `- Date: ${analysisData.companyData.legalStatus.procedureDate}` : ''}`
+    : '- Statut juridique: Non vérifié'
+}
+${analysisData.companyData?.certifications ? `- Certifications: ${JSON.stringify(analysisData.companyData.certifications)}` : ''}
+${analysisData.companyData?.reputation ? `- Données de réputation: ${JSON.stringify(analysisData.companyData.reputation)}` : ''}
 
 Génère un JSON avec cette structure EXACTE:
 {
@@ -116,6 +134,12 @@ Génère un JSON avec cette structure EXACTE:
     "dataSources": ["Source1", "Source2"],
     "notes": ["Note1", "Note2"]
   },
+  
+IMPORTANT pour companyVerification:
+- Si des données financières sont disponibles, verified doit être true, confidence >= 70, et ajouter "Infogreffe" dans dataSources
+- Si une procédure collective est détectée, ajouter une note critique dans notes: "⚠️ Procédure collective en cours"
+- Si les données financières montrent une tendance défavorable (CA en baisse, résultat négatif), ajouter une note d'alerte
+- Lister toutes les sources de données utilisées (Sirene, Infogreffe, etc.)
   "enhancedRecommendations": [
     {
       "title": "Titre de la recommandation",
