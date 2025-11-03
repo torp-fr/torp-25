@@ -79,18 +79,15 @@ export interface TORPAnalysis {
 
 export class DocumentAnalyzer {
   private client: Anthropic
+  private modelResolver: ModelResolver
 
   constructor() {
     const apiKey = process.env.ANTHROPIC_API_KEY
     if (!apiKey) {
       throw new Error('ANTHROPIC_API_KEY is required')
     }
-    if (!apiKey.startsWith('sk-ant-')) {
-      console.warn(
-        '[DocumentAnalyzer] ⚠️ Format de clé API suspect. Les clés Anthropic commencent généralement par "sk-ant-"'
-      )
-    }
     this.client = new Anthropic({ apiKey })
+    this.modelResolver = new ModelResolver(apiKey)
   }
 
   /**
