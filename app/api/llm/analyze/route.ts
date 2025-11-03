@@ -233,18 +233,26 @@ export async function POST(request: NextRequest) {
         )
 
         // Mettre à jour le devis avec les données enrichies pour les insights futurs
-        // Note: enrichedData n'est pas dans le schema Prisma, on stocke dans extractedData pour l'instant
+        // Utiliser le champ enrichedData du schema Prisma
         try {
-          const currentExtractedData = (devis.extractedData as any) || {}
-          await prisma.devis.update({
-            where: { id: devis.id },
-            data: {
-              extractedData: {
-                ...currentExtractedData,
-                enrichedData: fullEnrichmentData,
-              } as any,
-            },
-          })
+          const currentEnrichedData = ((devis as any).enrichedData || {}) as any
+
+          // Sauvegarder les données d'entreprise enrichies
+          if (fullEnrichmentData.company) {
+            await prisma.devis.update({
+              where: { id: devis.id },
+              data: {
+                enrichedData: {
+                  ...currentEnrichedData,
+                  company: fullEnrichmentData.company,
+                } as any,
+              },
+            })
+
+            console.log(
+              '[LLM Analyze] ✅ Données enrichies sauvegardées dans enrichedData.company'
+            )
+          }
         } catch (err) {
           console.warn(
             '[LLM Analyze] Erreur mise à jour devis avec données enrichies:',

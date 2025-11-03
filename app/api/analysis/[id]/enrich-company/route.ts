@@ -55,7 +55,22 @@ export async function GET(
 
       const enrichedCompany = scoringEnrichment.company
 
-      if (enrichedCompany) {
+      // AdvancedEnrichmentService retourne toujours un company (même minimal)
+      if (enrichedCompany && enrichedCompany.siret) {
+        console.log(
+          '[API Enrich Company] ✅ Enrichissement AdvancedEnrichmentService réussi'
+        )
+        console.log(`[API Enrich Company] 📊 Données disponibles:`, {
+          hasFinancialData: !!enrichedCompany.financialData,
+          hasReputation: !!enrichedCompany.reputation,
+          hasQualifications: !!enrichedCompany.qualifications?.length,
+          hasCertifications: !!enrichedCompany.certifications?.length,
+          hasLegalStatus: !!enrichedCompany.legalStatusDetails,
+          hasPortfolio: !!enrichedCompany.portfolio,
+          hasHumanResources: !!enrichedCompany.humanResources,
+          hasFinancialScore: !!enrichedCompany.financialScore,
+        })
+
         // Sauvegarder les données enrichies complètes dans le devis
         const enrichedData = {
           ...((devis as any).enrichedData || {}),
@@ -69,10 +84,18 @@ export async function GET(
           },
         })
 
+        console.log(
+          '[API Enrich Company] 💾 Données sauvegardées dans enrichedData.company'
+        )
+
         return NextResponse.json({
           success: true,
           data: enrichedCompany,
         })
+      } else {
+        console.warn(
+          '[API Enrich Company] ⚠️ enrichedCompany invalide ou sans SIRET'
+        )
       }
     } catch (advancedError) {
       console.warn(
@@ -82,6 +105,7 @@ export async function GET(
     }
 
     // Fallback sur CompanyEnrichmentService si AdvancedEnrichment échoue
+    console.log('[API Enrich Company] 🔄 Fallback sur CompanyEnrichmentService')
     const companyService = new CompanyEnrichmentService()
     const enrichment = await companyService.enrichFromSiret(siret)
 
@@ -95,10 +119,25 @@ export async function GET(
       )
     }
 
+    // Convertir CompanyEnrichment en EnrichedCompanyData pour cohérence
+    const enrichedCompanyData: any = {
+      siret: enrichment.siret,
+      siren: enrichment.siren || enrichment.siret.substring(0, 9),
+      name: enrichment.name,
+      legalStatus: enrichment.legalStatus,
+      address: enrichment.address,
+      activities: enrichment.activities,
+      financialData: enrichment.financialData,
+      legalStatusDetails: enrichment.legalStatusDetails,
+      insurances: enrichment.insurances,
+      certifications: enrichment.certifications,
+      financialHealth: enrichment.financialHealth,
+    }
+
     // Sauvegarder les données enrichies dans le devis
     const enrichedData = {
       ...((devis as any).enrichedData || {}),
-      company: enrichment,
+      company: enrichedCompanyData,
     }
 
     await prisma.devis.update({
@@ -108,9 +147,13 @@ export async function GET(
       },
     })
 
+    console.log(
+      '[API Enrich Company] 💾 Données fallback sauvegardées dans enrichedData.company'
+    )
+
     return NextResponse.json({
       success: true,
-      data: enrichment,
+      data: enrichedCompanyData,
     })
   } catch (error) {
     console.error('[API Enrich Company] Erreur:', error)

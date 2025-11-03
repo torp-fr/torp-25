@@ -11,7 +11,10 @@ import { PriceEnrichmentService } from './price-service'
 import { ComplianceEnrichmentService } from './compliance-service'
 import { WeatherEnrichmentService } from './weather-service'
 import { CertificationsEnrichmentService } from './certifications-service'
-import type { EnrichedCompanyData, ScoringEnrichmentData } from '../scoring/advanced/types'
+import type {
+  EnrichedCompanyData,
+  ScoringEnrichmentData,
+} from '../scoring/advanced/types'
 import type { ExtractedDevisData } from '@/services/llm/document-analyzer'
 
 /**
@@ -81,7 +84,9 @@ export class AdvancedEnrichmentService {
             // Récupérer données financières et juridiques en parallèle
             const [financialData, legalStatus] = await Promise.allSettled([
               this.infogreffeService.enrichFinancialData(enrichedCompany.siren),
-              this.infogreffeService.checkCollectiveProcedures(enrichedCompany.siren),
+              this.infogreffeService.checkCollectiveProcedures(
+                enrichedCompany.siren
+              ),
             ])
 
             if (financialData.status === 'fulfilled' && financialData.value) {
@@ -111,9 +116,12 @@ export class AdvancedEnrichmentService {
             enrichedCompany = {
               ...enrichedCompany,
               ...pappersData,
-              financialData: pappersData.financialData || enrichedCompany?.financialData,
-              financialScore: pappersData.financialScore || enrichedCompany?.financialScore,
-              humanResources: pappersData.humanResources || enrichedCompany?.humanResources,
+              financialData:
+                pappersData.financialData || enrichedCompany?.financialData,
+              financialScore:
+                pappersData.financialScore || enrichedCompany?.financialScore,
+              humanResources:
+                pappersData.humanResources || enrichedCompany?.humanResources,
             } as EnrichedCompanyData
             sources.push('Pappers.fr')
             confidence += 5
@@ -141,36 +149,59 @@ export class AdvancedEnrichmentService {
 
         // Source 5: Certifications (RGE, Qualibat, etc.)
         try {
-          console.log(`[AdvancedEnrichment] 🔍 Recherche certifications pour SIRET: ${extractedData.company.siret}`)
-          const certifications = await this.certificationsService.getCompanyCertifications(
-            extractedData.company.siret
+          console.log(
+            `[AdvancedEnrichment] 🔍 Recherche certifications pour SIRET: ${extractedData.company.siret}`
           )
+          const certifications =
+            await this.certificationsService.getCompanyCertifications(
+              extractedData.company.siret
+            )
           if (certifications && certifications.certifications.length > 0) {
             // Ajouter les qualifications dans enrichedCompany
             if (enrichedCompany) {
-              enrichedCompany.qualifications = certifications.certifications.map(cert => ({
-                type: cert.type,
-                level: cert.level || 'CERTIFIED',
-                validUntil: cert.expiryDate,
-                scope: cert.activities || [],
-              }))
+              enrichedCompany.qualifications =
+                certifications.certifications.map((cert) => ({
+                  type: cert.type,
+                  level: cert.level || 'CERTIFIED',
+                  validUntil: cert.expiryDate,
+                  scope: cert.activities || [],
+                }))
+
+              // Ajouter aussi les certifications avec tous les détails
+              enrichedCompany.certifications =
+                certifications.certifications.map((cert) => ({
+                  name: cert.name,
+                  type: cert.type,
+                  validUntil: cert.expiryDate,
+                  valid: cert.valid,
+                }))
             }
-            sources.push(`Certifications (${certifications.certifications.length})`)
+            sources.push(
+              `Certifications (${certifications.certifications.length})`
+            )
             confidence += 8
-            
+
             // Log détaillé des certifications trouvées
-            console.log(`[AdvancedEnrichment] ✅ ${certifications.certifications.length} certification(s) trouvée(s):`, 
-              certifications.certifications.map(c => `${c.type}: ${c.name} (valide: ${c.valid})`).join(', ')
+            console.log(
+              `[AdvancedEnrichment] ✅ ${certifications.certifications.length} certification(s) trouvée(s):`,
+              certifications.certifications
+                .map((c) => `${c.type}: ${c.name} (valide: ${c.valid})`)
+                .join(', ')
             )
           } else {
-            console.log('[AdvancedEnrichment] ℹ️ Aucune certification trouvée pour cette entreprise')
+            console.log(
+              '[AdvancedEnrichment] ℹ️ Aucune certification trouvée pour cette entreprise'
+            )
           }
         } catch (error) {
           console.error('[AdvancedEnrichment] ❌ Erreur certifications:', error)
           confidence -= 2
         }
       } catch (error) {
-        console.error('[AdvancedEnrichment] Erreur enrichissement entreprise:', error)
+        console.error(
+          '[AdvancedEnrichment] Erreur enrichissement entreprise:',
+          error
+        )
         confidence -= 10
       }
     }
@@ -183,27 +214,33 @@ export class AdvancedEnrichmentService {
       // Paralléliser la récupération des prix par catégorie
       if (extractedData.items && extractedData.items.length > 0) {
         const categories = this.extractCategories(extractedData.items)
-        
+
         // Récupérer tous les prix en parallèle
         const pricePromises = [
-          ...categories.map((category) => 
-            this.priceService.getPriceReferences(category, region).catch(() => [])
+          ...categories.map((category) =>
+            this.priceService
+              .getPriceReferences(category, region)
+              .catch(() => [])
           ),
-          this.priceService.getPriceReferences(projectType, region).catch(() => [])
+          this.priceService
+            .getPriceReferences(projectType, region)
+            .catch(() => []),
         ]
-        
+
         const priceResults = await Promise.allSettled(pricePromises)
         priceReferences = priceResults
           .filter((result) => result.status === 'fulfilled')
           .flatMap((result) => (result as PromiseFulfilledResult<any[]>).value)
-        
+
         if (priceReferences.length > 0) {
           sources.push('Service prix de référence')
           confidence += 5
         }
       } else {
         // Si pas d'items, récupérer au moins les prix globaux
-        const globalRefs = await this.priceService.getPriceReferences(projectType, region).catch(() => [])
+        const globalRefs = await this.priceService
+          .getPriceReferences(projectType, region)
+          .catch(() => [])
         priceReferences.push(...globalRefs)
         if (globalRefs.length > 0) {
           sources.push('Service prix de référence')
@@ -217,7 +254,9 @@ export class AdvancedEnrichmentService {
 
     // Récupérer données régionales en parallèle avec prix
     try {
-      regionalData = await this.priceService.getRegionalData(region).catch(() => null)
+      regionalData = await this.priceService
+        .getRegionalData(region)
+        .catch(() => null)
       if (regionalData) {
         sources.push('Service données régionales')
         confidence += 3
@@ -231,7 +270,10 @@ export class AdvancedEnrichmentService {
     let complianceData: any = null
 
     try {
-      complianceData = await this.complianceService.getComplianceData(projectType, tradeType)
+      complianceData = await this.complianceService.getComplianceData(
+        projectType,
+        tradeType
+      )
       if (complianceData) {
         sources.push('Service conformité et normes')
         confidence += 5
@@ -252,40 +294,19 @@ export class AdvancedEnrichmentService {
     }
 
     // 4. Certifications réelles de l'entreprise (RGE, Qualibat, etc.)
+    // Note: Déjà traité dans la section entreprise (Source 5), mais on peut ajouter ici
+    // pour les inclure dans le résultat global aussi
     let companyCertifications: any[] = []
-    
-    if (extractedData.company.siret) {
-      try {
-        console.log(`[AdvancedEnrichment] 🔍 Recherche certifications entreprise pour SIRET: ${extractedData.company.siret}`)
-        const certifications = await this.certificationsService.getCompanyCertifications(
-          extractedData.company.siret
-        )
-        if (certifications && certifications.certifications.length > 0) {
-          companyCertifications = certifications.certifications.map(cert => ({
-            type: cert.type,
-            name: cert.name,
-            valid: cert.valid,
-            number: cert.number,
-            expiryDate: cert.expiryDate,
-            activities: cert.activities || [],
-            source: cert.source,
-            verifiedAt: cert.verifiedAt,
-          }))
-          
-          if (companyCertifications.length > 0) {
-            sources.push(`Certifications entreprise (${companyCertifications.length})`)
-            console.log(`[AdvancedEnrichment] ✅ ${companyCertifications.length} certification(s) entreprise trouvée(s):`, 
-              companyCertifications.map(c => `${c.type}: ${c.name} (valide: ${c.valid})`).join(', ')
-            )
-          }
-        } else {
-          console.log('[AdvancedEnrichment] ℹ️ Aucune certification entreprise trouvée')
-        }
-      } catch (error) {
-        console.error('[AdvancedEnrichment] ❌ Erreur certifications entreprise:', error)
-      }
-    } else {
-      console.log('[AdvancedEnrichment] ⚠️ Pas de SIRET disponible pour recherche certifications')
+
+    if (enrichedCompany?.certifications) {
+      companyCertifications = enrichedCompany.certifications.map(
+        (cert: any) => ({
+          type: cert.type,
+          name: cert.name,
+          valid: cert.valid,
+          validUntil: cert.validUntil || cert.expiryDate,
+        })
+      )
     }
 
     // 5. Météo
@@ -314,16 +335,21 @@ export class AdvancedEnrichmentService {
       weatherData,
       dtus: complianceData?.dtus || [],
       // Prioriser les certifications réelles de l'entreprise, sinon utiliser celles de compliance
-      certifications: companyCertifications.length > 0 
-        ? companyCertifications 
-        : (complianceData?.certifications || []),
+      certifications:
+        companyCertifications.length > 0
+          ? companyCertifications
+          : complianceData?.certifications || [],
     }
 
     console.log('[AdvancedEnrichment] ✅ Enrichissement terminé')
-    console.log(`[AdvancedEnrichment] 📊 Sources utilisées: ${sources.join(', ') || 'Aucune'}`)
+    console.log(
+      `[AdvancedEnrichment] 📊 Sources utilisées: ${sources.join(', ') || 'Aucune'}`
+    )
     console.log(`[AdvancedEnrichment] 📈 Confiance finale: ${confidence}%`)
-    console.log(`[AdvancedEnrichment] 🏅 Certifications: ${result.certifications.length} trouvée(s)`)
-    
+    console.log(
+      `[AdvancedEnrichment] 🏅 Certifications: ${result.certifications.length} trouvée(s)`
+    )
+
     return result
   }
 
@@ -335,7 +361,13 @@ export class AdvancedEnrichmentService {
 
     const categoryKeywords: Record<string, string[]> = {
       plomberie: ['plomberie', 'sanitaire', 'robinet', 'tuyau', 'canalisation'],
-      'électricité': ['électricité', 'électrique', 'cable', 'prise', 'interrupteur'],
+      électricité: [
+        'électricité',
+        'électrique',
+        'cable',
+        'prise',
+        'interrupteur',
+      ],
       maçonnerie: ['maçonnerie', 'mur', 'béton', 'ciment', 'carrelage'],
       menuiserie: ['menuiserie', 'fenêtre', 'porte', 'bois', 'charpente'],
       peinture: ['peinture', 'enduit', 'revêtement'],
@@ -355,4 +387,3 @@ export class AdvancedEnrichmentService {
     return categories.size > 0 ? Array.from(categories) : ['general']
   }
 }
-

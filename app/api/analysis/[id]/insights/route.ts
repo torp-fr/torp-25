@@ -37,22 +37,40 @@ export async function GET(
     const extractedData = devis.extractedData as any
     const enrichedData = (devis as any).enrichedData || {}
 
-    // Récupérer les données d'entreprise enrichies
+    // Récupérer les données d'entreprise enrichies (TOUTES les données)
     let companyData: any = null
     const companyEnrichment = enrichedData?.company
 
     if (extractedData?.company?.siret || companyEnrichment) {
+      // Récupérer toutes les données enrichies disponibles
       companyData = {
         siret: extractedData?.company?.siret || companyEnrichment?.siret,
+        siren: companyEnrichment?.siren,
         name: extractedData?.company?.name || companyEnrichment?.name,
-        financialData: companyEnrichment?.financialData,
-        legalStatus: companyEnrichment?.legalStatusDetails,
-        certifications: companyEnrichment?.certifications,
-        reputation: companyEnrichment?.reputation,
+        legalStatus: companyEnrichment?.legalStatus,
         address: companyEnrichment?.address,
-        legalStatusInfo: companyEnrichment?.legalStatus,
         activities: companyEnrichment?.activities,
+        financialData: companyEnrichment?.financialData,
+        financialScore: companyEnrichment?.financialScore,
+        financialHealth: companyEnrichment?.financialHealth,
+        legalStatusDetails: companyEnrichment?.legalStatusDetails,
+        legalStatusInfo: companyEnrichment?.legalStatus,
+        insurances: companyEnrichment?.insurances,
+        certifications: companyEnrichment?.certifications,
+        qualifications: companyEnrichment?.qualifications,
+        reputation: companyEnrichment?.reputation,
+        portfolio: companyEnrichment?.portfolio,
+        humanResources: companyEnrichment?.humanResources,
       }
+
+      console.log('[API Insights] 📊 Données entreprise disponibles:', {
+        hasSiret: !!companyData.siret,
+        hasFinancialData: !!companyData.financialData,
+        hasReputation: !!companyData.reputation,
+        hasQualifications: !!companyData.qualifications?.length,
+        hasPortfolio: !!companyData.portfolio,
+        hasHumanResources: !!companyData.humanResources,
+      })
     }
 
     // Générer les insights avec LLM

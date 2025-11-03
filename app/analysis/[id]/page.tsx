@@ -160,33 +160,65 @@ export default function AnalysisPage() {
     }
   }, [devisId])
 
-  const fetchInsights = async () => {
+  const fetchInsights = useCallback(async () => {
     try {
-      // D'abord, enrichir les données d'entreprise si nécessaire
-      if (devis?.extractedData?.company?.siret) {
-        const enrichResponse = await fetch(
-          `/api/analysis/${devisId}/enrich-company`
+      // Vérifier si les données enrichies existent déjà
+      const hasEnrichedData = (devis as any)?.enrichedData?.company?.siret
+      const hasSiret = devis?.extractedData?.company?.siret
+
+      // Enrichir les données d'entreprise si nécessaire
+      if (hasSiret && !hasEnrichedData) {
+        console.log(
+          "[AnalysisPage] 🔄 Enrichissement des données d'entreprise..."
         )
-        if (enrichResponse.ok) {
-          // Les données enrichies sont maintenant sauvegardées, recharger le devis
-          const devisResponse = await fetch(`/api/devis/${devisId}`)
-          if (devisResponse.ok) {
-            const devisData = await devisResponse.json()
-            setDevis(devisData.data)
+        try {
+          const enrichResponse = await fetch(
+            `/api/analysis/${devisId}/enrich-company`
+          )
+          if (enrichResponse.ok) {
+            const enrichData = await enrichResponse.json()
+            console.log('[AnalysisPage] ✅ Enrichissement réussi:', {
+              hasCompany: !!enrichData.data,
+              hasFinancialData: !!enrichData.data?.financialData,
+              hasReputation: !!enrichData.data?.reputation,
+            })
+
+            // Recharger le devis pour avoir les données enrichies
+            const devisResponse = await fetch(`/api/devis/${devisId}`)
+            if (devisResponse.ok) {
+              const devisData = await devisResponse.json()
+              setDevis(devisData.data)
+              console.log(
+                '[AnalysisPage] ✅ Devis rechargé avec données enrichies'
+              )
+            }
+          } else {
+            const errorData = await enrichResponse.json()
+            console.warn('[AnalysisPage] ⚠️ Enrichissement échoué:', errorData)
           }
+        } catch (enrichErr) {
+          console.warn(
+            '[AnalysisPage] ⚠️ Erreur enrichissement (non-bloquant):',
+            enrichErr
+          )
         }
+      } else if (hasEnrichedData) {
+        console.log('[AnalysisPage] ℹ️ Données enrichies déjà disponibles')
       }
 
-      // Ensuite, charger les insights
+      // Charger les insights (qui utiliseront les données enrichies si disponibles)
       const response = await fetch(`/api/analysis/${devisId}/insights`)
       if (response.ok) {
         const data = await response.json()
         setInsights(data.data)
+        console.log('[AnalysisPage] ✅ Insights chargés')
+      } else {
+        console.warn('[AnalysisPage] ⚠️ Erreur chargement insights')
       }
     } catch (err) {
-      console.error('Erreur chargement insights:', err)
+      console.error('[AnalysisPage] ❌ Erreur chargement insights:', err)
     }
-  }
+  }, [devisId, devis])
 
   useEffect(() => {
     fetchData()
