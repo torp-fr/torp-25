@@ -563,40 +563,272 @@ export default function AnalysisPage() {
                 </div>
               )}
 
-              {/* Address */}
+              {/* Address - Enhanced */}
               {enrichedCompanyData.address && (
                 <div className="rounded-lg border bg-gray-50 p-4">
-                  <p className="mb-2 text-sm font-semibold">Adresse</p>
-                  <p className="text-xs text-muted-foreground">
-                    {enrichedCompanyData.address.street}
-                    <br />
-                    {enrichedCompanyData.address.postalCode}{' '}
-                    {enrichedCompanyData.address.city}
-                    {enrichedCompanyData.address.region &&
-                      `, ${enrichedCompanyData.address.region}`}
-                  </p>
+                  <div className="mb-2 flex items-center gap-2">
+                    <CheckCircle2 className="h-4 w-4 text-green-600" />
+                    <p className="text-sm font-semibold">Adresse légale</p>
+                  </div>
+                  <div className="space-y-1">
+                    {enrichedCompanyData.address.street && (
+                      <p className="text-sm font-medium">
+                        {enrichedCompanyData.address.street}
+                      </p>
+                    )}
+                    <p className="text-sm text-muted-foreground">
+                      {enrichedCompanyData.address.postalCode}{' '}
+                      {enrichedCompanyData.address.city}
+                    </p>
+                    {enrichedCompanyData.address.region && (
+                      <p className="text-xs text-muted-foreground">
+                        Région: {enrichedCompanyData.address.region}
+                      </p>
+                    )}
+                  </div>
                 </div>
               )}
 
-              {/* Activities */}
+              {/* Activities - Enhanced */}
               {enrichedCompanyData.activities &&
                 enrichedCompanyData.activities.length > 0 && (
-                  <div className="rounded-lg border bg-gray-50 p-4">
-                    <p className="mb-2 text-sm font-semibold">Activités</p>
-                    <div className="space-y-1">
-                      {enrichedCompanyData.activities
-                        .slice(0, 3)
-                        .map((activity: any, idx: number) => (
-                          <p
+                  <div className="rounded-lg border bg-purple-50 p-4">
+                    <p className="mb-3 text-sm font-semibold text-purple-900">
+                      Activités principales
+                    </p>
+                    <div className="space-y-2">
+                      {enrichedCompanyData.activities.map(
+                        (activity: any, idx: number) => (
+                          <div
                             key={idx}
-                            className="text-xs text-muted-foreground"
+                            className="flex items-start justify-between gap-2 rounded border bg-white p-2"
                           >
-                            • {activity.label || activity.code}
-                          </p>
-                        ))}
+                            <div className="flex-1">
+                              <div className="mb-1 flex items-center gap-2">
+                                <Badge
+                                  variant="outline"
+                                  className="font-mono text-xs"
+                                >
+                                  {activity.code}
+                                </Badge>
+                                {idx === 0 && (
+                                  <Badge
+                                    variant="secondary"
+                                    className="text-xs"
+                                  >
+                                    Principale
+                                  </Badge>
+                                )}
+                              </div>
+                              <p className="text-xs text-muted-foreground">
+                                {activity.label}
+                              </p>
+                            </div>
+                          </div>
+                        )
+                      )}
                     </div>
                   </div>
                 )}
+
+              {/* Insurances */}
+              {enrichedCompanyData.insurances && (
+                <div className="space-y-3 rounded-lg border bg-indigo-50 p-4">
+                  <p className="text-sm font-semibold text-indigo-900">
+                    Assurances
+                  </p>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    {enrichedCompanyData.insurances.hasDecennale !==
+                      undefined && (
+                      <div className="rounded border bg-white p-2">
+                        <div className="mb-1 flex items-center gap-2">
+                          {enrichedCompanyData.insurances.hasDecennale ? (
+                            <CheckCircle2 className="h-3 w-3 text-green-600" />
+                          ) : (
+                            <XCircle className="h-3 w-3 text-red-600" />
+                          )}
+                          <p className="text-xs font-semibold">
+                            Assurance Décennale
+                          </p>
+                        </div>
+                        {enrichedCompanyData.insurances.hasDecennale ? (
+                          <div className="space-y-1">
+                            {enrichedCompanyData.insurances.decennaleAmount && (
+                              <p className="text-xs text-muted-foreground">
+                                Montant:{' '}
+                                {formatCurrency(
+                                  enrichedCompanyData.insurances.decennaleAmount
+                                )}
+                              </p>
+                            )}
+                            {enrichedCompanyData.insurances.expirationDate && (
+                              <p className="text-xs text-muted-foreground">
+                                Expire:{' '}
+                                {new Date(
+                                  enrichedCompanyData.insurances.expirationDate
+                                ).toLocaleDateString('fr-FR')}
+                              </p>
+                            )}
+                          </div>
+                        ) : (
+                          <p className="text-xs text-red-600">
+                            ⚠️ Non détectée
+                          </p>
+                        )}
+                      </div>
+                    )}
+
+                    {enrichedCompanyData.insurances.hasRC !== undefined && (
+                      <div className="rounded border bg-white p-2">
+                        <div className="mb-1 flex items-center gap-2">
+                          {enrichedCompanyData.insurances.hasRC ? (
+                            <CheckCircle2 className="h-3 w-3 text-green-600" />
+                          ) : (
+                            <XCircle className="h-3 w-3 text-red-600" />
+                          )}
+                          <p className="text-xs font-semibold">
+                            Responsabilité Civile
+                          </p>
+                        </div>
+                        {enrichedCompanyData.insurances.hasRC ? (
+                          <div className="space-y-1">
+                            {enrichedCompanyData.insurances.rcAmount && (
+                              <p className="text-xs text-muted-foreground">
+                                Montant:{' '}
+                                {formatCurrency(
+                                  enrichedCompanyData.insurances.rcAmount
+                                )}
+                              </p>
+                            )}
+                          </div>
+                        ) : (
+                          <p className="text-xs text-red-600">
+                            ⚠️ Non détectée
+                          </p>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Certifications */}
+              {enrichedCompanyData.certifications &&
+                enrichedCompanyData.certifications.length > 0 && (
+                  <div className="rounded-lg border bg-amber-50 p-4">
+                    <div className="mb-3 flex items-center gap-2">
+                      <Sparkles className="h-4 w-4 text-amber-600" />
+                      <p className="text-sm font-semibold text-amber-900">
+                        Certifications & Qualifications
+                      </p>
+                    </div>
+                    <div className="space-y-2">
+                      {enrichedCompanyData.certifications.map(
+                        (cert: any, idx: number) => (
+                          <div
+                            key={idx}
+                            className="rounded border bg-white p-3"
+                          >
+                            <div className="mb-1 flex items-start justify-between">
+                              <div className="flex-1">
+                                <p className="text-sm font-semibold">
+                                  {cert.name}
+                                </p>
+                                {cert.type && (
+                                  <p className="text-xs text-muted-foreground">
+                                    Type: {cert.type}
+                                  </p>
+                                )}
+                              </div>
+                              {cert.validUntil && (
+                                <Badge
+                                  variant={
+                                    new Date(cert.validUntil) > new Date()
+                                      ? 'default'
+                                      : 'destructive'
+                                  }
+                                  className="text-xs"
+                                >
+                                  {new Date(cert.validUntil) > new Date()
+                                    ? 'Valide'
+                                    : 'Expirée'}
+                                </Badge>
+                              )}
+                            </div>
+                            {cert.validUntil && (
+                              <p className="mt-1 text-xs text-muted-foreground">
+                                Valide jusqu&apos;au:{' '}
+                                {new Date(cert.validUntil).toLocaleDateString(
+                                  'fr-FR'
+                                )}
+                              </p>
+                            )}
+                          </div>
+                        )
+                      )}
+                    </div>
+                  </div>
+                )}
+
+              {/* Financial Health Score */}
+              {enrichedCompanyData.financialHealth && (
+                <div className="rounded-lg border bg-slate-50 p-4">
+                  <p className="mb-2 text-sm font-semibold text-slate-900">
+                    Santé Financière
+                  </p>
+                  <div className="space-y-2">
+                    {enrichedCompanyData.financialHealth.score !==
+                      undefined && (
+                      <div>
+                        <div className="mb-1 flex items-center justify-between">
+                          <p className="text-xs text-muted-foreground">Score</p>
+                          <p
+                            className={`text-sm font-semibold ${
+                              enrichedCompanyData.financialHealth.score >= 70
+                                ? 'text-green-600'
+                                : enrichedCompanyData.financialHealth.score >=
+                                    50
+                                  ? 'text-yellow-600'
+                                  : 'text-red-600'
+                            }`}
+                          >
+                            {enrichedCompanyData.financialHealth.score}/100
+                          </p>
+                        </div>
+                        <div className="h-2 w-full overflow-hidden rounded-full bg-gray-200">
+                          <div
+                            className={`h-full ${
+                              enrichedCompanyData.financialHealth.score >= 70
+                                ? 'bg-green-500'
+                                : enrichedCompanyData.financialHealth.score >=
+                                    50
+                                  ? 'bg-yellow-500'
+                                  : 'bg-red-500'
+                            }`}
+                            style={{
+                              width: `${enrichedCompanyData.financialHealth.score}%`,
+                            }}
+                          />
+                        </div>
+                      </div>
+                    )}
+                    {enrichedCompanyData.financialHealth.status && (
+                      <p className="text-xs text-muted-foreground">
+                        Statut: {enrichedCompanyData.financialHealth.status}
+                      </p>
+                    )}
+                    {enrichedCompanyData.financialHealth.lastUpdate && (
+                      <p className="text-xs text-muted-foreground">
+                        Mise à jour:{' '}
+                        {new Date(
+                          enrichedCompanyData.financialHealth.lastUpdate
+                        ).toLocaleDateString('fr-FR')}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              )}
 
               {/* Notes from LLM */}
               {insights?.companyVerification?.notes &&
