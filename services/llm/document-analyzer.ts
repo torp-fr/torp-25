@@ -349,7 +349,6 @@ IMPORTANT: Retourne UNIQUEMENT le JSON, pas de texte explicatif avant ou après.
       // Essayer chaque modèle jusqu'à ce que l'un fonctionne
       let message
       let lastError: Error | null = null
-      let successfulModel: string | null = null
 
       for (const model of modelCandidates) {
         try {
@@ -364,7 +363,6 @@ IMPORTANT: Retourne UNIQUEMENT le JSON, pas de texte explicatif avant ou après.
               },
             ],
           })
-          successfulModel = model
           console.log(`[DocumentAnalyzer] ✅ Modèle ${model} fonctionne`)
           break // Succès, sortir de la boucle
         } catch (error: any) {
