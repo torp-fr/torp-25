@@ -17,6 +17,7 @@ export async function GET(
   _request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  let siret: string | undefined
   try {
     const { id: devisId } = await params
 
@@ -30,7 +31,7 @@ export async function GET(
     }
 
     const extractedData = devis.extractedData as any
-    const siret = extractedData?.company?.siret
+    siret = extractedData?.company?.siret
 
     if (!siret) {
       return NextResponse.json(
