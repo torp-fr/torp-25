@@ -342,10 +342,18 @@ IMPORTANT: Retourne UNIQUEMENT le JSON, pas de texte explicatif avant ou après.
       const model = await this.modelResolver.findBestModelForPdf()
       console.log(`[DocumentAnalyzer] ✅ Utilisation du modèle: ${model}`)
 
+      // Déterminer max_tokens selon le modèle (Haiku a une limite plus basse)
+      // Claude 3.5 Sonnet: 12000 tokens max
+      // Claude 3.5 Haiku: 8192 tokens max
+      const maxTokens = model.includes('haiku') ? 8192 : 12000
+      console.log(
+        `[DocumentAnalyzer] Max tokens: ${maxTokens} pour modèle ${model}`
+      )
+
       // Appel à Claude avec le modèle détecté
       const message = await this.client.messages.create({
         model,
-        max_tokens: 12000,
+        max_tokens: maxTokens,
         messages: [
           {
             role: 'user',
