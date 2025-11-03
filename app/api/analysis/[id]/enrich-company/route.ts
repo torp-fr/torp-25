@@ -8,6 +8,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { CompanyEnrichmentService } from '@/services/data-enrichment/company-service'
+import { AdvancedEnrichmentService } from '@/services/data-enrichment/advanced-enrichment-service'
+import type { ExtractedDevisData } from '@/services/llm/document-analyzer'
 
 export const dynamic = 'force-dynamic'
 
@@ -40,7 +42,46 @@ export async function GET(
       )
     }
 
-    // Enrichir les données d'entreprise
+    // Utiliser AdvancedEnrichmentService pour un enrichissement complet
+    // Cela inclut réputation, certifications RGE, qualifications, etc.
+    try {
+      const advancedService = new AdvancedEnrichmentService()
+      const scoringEnrichment = await advancedService.enrichForScoring(
+        extractedData as ExtractedDevisData,
+        devis.projectType || 'renovation',
+        devis.tradeType || undefined,
+        'ILE_DE_FRANCE' // TODO: Récupérer la région du projet si disponible
+      )
+
+      const enrichedCompany = scoringEnrichment.company
+
+      if (enrichedCompany) {
+        // Sauvegarder les données enrichies complètes dans le devis
+        const enrichedData = {
+          ...((devis as any).enrichedData || {}),
+          company: enrichedCompany,
+        }
+
+        await prisma.devis.update({
+          where: { id: devisId },
+          data: {
+            enrichedData: enrichedData as any,
+          },
+        })
+
+        return NextResponse.json({
+          success: true,
+          data: enrichedCompany,
+        })
+      }
+    } catch (advancedError) {
+      console.warn(
+        '[API Enrich Company] AdvancedEnrichment échoué, fallback sur CompanyService:',
+        advancedError
+      )
+    }
+
+    // Fallback sur CompanyEnrichmentService si AdvancedEnrichment échoue
     const companyService = new CompanyEnrichmentService()
     const enrichment = await companyService.enrichFromSiret(siret)
 

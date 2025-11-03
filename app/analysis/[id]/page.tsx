@@ -23,6 +23,9 @@ import {
   AlertCircle,
   Target,
   Sparkles,
+  Award,
+  Users,
+  TrendingUp,
 } from 'lucide-react'
 import { AppHeader } from '@/components/app-header'
 import { DevisChat } from '@/components/chat/devis-chat'
@@ -767,6 +770,381 @@ export default function AnalysisPage() {
                     </div>
                   </div>
                 )}
+
+              {/* Reputation */}
+              {enrichedCompanyData.reputation && (
+                <div className="rounded-lg border bg-orange-50 p-4">
+                  <div className="mb-3 flex items-center gap-2">
+                    <Target className="h-4 w-4 text-orange-600" />
+                    <p className="text-sm font-semibold text-orange-900">
+                      Réputation & Avis Clients
+                    </p>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    {enrichedCompanyData.reputation.averageRating !==
+                      undefined && (
+                      <div className="rounded border bg-white p-3">
+                        <p className="mb-1 text-xs text-muted-foreground">
+                          Note moyenne
+                        </p>
+                        <div className="flex items-center gap-2">
+                          <p className="text-2xl font-bold">
+                            {enrichedCompanyData.reputation.averageRating.toFixed(
+                              1
+                            )}
+                          </p>
+                          <div className="flex text-yellow-400">
+                            {[...Array(5)].map((_, i) => (
+                              <span key={i}>
+                                {i <
+                                Math.floor(
+                                  enrichedCompanyData.reputation.averageRating
+                                )
+                                  ? '★'
+                                  : '☆'}
+                              </span>
+                            ))}
+                          </div>
+                          <span className="text-xs text-muted-foreground">
+                            / 5
+                          </span>
+                        </div>
+                      </div>
+                    )}
+
+                    {enrichedCompanyData.reputation.numberOfReviews !==
+                      undefined && (
+                      <div className="rounded border bg-white p-3">
+                        <p className="mb-1 text-xs text-muted-foreground">
+                          Nombre d&apos;avis
+                        </p>
+                        <p className="text-2xl font-bold">
+                          {enrichedCompanyData.reputation.numberOfReviews}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+
+                  {enrichedCompanyData.reputation.nps !== undefined && (
+                    <div className="mt-3 rounded border bg-white p-3">
+                      <div className="mb-1 flex items-center justify-between">
+                        <p className="text-xs text-muted-foreground">
+                          NPS (Net Promoter Score)
+                        </p>
+                        <p
+                          className={`text-sm font-semibold ${
+                            enrichedCompanyData.reputation.nps >= 50
+                              ? 'text-green-600'
+                              : enrichedCompanyData.reputation.nps >= 30
+                                ? 'text-yellow-600'
+                                : enrichedCompanyData.reputation.nps >= 10
+                                  ? 'text-orange-600'
+                                  : 'text-red-600'
+                          }`}
+                        >
+                          {enrichedCompanyData.reputation.nps > 0 ? '+' : ''}
+                          {enrichedCompanyData.reputation.nps}
+                        </p>
+                      </div>
+                      <div className="h-2 w-full overflow-hidden rounded-full bg-gray-200">
+                        <div
+                          className={`h-full ${
+                            enrichedCompanyData.reputation.nps >= 50
+                              ? 'bg-green-500'
+                              : enrichedCompanyData.reputation.nps >= 30
+                                ? 'bg-yellow-500'
+                                : enrichedCompanyData.reputation.nps >= 10
+                                  ? 'bg-orange-500'
+                                  : 'bg-red-500'
+                          }`}
+                          style={{
+                            width: `${Math.max(0, Math.min(100, (enrichedCompanyData.reputation.nps + 100) / 2))}%`,
+                          }}
+                        />
+                      </div>
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        {enrichedCompanyData.reputation.nps >= 50
+                          ? 'Excellent'
+                          : enrichedCompanyData.reputation.nps >= 30
+                            ? 'Bon'
+                            : enrichedCompanyData.reputation.nps >= 10
+                              ? 'Moyen'
+                              : 'Faible'}{' '}
+                        NPS
+                      </p>
+                    </div>
+                  )}
+
+                  {enrichedCompanyData.reputation.sources &&
+                    enrichedCompanyData.reputation.sources.length > 0 && (
+                      <div className="mt-2 flex flex-wrap gap-1">
+                        {enrichedCompanyData.reputation.sources.map(
+                          (source: string, idx: number) => (
+                            <Badge
+                              key={idx}
+                              variant="outline"
+                              className="text-xs"
+                            >
+                              {source}
+                            </Badge>
+                          )
+                        )}
+                      </div>
+                    )}
+                </div>
+              )}
+
+              {/* Qualifications (distinctes des certifications) */}
+              {enrichedCompanyData.qualifications &&
+                enrichedCompanyData.qualifications.length > 0 && (
+                  <div className="rounded-lg border bg-cyan-50 p-4">
+                    <div className="mb-3 flex items-center gap-2">
+                      <Award className="h-4 w-4 text-cyan-600" />
+                      <p className="text-sm font-semibold text-cyan-900">
+                        Qualifications Professionnelles
+                      </p>
+                    </div>
+                    <div className="space-y-2">
+                      {enrichedCompanyData.qualifications.map(
+                        (qual: any, idx: number) => (
+                          <div
+                            key={idx}
+                            className="rounded border bg-white p-3"
+                          >
+                            <div className="mb-1 flex items-start justify-between">
+                              <div className="flex-1">
+                                <p className="text-sm font-semibold">
+                                  {qual.type}
+                                </p>
+                                {qual.level && (
+                                  <p className="text-xs text-muted-foreground">
+                                    Niveau: {qual.level}
+                                  </p>
+                                )}
+                                {qual.scope && qual.scope.length > 0 && (
+                                  <div className="mt-1 flex flex-wrap gap-1">
+                                    {qual.scope
+                                      .slice(0, 3)
+                                      .map((scope: string, sIdx: number) => (
+                                        <Badge
+                                          key={sIdx}
+                                          variant="outline"
+                                          className="text-xs"
+                                        >
+                                          {scope}
+                                        </Badge>
+                                      ))}
+                                  </div>
+                                )}
+                              </div>
+                              {qual.validUntil && (
+                                <Badge
+                                  variant={
+                                    new Date(qual.validUntil) > new Date()
+                                      ? 'default'
+                                      : 'destructive'
+                                  }
+                                  className="text-xs"
+                                >
+                                  {new Date(qual.validUntil) > new Date()
+                                    ? 'Valide'
+                                    : 'Expirée'}
+                                </Badge>
+                              )}
+                            </div>
+                            {qual.validUntil && (
+                              <p className="mt-1 text-xs text-muted-foreground">
+                                Valide jusqu&apos;au:{' '}
+                                {new Date(qual.validUntil).toLocaleDateString(
+                                  'fr-FR'
+                                )}
+                              </p>
+                            )}
+                          </div>
+                        )
+                      )}
+                    </div>
+                  </div>
+                )}
+
+              {/* Financial Score (Banque de France, TORP Prediction) */}
+              {enrichedCompanyData.financialScore && (
+                <div className="rounded-lg border bg-emerald-50 p-4">
+                  <p className="mb-3 text-sm font-semibold text-emerald-900">
+                    Score Financier Avancé
+                  </p>
+                  <div className="space-y-3">
+                    {enrichedCompanyData.financialScore.banqueDeFrance && (
+                      <div className="rounded border bg-white p-3">
+                        <p className="mb-1 text-xs text-muted-foreground">
+                          Banque de France
+                        </p>
+                        <Badge variant="outline" className="font-medium">
+                          {enrichedCompanyData.financialScore.banqueDeFrance}
+                        </Badge>
+                      </div>
+                    )}
+                    {enrichedCompanyData.financialScore.torpPrediction !==
+                      undefined && (
+                      <div className="rounded border bg-white p-3">
+                        <div className="mb-1 flex items-center justify-between">
+                          <p className="text-xs text-muted-foreground">
+                            Prédiction TORP (risque défaillance)
+                          </p>
+                          <p
+                            className={`text-sm font-semibold ${
+                              enrichedCompanyData.financialScore
+                                .torpPrediction < 30
+                                ? 'text-green-600'
+                                : enrichedCompanyData.financialScore
+                                      .torpPrediction < 60
+                                  ? 'text-yellow-600'
+                                  : 'text-red-600'
+                            }`}
+                          >
+                            {enrichedCompanyData.financialScore.torpPrediction}%
+                          </p>
+                        </div>
+                        <div className="h-2 w-full overflow-hidden rounded-full bg-gray-200">
+                          <div
+                            className={`h-full ${
+                              enrichedCompanyData.financialScore
+                                .torpPrediction < 30
+                                ? 'bg-green-500'
+                                : enrichedCompanyData.financialScore
+                                      .torpPrediction < 60
+                                  ? 'bg-yellow-500'
+                                  : 'bg-red-500'
+                            }`}
+                            style={{
+                              width: `${100 - enrichedCompanyData.financialScore.torpPrediction}%`,
+                            }}
+                          />
+                        </div>
+                        <p className="mt-1 text-xs text-muted-foreground">
+                          {enrichedCompanyData.financialScore.torpPrediction <
+                          30
+                            ? 'Risque faible'
+                            : enrichedCompanyData.financialScore
+                                  .torpPrediction < 60
+                              ? 'Risque modéré'
+                              : 'Risque élevé'}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Portfolio & Références */}
+              {enrichedCompanyData.portfolio && (
+                <div className="rounded-lg border bg-violet-50 p-4">
+                  <p className="mb-3 text-sm font-semibold text-violet-900">
+                    Portfolio & Références
+                  </p>
+                  <div className="grid grid-cols-2 gap-3">
+                    {enrichedCompanyData.portfolio.similarProjects !==
+                      undefined && (
+                      <div className="rounded border bg-white p-2">
+                        <p className="mb-1 text-xs text-muted-foreground">
+                          Projets similaires
+                        </p>
+                        <p className="text-lg font-semibold">
+                          {enrichedCompanyData.portfolio.similarProjects}
+                        </p>
+                      </div>
+                    )}
+                    {enrichedCompanyData.portfolio.averageProjectAmount && (
+                      <div className="rounded border bg-white p-2">
+                        <p className="mb-1 text-xs text-muted-foreground">
+                          Projet moyen
+                        </p>
+                        <p className="text-sm font-semibold">
+                          {formatCurrency(
+                            enrichedCompanyData.portfolio.averageProjectAmount
+                          )}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                  {enrichedCompanyData.portfolio.regions &&
+                    enrichedCompanyData.portfolio.regions.length > 0 && (
+                      <div className="mt-2">
+                        <p className="mb-1 text-xs text-muted-foreground">
+                          Régions d&apos;activité
+                        </p>
+                        <div className="flex flex-wrap gap-1">
+                          {enrichedCompanyData.portfolio.regions.map(
+                            (region: string, idx: number) => (
+                              <Badge
+                                key={idx}
+                                variant="outline"
+                                className="text-xs"
+                              >
+                                {region}
+                              </Badge>
+                            )
+                          )}
+                        </div>
+                      </div>
+                    )}
+                </div>
+              )}
+
+              {/* Human Resources */}
+              {enrichedCompanyData.humanResources && (
+                <div className="rounded-lg border bg-pink-50 p-4">
+                  <p className="mb-3 text-sm font-semibold text-pink-900">
+                    Capital Humain
+                  </p>
+                  <div className="grid grid-cols-2 gap-3">
+                    {enrichedCompanyData.humanResources.employees !==
+                      undefined && (
+                      <div className="rounded border bg-white p-2">
+                        <p className="mb-1 text-xs text-muted-foreground">
+                          Employés
+                        </p>
+                        <p className="text-lg font-semibold">
+                          {enrichedCompanyData.humanResources.employees}
+                        </p>
+                      </div>
+                    )}
+                    {enrichedCompanyData.humanResources.linkedInEmployees !==
+                      undefined && (
+                      <div className="rounded border bg-white p-2">
+                        <p className="mb-1 text-xs text-muted-foreground">
+                          LinkedIn
+                        </p>
+                        <p className="text-lg font-semibold">
+                          {enrichedCompanyData.humanResources.linkedInEmployees}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                  {enrichedCompanyData.humanResources.certifications &&
+                    enrichedCompanyData.humanResources.certifications.length >
+                      0 && (
+                      <div className="mt-2">
+                        <p className="mb-1 text-xs text-muted-foreground">
+                          Certifications RH
+                        </p>
+                        <div className="flex flex-wrap gap-1">
+                          {enrichedCompanyData.humanResources.certifications.map(
+                            (cert: string, idx: number) => (
+                              <Badge
+                                key={idx}
+                                variant="outline"
+                                className="text-xs"
+                              >
+                                {cert}
+                              </Badge>
+                            )
+                          )}
+                        </div>
+                      </div>
+                    )}
+                </div>
+              )}
 
               {/* Financial Health Score */}
               {enrichedCompanyData.financialHealth && (
