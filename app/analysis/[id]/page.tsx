@@ -149,11 +149,6 @@ export default function AnalysisPage() {
       if (scoreResponse.ok) {
         const scoreData = await scoreResponse.json()
         setScore(scoreData.data)
-
-        // Charger les insights si le score existe
-        if (scoreData.data) {
-          fetchInsights()
-        }
       }
 
       setError(null)
@@ -195,6 +190,13 @@ export default function AnalysisPage() {
   useEffect(() => {
     fetchData()
   }, [fetchData])
+
+  // Charger les insights une fois que le devis et le score sont disponibles
+  useEffect(() => {
+    if (devis && score && !insights) {
+      fetchInsights()
+    }
+  }, [devis, score, insights, fetchInsights])
 
   // ... existing helper functions (getGradeColor, getSeverityIcon, formatCurrency, formatDate) ...
 

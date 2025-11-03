@@ -134,12 +134,6 @@ Génère un JSON avec cette structure EXACTE:
     "dataSources": ["Source1", "Source2"],
     "notes": ["Note1", "Note2"]
   },
-  
-IMPORTANT pour companyVerification:
-- Si des données financières sont disponibles, verified doit être true, confidence >= 70, et ajouter "Infogreffe" dans dataSources
-- Si une procédure collective est détectée, ajouter une note critique dans notes: "⚠️ Procédure collective en cours"
-- Si les données financières montrent une tendance défavorable (CA en baisse, résultat négatif), ajouter une note d'alerte
-- Lister toutes les sources de données utilisées (Sirene, Infogreffe, etc.)
   "enhancedRecommendations": [
     {
       "title": "Titre de la recommandation",
@@ -153,7 +147,13 @@ IMPORTANT pour companyVerification:
   ]
 }
 
-IMPORTANT: Retourne UNIQUEMENT le JSON valide, sans texte avant ou après.`
+IMPORTANT: Retourne UNIQUEMENT le JSON valide, sans texte avant ou après.
+
+RÈGLES IMPORTANTES pour companyVerification:
+- Si des données financières sont disponibles, verified doit être true, confidence >= 70, et ajouter "Infogreffe" dans dataSources
+- Si une procédure collective est détectée, ajouter une note critique dans notes: "⚠️ Procédure collective en cours"
+- Si les données financières montrent une tendance défavorable (CA en baisse, résultat négatif), ajouter une note d'alerte
+- Lister toutes les sources de données utilisées (Sirene, Infogreffe, etc.)`
 
       // Liste des modèles à essayer (par ordre de préférence)
       // Pour les insights (pas de PDF), on peut utiliser Claude 3 aussi
