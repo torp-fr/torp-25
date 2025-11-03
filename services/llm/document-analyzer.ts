@@ -335,7 +335,7 @@ IMPORTANT: Retourne UNIQUEMENT le JSON, pas de texte explicatif avant ou après.
       // Appel à Claude
       // Utiliser un modèle plus rapide pour réduire le délai
       const message = await this.client.messages.create({
-        model: 'claude-3-5-sonnet-20241022', // Version plus rapide
+        model: 'claude-3-5-sonnet-20240620', // Version stable
         max_tokens: 12000, // Réduit pour accélérer
         messages: [
           {

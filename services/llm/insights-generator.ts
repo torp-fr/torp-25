@@ -53,26 +53,24 @@ export class InsightsGenerator {
   /**
    * Génère des insights à partir de l'analyse d'un devis
    */
-  async generateInsights(
-    analysisData: {
-      extractedData: any
-      score: {
-        scoreValue: number
-        scoreGrade: string
-        confidenceLevel: number
-        breakdown: any
-        alerts: any[]
-        recommendations: any[]
-      }
-      companyData?: {
-        siret?: string
-        name?: string
-        financialData?: any
-        legalStatus?: any
-        certifications?: any[]
-      }
+  async generateInsights(analysisData: {
+    extractedData: any
+    score: {
+      scoreValue: number
+      scoreGrade: string
+      confidenceLevel: number
+      breakdown: any
+      alerts: any[]
+      recommendations: any[]
     }
-  ): Promise<AnalysisInsights> {
+    companyData?: {
+      siret?: string
+      name?: string
+      financialData?: any
+      legalStatus?: any
+      certifications?: any[]
+    }
+  }): Promise<AnalysisInsights> {
     try {
       const prompt = `Tu es un expert en analyse de devis BTP. Analyse les données suivantes et génère des insights stratégiques en JSON.
 
@@ -134,7 +132,7 @@ Génère un JSON avec cette structure EXACTE:
 IMPORTANT: Retourne UNIQUEMENT le JSON valide, sans texte avant ou après.`
 
       const message = await this.client.messages.create({
-        model: 'claude-3-5-sonnet-20241022', // Version plus rapide
+        model: 'claude-3-5-sonnet-20240620', // Version stable
         max_tokens: 4000,
         messages: [
           {
@@ -173,27 +171,28 @@ IMPORTANT: Retourne UNIQUEMENT le JSON valide, sans texte avant ou après.`
     return {
       executiveSummary: `Devis analysé avec un score de ${analysisData.score.scoreValue}/1000 (Grade ${analysisData.score.scoreGrade}).`,
       keyStrengths: [],
-      keyWeaknesses: analysisData.score.alerts?.slice(0, 3).map((alert: any) => ({
-        title: alert.type,
-        description: alert.message,
-        severity: alert.severity || 'medium',
-      })) || [],
+      keyWeaknesses:
+        analysisData.score.alerts?.slice(0, 3).map((alert: any) => ({
+          title: alert.type,
+          description: alert.message,
+          severity: alert.severity || 'medium',
+        })) || [],
       priorityActions: [],
       companyVerification: {
         verified: false,
         confidence: 0,
         dataSources: [],
-        notes: ['Données d\'entreprise non disponibles'],
+        notes: ["Données d'entreprise non disponibles"],
       },
-      enhancedRecommendations: analysisData.score.recommendations?.map((rec: any) => ({
-        title: rec.category,
-        description: rec.suggestion,
-        category: rec.category,
-        priority: rec.priority,
-        actionable: true,
-        complexity: 'simple' as const,
-      })) || [],
+      enhancedRecommendations:
+        analysisData.score.recommendations?.map((rec: any) => ({
+          title: rec.category,
+          description: rec.suggestion,
+          category: rec.category,
+          priority: rec.priority,
+          actionable: true,
+          complexity: 'simple' as const,
+        })) || [],
     }
   }
 }
-
