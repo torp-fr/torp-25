@@ -69,6 +69,10 @@ export class InsightsGenerator {
       financialData?: any
       legalStatus?: any
       certifications?: any[]
+      reputation?: any
+      address?: any
+      legalStatusInfo?: any
+      activities?: any[]
     }
   }): Promise<AnalysisInsights> {
     try {
