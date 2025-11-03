@@ -131,6 +131,7 @@ model Devis {
   userId           String         @map("user_id")
   extractedData    Json           @map("extracted_data")
   parsedData       Json?          @map("parsed_data")
+  enrichedData     Json?          @map("enriched_data")
   validationStatus DocumentStatus @default(PENDING) @map("validation_status")
   validationErrors Json?          @map("validation_errors")
   projectType      String?        @map("project_type")
