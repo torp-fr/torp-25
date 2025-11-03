@@ -187,85 +187,80 @@ export async function POST(request: NextRequest) {
       `[LLM Analyze] Analyse LLM terminée (${llmDuration}ms, objectif: <3500ms)`
     )
 
-    // 3. Enrichissement asynchrone (non-bloquant) pour mise à jour ultérieure
-    // On lance l'enrichissement complet en arrière-plan sans attendre
-    const enrichmentService = new AdvancedEnrichmentService()
-    const tradeType = ccfData?.tradeType || inferTradeType(analysis.rawText)
-    const region =
-      ccfData?.region ||
-      (analysis.extractedData.project?.location
-        ? extractRegion(analysis.extractedData.project.location)
-        : 'ILE_DE_FRANCE')
-    const projectType =
-      ccfData?.projectType ||
-      (inferProjectType(analysis.extractedData) as
-        | 'construction'
-        | 'renovation'
-        | 'extension'
-        | 'maintenance')
+    // 3. DÉCLENCHEMENT IMMÉDIAT de l'enrichissement si SIRET trouvé
+    // Dès que l'OCR trouve le SIRET, on lance immédiatement l'enrichissement
+    const detectedSiret = analysis.extractedData?.company?.siret
+    let enrichmentData: any = null
 
-    // Enrichissement asynchrone (ne bloque pas la réponse utilisateur)
-    Promise.resolve().then(async () => {
+    if (detectedSiret) {
+      console.log(
+        `[LLM Analyze] 🔍 SIRET détecté par OCR: ${detectedSiret} → Déclenchement enrichissement immédiat...`
+      )
+
+      const enrichmentStartTime = Date.now()
+      const enrichmentService = new AdvancedEnrichmentService()
+      const tradeType = ccfData?.tradeType || inferTradeType(analysis.rawText)
+      const region =
+        ccfData?.region ||
+        (analysis.extractedData.project?.location
+          ? extractRegion(analysis.extractedData.project.location)
+          : 'ILE_DE_FRANCE')
+      const projectType =
+        ccfData?.projectType ||
+        (inferProjectType(analysis.extractedData) as
+          | 'construction'
+          | 'renovation'
+          | 'extension'
+          | 'maintenance')
+
       try {
-        const fullEnrichmentData = await enrichmentService.enrichForScoring(
+        // Enrichissement SYNCHRONE pour avoir les données avant de créer le devis
+        enrichmentData = await enrichmentService.enrichForScoring(
           analysis.extractedData,
           projectType,
           tradeType,
           region
         )
 
+        const enrichmentDuration = Date.now() - enrichmentStartTime
+        const sources = extractSourcesFromEnrichment(enrichmentData)
+        console.log(
+          `[LLM Analyze] ✅ Enrichissement terminé (${enrichmentDuration}ms) - Sources: ${sources.join(', ') || 'aucune'}`
+        )
+        console.log(`[LLM Analyze] 📊 Données enrichies disponibles:`, {
+          hasCompany: !!enrichmentData.company?.siret,
+          hasFinancialData: !!enrichmentData.company?.financialData,
+          hasReputation: !!enrichmentData.company?.reputation,
+          hasCertifications: !!enrichmentData.company?.certifications?.length,
+          hasQualifications: !!enrichmentData.company?.qualifications?.length,
+        })
+
         // Mettre en cache pour accélérer les prochaines analyses
-        if (
-          analysis.extractedData.company.siret &&
-          fullEnrichmentData.company
-        ) {
+        if (enrichmentData.company?.siret) {
           const { globalCache } = await import('@/services/cache/data-cache')
           globalCache.setEnrichment(
-            `company:${analysis.extractedData.company.siret}`,
-            fullEnrichmentData.company
+            `company:${enrichmentData.company.siret}`,
+            enrichmentData.company
+          )
+          console.log(
+            `[LLM Analyze] 💾 Données mises en cache pour SIRET: ${enrichmentData.company.siret}`
           )
         }
-
-        // Logger les sources utilisées
-        const sources = extractSourcesFromEnrichment(fullEnrichmentData)
-        console.log(
-          `[LLM Analyze] ✅ Enrichissement asynchrone terminé et mis en cache (sources: ${sources.join(', ') || 'aucune'})`
+      } catch (enrichmentError) {
+        console.error(
+          '[LLM Analyze] ❌ Erreur enrichissement:',
+          enrichmentError instanceof Error
+            ? enrichmentError.message
+            : String(enrichmentError)
         )
-
-        // Mettre à jour le devis avec les données enrichies pour les insights futurs
-        // Utiliser le champ enrichedData du schema Prisma
-        try {
-          const currentEnrichedData = ((devis as any).enrichedData || {}) as any
-
-          // Sauvegarder les données d'entreprise enrichies
-          if (fullEnrichmentData.company) {
-            await prisma.devis.update({
-              where: { id: devis.id },
-              data: {
-                enrichedData: {
-                  ...currentEnrichedData,
-                  company: fullEnrichmentData.company,
-                } as any,
-              },
-            })
-
-            console.log(
-              '[LLM Analyze] ✅ Données enrichies sauvegardées dans enrichedData.company'
-            )
-          }
-        } catch (err) {
-          console.warn(
-            '[LLM Analyze] Erreur mise à jour devis avec données enrichies:',
-            err
-          )
-        }
-      } catch (error) {
-        console.warn(
-          '[LLM Analyze] ⚠️ Erreur enrichissement asynchrone (non-bloquant):',
-          error
-        )
+        // Continuer même si l'enrichissement échoue
+        enrichmentData = null
       }
-    })
+    } else {
+      console.log(
+        '[LLM Analyze] ℹ️ Aucun SIRET détecté, enrichissement non déclenché'
+      )
+    }
 
     const totalAnalysisDuration = Date.now() - analysisStartTime
     console.log(
@@ -289,13 +284,19 @@ export async function POST(request: NextRequest) {
 
     console.log(`[LLM Analyze] Document créé: ${document.id}`)
 
-    // 2. Créer le Devis avec le documentId
+    // 2. Créer le Devis avec le documentId et les données enrichies (si disponibles)
+    const enrichedDataForDevis = enrichmentData
+      ? {
+          company: enrichmentData.company || null,
+        }
+      : null
+
     const devis = await prisma.devis.create({
       data: {
         documentId: document.id,
         userId,
-
         extractedData: analysis.extractedData as any,
+        enrichedData: enrichedDataForDevis as any,
         validationStatus: 'COMPLETED',
         totalAmount: new Decimal(analysis.extractedData.totals.total),
         projectType: analysis.extractedData.project.title || 'Non spécifié',
@@ -304,6 +305,11 @@ export async function POST(request: NextRequest) {
     })
 
     console.log(`[LLM Analyze] Devis créé: ${devis.id}`)
+    if (enrichedDataForDevis?.company) {
+      console.log(
+        `[LLM Analyze] ✅ Devis créé avec données enrichies (SIRET: ${enrichedDataForDevis.company.siret})`
+      )
+    }
 
     // Programmer le scraping pour enrichissement asynchrone
     try {
