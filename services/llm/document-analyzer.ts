@@ -333,17 +333,58 @@ Structure JSON exacte:
 IMPORTANT: Retourne UNIQUEMENT le JSON, pas de texte explicatif avant ou après.`
 
       // Appel à Claude
-      // Utiliser un modèle plus rapide pour réduire le délai
-      const message = await this.client.messages.create({
-        model: 'claude-3-5-sonnet-20240620', // Version stable
-        max_tokens: 12000, // Réduit pour accélérer
-        messages: [
-          {
-            role: 'user',
-            content: [documentContent, { type: 'text', text: prompt }],
-          },
-        ],
-      })
+      // Vérifier que la clé API est bien configurée
+      if (!process.env.ANTHROPIC_API_KEY) {
+        throw new Error('ANTHROPIC_API_KEY environment variable is not set')
+      }
+
+      // Liste des modèles à essayer (par ordre de préférence)
+      const modelCandidates = [
+        'claude-3-5-sonnet-20240620', // Version stable de juin 2024
+        'claude-3-5-sonnet-latest', // Alias vers la dernière version
+        'claude-3-5-sonnet', // Sans date
+        'claude-sonnet-3.5', // Format alternatif
+      ]
+
+      // Essayer chaque modèle jusqu'à ce que l'un fonctionne
+      let message
+      let lastError: Error | null = null
+      let successfulModel: string | null = null
+
+      for (const model of modelCandidates) {
+        try {
+          console.log(`[DocumentAnalyzer] Essai du modèle: ${model}`)
+          message = await this.client.messages.create({
+            model,
+            max_tokens: 12000,
+            messages: [
+              {
+                role: 'user',
+                content: [documentContent, { type: 'text', text: prompt }],
+              },
+            ],
+          })
+          successfulModel = model
+          console.log(`[DocumentAnalyzer] ✅ Modèle ${model} fonctionne`)
+          break // Succès, sortir de la boucle
+        } catch (error: any) {
+          lastError = error
+          console.warn(
+            `[DocumentAnalyzer] ⚠️ Modèle ${model} a échoué:`,
+            error.message
+          )
+          // Continuer avec le modèle suivant
+          continue
+        }
+      }
+
+      if (!message) {
+        throw new Error(
+          `Aucun modèle Claude disponible. Dernière erreur: ${lastError?.message || 'Unknown error'}. ` +
+            `Modèles essayés: ${modelCandidates.join(', ')}. ` +
+            `Vérifiez que ANTHROPIC_API_KEY est valide et que vous avez accès aux modèles Claude.`
+        )
+      }
 
       // Extraire le JSON de la réponse
       const responseText =

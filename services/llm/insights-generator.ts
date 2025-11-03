@@ -131,16 +131,51 @@ Génère un JSON avec cette structure EXACTE:
 
 IMPORTANT: Retourne UNIQUEMENT le JSON valide, sans texte avant ou après.`
 
-      const message = await this.client.messages.create({
-        model: 'claude-3-5-sonnet-20240620', // Version stable
-        max_tokens: 4000,
-        messages: [
-          {
-            role: 'user',
-            content: prompt,
-          },
-        ],
-      })
+      // Liste des modèles à essayer (par ordre de préférence)
+      const modelCandidates = [
+        'claude-3-5-sonnet-20240620', // Version stable de juin 2024
+        'claude-3-5-sonnet-latest', // Alias vers la dernière version
+        'claude-3-5-sonnet', // Sans date
+        'claude-sonnet-3.5', // Format alternatif
+      ]
+
+      // Essayer chaque modèle jusqu'à ce que l'un fonctionne
+      let message
+      let lastError: Error | null = null
+
+      for (const model of modelCandidates) {
+        try {
+          console.log(`[InsightsGenerator] Essai du modèle: ${model}`)
+          message = await this.client.messages.create({
+            model,
+            max_tokens: 4000,
+            messages: [
+              {
+                role: 'user',
+                content: prompt,
+              },
+            ],
+          })
+          console.log(`[InsightsGenerator] ✅ Modèle ${model} fonctionne`)
+          break // Succès, sortir de la boucle
+        } catch (error: any) {
+          lastError = error
+          console.warn(
+            `[InsightsGenerator] ⚠️ Modèle ${model} a échoué:`,
+            error.message
+          )
+          // Continuer avec le modèle suivant
+          continue
+        }
+      }
+
+      if (!message) {
+        throw new Error(
+          `Aucun modèle Claude disponible pour générer les insights. Dernière erreur: ${lastError?.message || 'Unknown error'}. ` +
+            `Modèles essayés: ${modelCandidates.join(', ')}. ` +
+            `Vérifiez que ANTHROPIC_API_KEY est valide.`
+        )
+      }
 
       const responseText =
         message.content[0].type === 'text' ? message.content[0].text : ''
