@@ -1,4 +1,5 @@
 import Anthropic from '@anthropic-ai/sdk'
+import { ModelResolver } from './model-resolver'
 import fs from 'fs'
 import path from 'path'
 
@@ -337,61 +338,24 @@ Structure JSON exacte:
 
 IMPORTANT: Retourne UNIQUEMENT le JSON, pas de texte explicatif avant ou après.`
 
-      // Appel à Claude
-      // Vérifier que la clé API est bien configurée
-      if (!process.env.ANTHROPIC_API_KEY) {
-        throw new Error('ANTHROPIC_API_KEY environment variable is not set')
-      }
+      // Détecter automatiquement le meilleur modèle disponible pour PDFs
+      console.log(
+        '[DocumentAnalyzer] 🔍 Détection du meilleur modèle pour PDF...'
+      )
+      const model = await this.modelResolver.findBestModelForPdf()
+      console.log(`[DocumentAnalyzer] ✅ Utilisation du modèle: ${model}`)
 
-      // Liste des modèles à essayer (par ordre de préférence)
-      // IMPORTANT: Seuls les modèles Claude 3.5 supportent les PDFs et images
-      // Les modèles Claude 3 (haiku, opus, sonnet) ne supportent pas les PDFs
-      const modelCandidates = [
-        'claude-3-5-sonnet-20241022', // Version la plus récente (Oct 2024) - Support PDF
-        'claude-3-5-sonnet-20240620', // Version stable (Juin 2024) - Support PDF
-      ]
-
-      // Essayer chaque modèle jusqu'à ce que l'un fonctionne
-      let message
-      let lastError: Error | null = null
-
-      for (const model of modelCandidates) {
-        try {
-          console.log(`[DocumentAnalyzer] Essai du modèle: ${model}`)
-          message = await this.client.messages.create({
-            model,
-            max_tokens: 12000,
-            messages: [
-              {
-                role: 'user',
-                content: [documentContent, { type: 'text', text: prompt }],
-              },
-            ],
-          })
-          console.log(`[DocumentAnalyzer] ✅ Modèle ${model} fonctionne`)
-          break // Succès, sortir de la boucle
-        } catch (error: any) {
-          lastError = error
-          console.warn(
-            `[DocumentAnalyzer] ⚠️ Modèle ${model} a échoué:`,
-            error.message
-          )
-          // Continuer avec le modèle suivant
-          continue
-        }
-      }
-
-      if (!message) {
-        const errorDetails = lastError?.message || 'Unknown error'
-        throw new Error(
-          `Aucun modèle Claude 3.5 disponible pour analyser les PDFs. ` +
-            `Dernière erreur: ${errorDetails}. ` +
-            `Modèles essayés: ${modelCandidates.join(', ')}. ` +
-            `⚠️ IMPORTANT: Seuls les modèles Claude 3.5 supportent les PDFs. ` +
-            `Vérifiez que votre clé API ANTHROPIC_API_KEY est valide et que votre compte a accès aux modèles Claude 3.5 Sonnet. ` +
-            `Vous pouvez vérifier votre clé sur https://console.anthropic.com/`
-        )
-      }
+      // Appel à Claude avec le modèle détecté
+      const message = await this.client.messages.create({
+        model,
+        max_tokens: 12000,
+        messages: [
+          {
+            role: 'user',
+            content: [documentContent, { type: 'text', text: prompt }],
+          },
+        ],
+      })
 
       // Extraire le JSON de la réponse
       const responseText =
