@@ -5,7 +5,10 @@
 
 import { ApiClient } from './api-client'
 import type { CompanyEnrichment } from './types'
-import { SireneService, type SireneCompany } from '../external-apis/sirene-service'
+import {
+  SireneService,
+  type SireneCompany,
+} from '../external-apis/sirene-service'
 import { InfogreffeService } from '../external-apis/infogreffe-service'
 
 export class CompanyEnrichmentService {
@@ -21,10 +24,10 @@ export class CompanyEnrichmentService {
       timeout: 8000,
       retries: 2,
     })
-    
+
     // Service Sirene complet (INSEE + fallback data.gouv.fr)
     this.sireneService = new SireneService()
-    
+
     // Service Infogreffe pour données financières et juridiques
     this.infogreffeService = new InfogreffeService()
   }
@@ -37,19 +40,47 @@ export class CompanyEnrichmentService {
     try {
       // Nettoyer le SIRET (supprimer espaces)
       const cleanSiret = siret.replace(/\s/g, '')
+      console.log(
+        `[CompanyService] 🔍 Enrichissement pour SIRET: ${cleanSiret}`
+      )
 
       if (!this.isValidSiret(cleanSiret)) {
-        console.warn(`[CompanyService] SIRET invalide: ${siret}`)
+        console.warn(
+          `[CompanyService] ❌ SIRET invalide: ${siret} (après nettoyage: ${cleanSiret})`
+        )
         return null
       }
 
       // 1. Essayer d'abord avec le service Sirene complet (API INSEE)
-      const sireneCompany = await this.sireneService.getCompanyBySiret(cleanSiret)
-      if (sireneCompany) {
-        return this.mapSireneCompanyToEnrichment(sireneCompany)
+      console.log(
+        '[CompanyService] 🔄 Tentative SireneService.getCompanyBySiret...'
+      )
+      try {
+        const sireneCompany =
+          await this.sireneService.getCompanyBySiret(cleanSiret)
+        if (sireneCompany) {
+          console.log(
+            '[CompanyService] ✅ Données récupérées via SireneService'
+          )
+          return this.mapSireneCompanyToEnrichment(sireneCompany)
+        } else {
+          console.log(
+            '[CompanyService] ⚠️ SireneService.getCompanyBySiret a retourné null'
+          )
+        }
+      } catch (sireneError) {
+        console.warn(
+          `[CompanyService] ⚠️ Erreur SireneService:`,
+          sireneError instanceof Error
+            ? sireneError.message
+            : String(sireneError)
+        )
       }
 
       // 2. Fallback sur l'API Recherche d'Entreprises (data.gouv.fr) - gratuite
+      console.log(
+        "[CompanyService] 🔄 Fallback sur API Recherche d'Entreprises (data.gouv.fr)..."
+      )
       const data = await this.sireneClient.get<{
         results?: Array<{
           siret: string
@@ -72,12 +103,27 @@ export class CompanyEnrichmentService {
         per_page: '1',
       })
 
+      console.log(`[CompanyService] 📋 Réponse API Recherche d'Entreprises:`, {
+        hasResults: !!data.results,
+        resultsCount: data.results?.length || 0,
+      })
+
       if (!data.results || data.results.length === 0) {
-        console.warn(`[CompanyService] Aucune entreprise trouvée pour SIRET: ${siret}`)
+        console.warn(
+          `[CompanyService] ❌ Aucune entreprise trouvée pour SIRET: ${siret} via API Recherche d'Entreprises`
+        )
         return null
       }
 
       const company = data.results[0]
+      console.log(
+        "[CompanyService] ✅ Données récupérées via API Recherche d'Entreprises:",
+        {
+          siret: company.siret,
+          name: company.nom_complet,
+          hasAddress: !!company.adresse,
+        }
+      )
 
       // Construire l'enrichissement
       const enrichment: CompanyEnrichment = {
@@ -114,28 +160,43 @@ export class CompanyEnrichmentService {
       try {
         const siren = company.siren || cleanSiret.substring(0, 9)
         if (siren) {
-          console.log(`[CompanyService] 🔄 Enrichissement Infogreffe pour SIREN: ${siren}`)
+          console.log(
+            `[CompanyService] 🔄 Enrichissement Infogreffe pour SIREN: ${siren}`
+          )
           infogreffeData = await this.infogreffeService.getCompanyData(siren)
-          
+
           if (infogreffeData && infogreffeData.available) {
             // Enrichir avec les données financières
             if (infogreffeData.financial) {
               enrichment.financialData = {
-                ca: infogreffeData.financial.turnover?.years?.map(y => y.amount) || 
-                    (infogreffeData.financial.turnover?.lastYear ? [infogreffeData.financial.turnover.lastYear] : []),
-                result: infogreffeData.financial.netResult?.years?.map(y => y.amount) || 
-                        (infogreffeData.financial.netResult?.lastYear ? [infogreffeData.financial.netResult.lastYear] : []),
+                ca:
+                  infogreffeData.financial.turnover?.years?.map(
+                    (y) => y.amount
+                  ) ||
+                  (infogreffeData.financial.turnover?.lastYear
+                    ? [infogreffeData.financial.turnover.lastYear]
+                    : []),
+                result:
+                  infogreffeData.financial.netResult?.years?.map(
+                    (y) => y.amount
+                  ) ||
+                  (infogreffeData.financial.netResult?.lastYear
+                    ? [infogreffeData.financial.netResult.lastYear]
+                    : []),
                 ebitda: infogreffeData.financial.ebitda,
                 debt: infogreffeData.financial.debt?.total,
-                lastUpdate: infogreffeData.financial.lastUpdate || infogreffeData.lastUpdated,
+                lastUpdate:
+                  infogreffeData.financial.lastUpdate ||
+                  infogreffeData.lastUpdated,
               }
             }
-            
+
             // Enrichir avec les données juridiques (procédures collectives)
             if (infogreffeData.legal?.collectiveProcedures) {
-              const ongoingProcedures = infogreffeData.legal.collectiveProcedures.filter(
-                proc => proc.status === 'ongoing'
-              )
+              const ongoingProcedures =
+                infogreffeData.legal.collectiveProcedures.filter(
+                  (proc) => proc.status === 'ongoing'
+                )
               if (ongoingProcedures.length > 0) {
                 enrichment.legalStatusDetails = {
                   hasCollectiveProcedure: true,
@@ -144,7 +205,7 @@ export class CompanyEnrichmentService {
                 }
               }
             }
-            
+
             console.log(`[CompanyService] ✅ Données Infogreffe récupérées:`, {
               hasFinancial: !!enrichment.financialData,
               hasLegal: !!enrichment.legalStatusDetails,
@@ -152,7 +213,10 @@ export class CompanyEnrichmentService {
           }
         }
       } catch (error) {
-        console.warn(`[CompanyService] ⚠️ Erreur enrichissement Infogreffe:`, error)
+        console.warn(
+          `[CompanyService] ⚠️ Erreur enrichissement Infogreffe:`,
+          error
+        )
         // Ne pas échouer si Infogreffe échoue, on garde les données Sirene
       }
 
@@ -160,9 +224,14 @@ export class CompanyEnrichmentService {
       // - API Assurance (à implémenter)
       // - API Certifications (à implémenter)
 
+      console.log('[CompanyService] ✅ Enrichissement terminé avec succès')
       return enrichment
     } catch (error) {
-      console.error(`[CompanyService] Erreur lors de l'enrichissement SIRET ${siret}:`, error)
+      console.error(
+        `[CompanyService] ❌ Erreur lors de l'enrichissement SIRET ${siret}:`,
+        error instanceof Error ? error.message : String(error),
+        error instanceof Error ? error.stack : undefined
+      )
       return null
     }
   }
@@ -170,7 +239,9 @@ export class CompanyEnrichmentService {
   /**
    * Convertit un SireneCompany en CompanyEnrichment
    */
-  private mapSireneCompanyToEnrichment(company: SireneCompany): CompanyEnrichment {
+  private mapSireneCompanyToEnrichment(
+    company: SireneCompany
+  ): CompanyEnrichment {
     return {
       siret: company.siret,
       siren: company.siren,
@@ -275,7 +346,10 @@ export class CompanyEnrichmentService {
           : undefined,
       }))
     } catch (error) {
-      console.error(`[CompanyService] Erreur lors de la recherche par nom "${name}":`, error)
+      console.error(
+        `[CompanyService] Erreur lors de la recherche par nom "${name}":`,
+        error
+      )
       return []
     }
   }
@@ -297,7 +371,7 @@ export class CompanyEnrichmentService {
   }> {
     try {
       const verification = await this.sireneService.verifyCompany(data)
-      
+
       return {
         valid: verification.valid,
         company: verification.company
@@ -317,4 +391,3 @@ export class CompanyEnrichmentService {
     }
   }
 }
-
