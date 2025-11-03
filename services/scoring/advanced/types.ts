@@ -5,7 +5,11 @@
 
 // Profil utilisateur
 export type UserProfile = 'B2C' | 'B2B'
-export type ProjectType = 'construction' | 'renovation' | 'extension' | 'maintenance'
+export type ProjectType =
+  | 'construction'
+  | 'renovation'
+  | 'extension'
+  | 'maintenance'
 export type ProjectAmount = 'low' | 'medium' | 'high' // <10k, 10-50k, >50k
 
 // Grades finaux
@@ -160,6 +164,14 @@ export interface EnrichedCompanyData {
     scope: string[]
   }>
 
+  // Certifications (RGE, Qualibat, etc.) - Détails complets
+  certifications?: Array<{
+    name: string
+    type: string
+    validUntil?: string
+    valid?: boolean
+  }>
+
   // Réputation (Avis, NPS)
   reputation?: {
     averageRating: number // 0-5
@@ -214,4 +226,3 @@ export interface ScoringEnrichmentData {
   urbanismData?: any
   energyData?: any
 }
-
