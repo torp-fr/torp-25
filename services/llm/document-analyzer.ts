@@ -344,13 +344,11 @@ IMPORTANT: Retourne UNIQUEMENT le JSON, pas de texte explicatif avant ou après.
       }
 
       // Liste des modèles à essayer (par ordre de préférence)
-      // Format exact selon la documentation Anthropic officielle
+      // IMPORTANT: Seuls les modèles Claude 3.5 supportent les PDFs et images
+      // Les modèles Claude 3 (haiku, opus, sonnet) ne supportent pas les PDFs
       const modelCandidates = [
-        'claude-3-5-sonnet-20241022', // Version la plus récente (Oct 2024)
-        'claude-3-5-sonnet-20240620', // Version stable (Juin 2024)
-        'claude-3-sonnet-20240229', // Claude 3 Sonnet (Fallback)
-        'claude-3-opus-20240229', // Claude 3 Opus (Fallback - plus performant mais plus lent)
-        'claude-3-haiku-20240307', // Claude 3 Haiku (Fallback - rapide mais moins précis)
+        'claude-3-5-sonnet-20241022', // Version la plus récente (Oct 2024) - Support PDF
+        'claude-3-5-sonnet-20240620', // Version stable (Juin 2024) - Support PDF
       ]
 
       // Essayer chaque modèle jusqu'à ce que l'un fonctionne
@@ -384,10 +382,14 @@ IMPORTANT: Retourne UNIQUEMENT le JSON, pas de texte explicatif avant ou après.
       }
 
       if (!message) {
+        const errorDetails = lastError?.message || 'Unknown error'
         throw new Error(
-          `Aucun modèle Claude disponible. Dernière erreur: ${lastError?.message || 'Unknown error'}. ` +
+          `Aucun modèle Claude 3.5 disponible pour analyser les PDFs. ` +
+            `Dernière erreur: ${errorDetails}. ` +
             `Modèles essayés: ${modelCandidates.join(', ')}. ` +
-            `Vérifiez que ANTHROPIC_API_KEY est valide et que vous avez accès aux modèles Claude.`
+            `⚠️ IMPORTANT: Seuls les modèles Claude 3.5 supportent les PDFs. ` +
+            `Vérifiez que votre clé API ANTHROPIC_API_KEY est valide et que votre compte a accès aux modèles Claude 3.5 Sonnet. ` +
+            `Vous pouvez vérifier votre clé sur https://console.anthropic.com/`
         )
       }
 
