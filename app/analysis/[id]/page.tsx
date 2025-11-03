@@ -128,13 +128,16 @@ export default function AnalysisPage() {
   const [score, setScore] = useState<TORPScore | null>(null)
   const [insights, setInsights] = useState<AnalysisInsights | null>(null)
   const [loading, setLoading] = useState(true)
+  const [enriching, setEnriching] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [showChat, setShowChat] = useState(false)
   const DEMO_USER_ID = 'demo-user-id'
 
+  // Fonction pour charger les données du devis
   const fetchData = useCallback(async () => {
     try {
       setLoading(true)
+      setError(null)
 
       // Fetch devis
       const devisResponse = await fetch(`/api/devis/${devisId}`)
@@ -143,34 +146,25 @@ export default function AnalysisPage() {
       }
 
       const devisData = await devisResponse.json()
-      setDevis(devisData.data)
+      const loadedDevis = devisData.data as Devis
+      setDevis(loadedDevis)
 
-      // Fetch score
-      const scoreResponse = await fetch(`/api/score?devisId=${devisId}`)
-      if (scoreResponse.ok) {
-        const scoreData = await scoreResponse.json()
-        setScore(scoreData.data)
-      }
+      // Vérifier si un SIRET existe et si les données sont enrichies
+      const hasSiret = loadedDevis?.extractedData?.company?.siret
+      const hasEnrichedData = (loadedDevis as any)?.enrichedData?.company?.siret
 
-      setError(null)
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erreur inconnue')
-    } finally {
-      setLoading(false)
-    }
-  }, [devisId])
+      console.log('[AnalysisPage] 📋 Devis chargé:', {
+        hasSiret: !!hasSiret,
+        hasEnrichedData: !!hasEnrichedData,
+        siret: hasSiret,
+      })
 
-  const fetchInsights = useCallback(async () => {
-    try {
-      // Vérifier si les données enrichies existent déjà
-      const hasEnrichedData = (devis as any)?.enrichedData?.company?.siret
-      const hasSiret = devis?.extractedData?.company?.siret
-
-      // Enrichir les données d'entreprise si nécessaire
+      // Si SIRET existe mais pas de données enrichies, forcer l'enrichissement
       if (hasSiret && !hasEnrichedData) {
         console.log(
-          "[AnalysisPage] 🔄 Enrichissement des données d'entreprise..."
+          '[AnalysisPage] 🔄 Enrichissement nécessaire, déclenchement...'
         )
+        setEnriching(true)
         try {
           const enrichResponse = await fetch(
             `/api/analysis/${devisId}/enrich-company`
@@ -179,31 +173,69 @@ export default function AnalysisPage() {
             const enrichData = await enrichResponse.json()
             console.log('[AnalysisPage] ✅ Enrichissement réussi:', {
               hasCompany: !!enrichData.data,
+              siret: enrichData.data?.siret,
               hasFinancialData: !!enrichData.data?.financialData,
               hasReputation: !!enrichData.data?.reputation,
             })
 
-            // Recharger le devis pour avoir les données enrichies
-            const devisResponse = await fetch(`/api/devis/${devisId}`)
-            if (devisResponse.ok) {
-              const devisData = await devisResponse.json()
-              setDevis(devisData.data)
+            // Recharger le devis avec les données enrichies
+            const devisResponse2 = await fetch(`/api/devis/${devisId}`)
+            if (devisResponse2.ok) {
+              const devisData2 = await devisResponse2.json()
+              setDevis(devisData2.data)
               console.log(
                 '[AnalysisPage] ✅ Devis rechargé avec données enrichies'
               )
             }
           } else {
-            const errorData = await enrichResponse.json()
+            const errorData = await enrichResponse.json().catch(() => ({}))
             console.warn('[AnalysisPage] ⚠️ Enrichissement échoué:', errorData)
           }
         } catch (enrichErr) {
-          console.warn(
-            '[AnalysisPage] ⚠️ Erreur enrichissement (non-bloquant):',
-            enrichErr
-          )
+          console.error('[AnalysisPage] ❌ Erreur enrichissement:', enrichErr)
+        } finally {
+          setEnriching(false)
         }
       } else if (hasEnrichedData) {
         console.log('[AnalysisPage] ℹ️ Données enrichies déjà disponibles')
+      }
+
+      // Fetch score
+      const scoreResponse = await fetch(`/api/score?devisId=${devisId}`)
+      if (scoreResponse.ok) {
+        const scoreData = await scoreResponse.json()
+        setScore(scoreData.data)
+      }
+    } catch (err) {
+      console.error('[AnalysisPage] ❌ Erreur chargement:', err)
+      setError(err instanceof Error ? err.message : 'Erreur inconnue')
+    } finally {
+      setLoading(false)
+    }
+  }, [devisId])
+
+  // Fonction pour charger les insights (appelée après que les données soient prêtes)
+  const fetchInsights = useCallback(async () => {
+    if (!devis) {
+      console.log('[AnalysisPage] ⏳ Pas de devis, attente...')
+      return
+    }
+
+    try {
+      console.log('[AnalysisPage] 🔄 Chargement des insights...')
+
+      // Recharger le devis pour être sûr d'avoir les dernières données
+      const devisResponse = await fetch(`/api/devis/${devisId}`)
+      if (devisResponse.ok) {
+        const devisData = await devisResponse.json()
+        const currentDevis = devisData.data as Devis
+        setDevis(currentDevis)
+
+        console.log('[AnalysisPage] 📋 Devis pour insights:', {
+          hasEnrichedData: !!(currentDevis as any)?.enrichedData?.company,
+          enrichedCompanySiret: (currentDevis as any)?.enrichedData?.company
+            ?.siret,
+        })
       }
 
       // Charger les insights (qui utiliseront les données enrichies si disponibles)
@@ -211,9 +243,10 @@ export default function AnalysisPage() {
       if (response.ok) {
         const data = await response.json()
         setInsights(data.data)
-        console.log('[AnalysisPage] ✅ Insights chargés')
+        console.log('[AnalysisPage] ✅ Insights chargés avec succès')
       } else {
-        console.warn('[AnalysisPage] ⚠️ Erreur chargement insights')
+        const errorData = await response.json().catch(() => ({}))
+        console.warn('[AnalysisPage] ⚠️ Erreur chargement insights:', errorData)
       }
     } catch (err) {
       console.error('[AnalysisPage] ❌ Erreur chargement insights:', err)
@@ -224,12 +257,16 @@ export default function AnalysisPage() {
     fetchData()
   }, [fetchData])
 
-  // Charger les insights une fois que le devis et le score sont disponibles
+  // Charger les insights une fois que le devis et le score sont chargés
   useEffect(() => {
-    if (devis && score && !insights) {
-      fetchInsights()
+    if (devis && score && !loading && !enriching) {
+      // Attendre un peu pour que l'enrichissement se termine si en cours
+      const timer = setTimeout(() => {
+        fetchInsights()
+      }, 500)
+      return () => clearTimeout(timer)
     }
-  }, [devis, score, insights, fetchInsights])
+  }, [devis, score, loading, enriching, fetchInsights])
 
   // ... existing helper functions (getGradeColor, getSeverityIcon, formatCurrency, formatDate) ...
 
@@ -367,8 +404,9 @@ export default function AnalysisPage() {
         )}
 
         {/* Company Verification - Enriched Section */}
+        {/* Toujours afficher si on a un SIRET, même sans données enrichies */}
         {(insights?.companyVerification ||
-          enrichedCompanyData ||
+          enrichedCompanyData?.siret ||
           devis.extractedData.company.siret) && (
           <Card className="mb-6">
             <CardHeader>
@@ -1258,9 +1296,61 @@ export default function AnalysisPage() {
                   <div className="rounded-lg border border-dashed bg-gray-50 p-4 text-center">
                     <p className="text-sm text-muted-foreground">
                       Données d&apos;entreprise non disponibles.
-                      {devis.extractedData.company.siret &&
-                        ' Enrichissement en cours...'}
                     </p>
+                    {enriching ? (
+                      <div className="mt-2 flex items-center gap-2">
+                        <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent"></div>
+                        <p className="text-xs text-muted-foreground">
+                          Enrichissement en cours...
+                        </p>
+                      </div>
+                    ) : devis.extractedData.company.siret ? (
+                      <div className="mt-2 space-y-2">
+                        <p className="text-xs text-muted-foreground">
+                          SIRET détecté:{' '}
+                          <Badge
+                            variant="outline"
+                            className="font-mono text-xs"
+                          >
+                            {devis.extractedData.company.siret}
+                          </Badge>
+                        </p>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={async () => {
+                            setEnriching(true)
+                            try {
+                              const response = await fetch(
+                                `/api/analysis/${devisId}/enrich-company`
+                              )
+                              if (response.ok) {
+                                const data = await response.json()
+                                console.log(
+                                  'Enrichissement manuel réussi:',
+                                  data
+                                )
+                                // Recharger les données
+                                await fetchData()
+                                await fetchInsights()
+                              }
+                            } catch (err) {
+                              console.error(
+                                'Erreur enrichissement manuel:',
+                                err
+                              )
+                            } finally {
+                              setEnriching(false)
+                            }
+                          }}
+                          disabled={enriching}
+                        >
+                          {enriching
+                            ? 'Enrichissement...'
+                            : 'Enrichir maintenant'}
+                        </Button>
+                      </div>
+                    ) : null}
                   </div>
                 )}
             </CardContent>
