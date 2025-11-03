@@ -23,6 +23,9 @@ import {
   AlertCircle,
   Target,
   Sparkles,
+  Building2,
+  Award,
+  FileText,
 } from 'lucide-react'
 import { AppHeader } from '@/components/app-header'
 import { DevisChat } from '@/components/chat/devis-chat'
@@ -360,17 +363,52 @@ export default function AnalysisPage() {
               </div>
             </CardHeader>
             <CardContent className="space-y-4">
-              {/* SIRET Info */}
-              {devis.extractedData.company.siret && (
-                <div className="rounded-lg border bg-blue-50 p-4">
-                  <div className="mb-2 flex items-center justify-between">
-                    <p className="text-sm font-semibold">SIRET</p>
-                    <Badge variant="outline">
-                      {devis.extractedData.company.siret}
-                    </Badge>
-                  </div>
+              {/* Company Identity - Nom et identifiants */}
+              <div className="space-y-3 rounded-lg border bg-blue-50 p-4">
+                <div>
+                  <p className="mb-1 text-xs text-muted-foreground">
+                    Nom de l&apos;entreprise
+                  </p>
+                  <p className="text-base font-semibold text-blue-900">
+                    {enrichedCompanyData?.name ||
+                      devis.extractedData.company.name}
+                  </p>
                 </div>
-              )}
+
+                <div className="grid grid-cols-2 gap-3">
+                  {devis.extractedData.company.siret && (
+                    <div>
+                      <p className="mb-1 text-xs text-muted-foreground">
+                        SIRET
+                      </p>
+                      <Badge variant="outline" className="font-mono text-xs">
+                        {devis.extractedData.company.siret}
+                      </Badge>
+                    </div>
+                  )}
+                  {enrichedCompanyData?.siren && (
+                    <div>
+                      <p className="mb-1 text-xs text-muted-foreground">
+                        SIREN
+                      </p>
+                      <Badge variant="outline" className="font-mono text-xs">
+                        {enrichedCompanyData.siren}
+                      </Badge>
+                    </div>
+                  )}
+                </div>
+
+                {enrichedCompanyData?.legalStatus && (
+                  <div>
+                    <p className="mb-1 text-xs text-muted-foreground">
+                      Forme juridique
+                    </p>
+                    <p className="text-sm font-medium">
+                      {enrichedCompanyData.legalStatus}
+                    </p>
+                  </div>
+                )}
+              </div>
 
               {/* Verification Status */}
               <div className="grid grid-cols-2 gap-4">
