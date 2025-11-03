@@ -37,6 +37,14 @@ export async function GET(
     const extractedData = devis.extractedData as any
     const enrichedData = (devis as any).enrichedData || {}
 
+    console.log('[API Insights] 📦 Données disponibles:', {
+      hasExtractedData: !!extractedData,
+      hasEnrichedData: !!enrichedData,
+      hasCompanyEnrichment: !!enrichedData?.company,
+      companySiret:
+        enrichedData?.company?.siret || extractedData?.company?.siret || 'N/A',
+    })
+
     // Récupérer les données d'entreprise enrichies (TOUTES les données)
     let companyData: any = null
     const companyEnrichment = enrichedData?.company
