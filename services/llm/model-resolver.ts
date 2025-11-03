@@ -37,9 +37,10 @@ export class ModelResolver {
 
     const models: AvailableModel[] = []
 
-    // Liste complète des modèles Claude à tester
-    const allModels = [
-      // Claude 3.5 Sonnet (support PDF)
+    // Liste des modèles prioritaires à tester en premier (Claude 3.5 Sonnet)
+    // On teste d'abord les plus importants pour éviter les tests inutiles
+    const priorityModels = [
+      // Claude 3.5 Sonnet (support PDF) - PRIORITÉ 1
       {
         name: 'claude-3-5-sonnet-20241022',
         supportsPdf: true,
@@ -50,8 +51,11 @@ export class ModelResolver {
         supportsPdf: true,
         version: '3.5 Sonnet Jun 2024',
       },
+    ]
 
-      // Claude 3.5 Haiku (peut-être support PDF)
+    // Modèles de fallback (moins prioritaires)
+    const fallbackModels = [
+      // Claude 3.5 Haiku (peut supporter PDF)
       {
         name: 'claude-3-5-haiku-20241022',
         supportsPdf: true,
@@ -62,35 +66,14 @@ export class ModelResolver {
         supportsPdf: true,
         version: '3.5 Haiku Jun 2024',
       },
-
-      // Claude 3 Opus (fallback, texte uniquement)
-      {
-        name: 'claude-3-opus-20240229',
-        supportsPdf: false,
-        version: '3 Opus Feb 2024',
-      },
-
-      // Claude 3 Sonnet (fallback, texte uniquement)
-      {
-        name: 'claude-3-sonnet-20240229',
-        supportsPdf: false,
-        version: '3 Sonnet Feb 2024',
-      },
-
-      // Claude 3 Haiku (fallback, texte uniquement)
-      {
-        name: 'claude-3-haiku-20240307',
-        supportsPdf: false,
-        version: '3 Haiku Mar 2024',
-      },
     ]
 
     console.log('[ModelResolver] 🔍 Détection des modèles disponibles...')
 
-    // Tester chaque modèle avec une requête minimale
-    for (const model of allModels) {
+    // Tester d'abord les modèles prioritaires (Claude 3.5 Sonnet)
+    for (const model of priorityModels) {
       try {
-        // Test avec un message texte simple (rapide et peu coûteux)
+        // Test avec une requête minimale (rapide et peu coûteux)
         const testResponse = await this.client.messages.create({
           model: model.name,
           max_tokens: 10,
@@ -106,25 +89,71 @@ export class ModelResolver {
           models.push({
             name: model.name,
             supportsPdf: model.supportsPdf,
-            supportsImages: model.supportsPdf, // Généralement les mêmes capacités
+            supportsImages: model.supportsPdf,
             version: model.version,
           })
           console.log(`[ModelResolver] ✅ ${model.name} est disponible`)
+          // Si on trouve un modèle Claude 3.5 Sonnet, on peut arrêter ici pour gagner du temps
+          // car c'est le meilleur pour notre cas d'usage
+          if (models.length >= 1 && model.name.includes('3-5-sonnet')) {
+            console.log(
+              '[ModelResolver] ✅ Modèle optimal trouvé, arrêt de la détection'
+            )
+            this.cachedModels = models
+            return models
+          }
         }
       } catch (error: any) {
-        // Erreur 404 = modèle non disponible
-        // Autres erreurs = peut-être disponible mais problème de requête
+        // Erreur 404 = modèle non disponible pour ce compte
         if (error.status === 404 || error.error?.type === 'not_found_error') {
           console.log(
             `[ModelResolver] ❌ ${model.name} n'est pas disponible (404)`
           )
         } else {
-          // Autre erreur = le modèle existe peut-être mais la requête a échoué
-          // On le considère comme disponible mais avec une note
-          console.warn(
-            `[ModelResolver] ⚠️ ${model.name} - erreur: ${error.message || error.error?.message || 'unknown'}`
+          // Autre erreur (401, 403, etc.) = problème de clé API ou permissions
+          console.error(
+            `[ModelResolver] ⚠️ ${model.name} - erreur: ${error.status || 'unknown'} - ${error.message || error.error?.message || 'unknown'}`
           )
-          // Ne pas l'ajouter si erreur autre que 404
+        }
+      }
+    }
+
+    // Si aucun modèle prioritaire n'est disponible, tester les fallbacks
+    if (models.length === 0) {
+      console.log(
+        '[ModelResolver] ⚠️ Aucun modèle prioritaire disponible, test des fallbacks...'
+      )
+      for (const model of fallbackModels) {
+        try {
+          const testResponse = await this.client.messages.create({
+            model: model.name,
+            max_tokens: 10,
+            messages: [
+              {
+                role: 'user',
+                content: 'test',
+              },
+            ],
+          })
+
+          if (testResponse && testResponse.content) {
+            models.push({
+              name: model.name,
+              supportsPdf: model.supportsPdf,
+              supportsImages: model.supportsPdf,
+              version: model.version,
+            })
+            console.log(
+              `[ModelResolver] ✅ ${model.name} est disponible (fallback)`
+            )
+            break // Un fallback suffit
+          }
+        } catch (error: any) {
+          if (error.status === 404 || error.error?.type === 'not_found_error') {
+            console.log(
+              `[ModelResolver] ❌ ${model.name} n'est pas disponible (404)`
+            )
+          }
         }
       }
     }
@@ -133,10 +162,11 @@ export class ModelResolver {
 
     if (models.length === 0) {
       throw new Error(
-        'Aucun modèle Claude disponible. ' +
+        'Aucun modèle Claude 3.5 disponible pour analyser les PDFs. ' +
+          'Les modèles Claude 3.5 Sonnet (claude-3-5-sonnet-*) ne sont pas accessibles avec votre clé API. ' +
           'Vérifiez que votre clé API ANTHROPIC_API_KEY est valide ' +
-          'et que votre compte a accès aux modèles Claude. ' +
-          'Consultez https://console.anthropic.com/ pour vérifier votre clé.'
+          'et que votre compte Anthropic a accès aux modèles Claude 3.5. ' +
+          'Consultez https://console.anthropic.com/ pour vérifier votre clé et votre accès aux modèles.'
       )
     }
 
