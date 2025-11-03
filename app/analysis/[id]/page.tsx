@@ -23,9 +23,6 @@ import {
   AlertCircle,
   Target,
   Sparkles,
-  Building2,
-  Award,
-  FileText,
 } from 'lucide-react'
 import { AppHeader } from '@/components/app-header'
 import { DevisChat } from '@/components/chat/devis-chat'
