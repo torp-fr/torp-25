@@ -132,11 +132,13 @@ Génère un JSON avec cette structure EXACTE:
 IMPORTANT: Retourne UNIQUEMENT le JSON valide, sans texte avant ou après.`
 
       // Liste des modèles à essayer (par ordre de préférence)
+      // Format exact selon la documentation Anthropic officielle
       const modelCandidates = [
-        'claude-3-5-sonnet-20240620', // Version stable de juin 2024
-        'claude-3-5-sonnet-latest', // Alias vers la dernière version
-        'claude-3-5-sonnet', // Sans date
-        'claude-sonnet-3.5', // Format alternatif
+        'claude-3-5-sonnet-20241022', // Version la plus récente (Oct 2024)
+        'claude-3-5-sonnet-20240620', // Version stable (Juin 2024)
+        'claude-3-sonnet-20240229', // Claude 3 Sonnet (Fallback)
+        'claude-3-opus-20240229', // Claude 3 Opus (Fallback - plus performant mais plus lent)
+        'claude-3-haiku-20240307', // Claude 3 Haiku (Fallback - rapide mais moins précis)
       ]
 
       // Essayer chaque modèle jusqu'à ce que l'un fonctionne
