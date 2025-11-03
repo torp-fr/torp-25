@@ -107,7 +107,6 @@ export class DocumentAnalyzer {
       const fileBuffer = fs.readFileSync(filePath)
       const fileExt = path.extname(filePath).toLowerCase()
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       let documentContent: any
 
       // Préparer le contenu selon le type de fichier
@@ -140,11 +139,43 @@ export class DocumentAnalyzer {
         enrichmentContext = `
 
 **DONNÉES ENRICHIES DISPONIBLES** (utilise-les pour améliorer ta précision):
-${enrichmentData.company ? `
+
+${
+  (enrichmentData as any).ccfData
+    ? `
+**CAHIER DES CHARGES FONCTIONNEL (CCF)** - Utilise ces informations pour une analyse contextuelle précise:
+- **Type de projet**: ${(enrichmentData as any).ccfData.projectType}
+  ${(enrichmentData as any).ccfData.projectTitle ? `- **Titre**: ${(enrichmentData as any).ccfData.projectTitle}` : ''}
+  ${(enrichmentData as any).ccfData.projectDescription ? `- **Description**: ${(enrichmentData as any).ccfData.projectDescription}` : ''}
+  ${(enrichmentData as any).ccfData.address ? `- **Adresse du projet**: ${(enrichmentData as any).ccfData.address}` : ''}
+  ${(enrichmentData as any).ccfData.region ? `- **Région**: ${(enrichmentData as any).ccfData.region}` : ''}
+  ${(enrichmentData as any).ccfData.rooms && (enrichmentData as any).ccfData.rooms.length > 0 ? `- **Pièces concernées**: ${(enrichmentData as any).ccfData.rooms.join(', ')}` : ''}
+  ${(enrichmentData as any).ccfData.constraints && (enrichmentData as any).ccfData.constraints.length > 0 ? `- **Contraintes identifiées**: ${(enrichmentData as any).ccfData.constraints.join('; ')}` : ''}
+  ${(enrichmentData as any).ccfData.requirements && (enrichmentData as any).ccfData.requirements.length > 0 ? `- **Besoins fonctionnels**: ${(enrichmentData as any).ccfData.requirements.join('; ')}` : ''}
+  ${(enrichmentData as any).ccfData.budgetRange && (enrichmentData as any).ccfData.budgetRange.max > 0 ? `- **Budget estimé**: ${(enrichmentData as any).ccfData.budgetRange.min}€ - ${(enrichmentData as any).ccfData.budgetRange.max}€${(enrichmentData as any).ccfData.budgetRange.preferred ? ` (idéal: ${(enrichmentData as any).ccfData.budgetRange.preferred}€)` : ''}` : ''}
+  ${(enrichmentData as any).ccfData.pluData ? `- **Contraintes PLU détectées**: Utilise ces données pour vérifier la conformité réglementaire du devis` : ''}
+  ${(enrichmentData as any).ccfData.buildingData ? `- **Données bâti disponibles**: Informations sur le bâtiment et son environnement` : ''}
+  
+  **ACTIONS REQUISES avec le CCF**:
+  - Vérifie que le devis correspond au type de projet déclaré
+  - Compare les prix avec le budget estimé du client
+  - Vérifie la cohérence avec les contraintes PLU/urbanisme mentionnées
+  - Évalue si les prestations correspondent aux pièces et besoins exprimés
+  - Détecte les écarts significatifs entre le devis et les attentes du projet
+  - Utilise les données bâti pour vérifier la pertinence des travaux proposés
+
+`
+    : ''
+}
+${
+  enrichmentData.company
+    ? `
 - **Entreprise vérifiée**: ${JSON.stringify(enrichmentData.company, null, 2)}
   - Utilise ces informations pour vérifier la cohérence avec le devis
   - Vérifie que le SIRET correspond
-  ${enrichmentData.company.financialData ? `
+  ${
+    enrichmentData.company.financialData
+      ? `
   - **⚠️ DONNÉES FINANCIÈRES (Infogreffe)**:
     - Chiffre d'affaires: ${enrichmentData.company.financialData.ca?.length ? enrichmentData.company.financialData.ca.map((ca: number, i: number) => `Année ${new Date().getFullYear() - i}: ${ca.toLocaleString('fr-FR')}€`).join(', ') : 'Non disponible'}
     - Résultat net: ${enrichmentData.company.financialData.result?.length ? enrichmentData.company.financialData.result.map((r: number, i: number) => `Année ${new Date().getFullYear() - i}: ${r.toLocaleString('fr-FR')}€`).join(', ') : 'Non disponible'}
@@ -154,34 +185,58 @@ ${enrichmentData.company ? `
       * Résultat net négatif ou en forte baisse
       * Dettes élevées par rapport au CA
       * Tendance financière défavorable
-  ` : ''}
-  ${enrichmentData.company.legalStatusDetails?.hasCollectiveProcedure ? `
+  `
+      : ''
+  }
+  ${
+    enrichmentData.company.legalStatusDetails?.hasCollectiveProcedure
+      ? `
   - **🚨 ALERTE CRITIQUE - PROCÉDURE COLLECTIVE**:
     - Type: ${enrichmentData.company.legalStatusDetails.procedureType || 'Type inconnu'}
     - Date de début: ${enrichmentData.company.legalStatusDetails.procedureDate || 'Date inconnue'}
     - **ACTION REQUISE**: Recommander fortement la vérification des garanties (décennale, RC), questionner la viabilité de l'entreprise pour ce projet, alerter sur les risques de non-achèvement
-  ` : ''}
-` : ''}
-${enrichmentData.priceReferences && enrichmentData.priceReferences.length > 0 ? `
+  `
+      : ''
+  }
+`
+    : ''
+}
+${
+  enrichmentData.priceReferences && enrichmentData.priceReferences.length > 0
+    ? `
 - **Prix de référence marché**: ${JSON.stringify(enrichmentData.priceReferences, null, 2)}
   - Compare les prix du devis avec ces références
   - Détecte les écarts significatifs (surfacturation/sous-tarification)
-` : ''}
-${enrichmentData.regionalData ? `
+`
+    : ''
+}
+${
+  enrichmentData.regionalData
+    ? `
 - **Données régionales**: ${JSON.stringify(enrichmentData.regionalData, null, 2)}
   - Utilise le benchmark régional pour évaluer le prix global
   - Prends en compte les prix moyens au m² de la région
-` : ''}
-${enrichmentData.complianceData ? `
+`
+    : ''
+}
+${
+  enrichmentData.complianceData
+    ? `
 - **Normes et conformité**: ${JSON.stringify(enrichmentData.complianceData, null, 2)}
   - Vérifie si les normes obligatoires sont mentionnées
   - Détecte les manquements aux réglementations
-` : ''}
-${enrichmentData.weatherData ? `
+`
+    : ''
+}
+${
+  enrichmentData.weatherData
+    ? `
 - **Données météorologiques régionales**: ${JSON.stringify(enrichmentData.weatherData, null, 2)}
   - Évalue le réalisme des délais en tenant compte des retards météo moyens
   - Vérifie si les délais proposés sont réalistes selon la région
-` : ''}
+`
+    : ''
+}
 `
       }
 
@@ -328,7 +383,6 @@ IMPORTANT: Retourne UNIQUEMENT le JSON, pas de texte explicatif avant ou après.
       const fileBuffer = fs.readFileSync(filePath)
       const fileExt = path.extname(filePath).toLowerCase()
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       let documentContent: any
 
       if (fileExt === '.pdf') {
@@ -379,12 +433,14 @@ IMPORTANT: Retourne UNIQUEMENT le JSON, pas de texte explicatif avant ou après.
       const responseText =
         message.content[0].type === 'text' ? message.content[0].text : '{}'
       const jsonMatch = responseText.match(/\{[\s\S]*\}/)
-      return jsonMatch ? JSON.parse(jsonMatch[0]) : {
-        isValid: false,
-        documentType: 'unknown',
-        confidence: 0,
-        message: 'Erreur de parsing',
-      }
+      return jsonMatch
+        ? JSON.parse(jsonMatch[0])
+        : {
+            isValid: false,
+            documentType: 'unknown',
+            confidence: 0,
+            message: 'Erreur de parsing',
+          }
     } catch (error) {
       console.error('Erreur quick check:', error)
       return {

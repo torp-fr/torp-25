@@ -29,7 +29,7 @@ export async function POST(request: NextRequest) {
   try {
     // Auth0 désactivé - utilisateur demo par défaut
     const userId = DEMO_USER_ID
-    
+
     // S'assurer que l'utilisateur demo existe en DB
     await prisma.user.upsert({
       where: { id: DEMO_USER_ID },
@@ -47,15 +47,16 @@ export async function POST(request: NextRequest) {
     const ccfDataStr = formData.get('ccfData') as string | null
 
     if (!file) {
-      return NextResponse.json(
-        { error: 'Fichier manquant' },
-        { status: 400 }
-      )
+      return NextResponse.json({ error: 'Fichier manquant' }, { status: 400 })
     }
 
-
     // Vérifier le format
-    const allowedTypes = ['application/pdf', 'image/jpeg', 'image/png', 'image/jpg']
+    const allowedTypes = [
+      'application/pdf',
+      'image/jpeg',
+      'image/png',
+      'image/jpg',
+    ]
     if (!allowedTypes.includes(file.type)) {
       return NextResponse.json(
         { error: 'Format de fichier non supporté. Utilisez PDF, JPG ou PNG.' },
@@ -89,9 +90,9 @@ export async function POST(request: NextRequest) {
 
     // OPTIMISATION: Une seule analyse LLM avec enrichissement minimal en cache
     const analysisStartTime = Date.now()
-    console.log('[LLM Analyze] Début de l\'analyse optimisée (objectif <5s)...')
+    console.log("[LLM Analyze] Début de l'analyse optimisée (objectif <5s)...")
     const analyzer = new DocumentAnalyzer()
-    
+
     // Parser les données CCF si fournies
     let ccfData: any = null
     try {
@@ -105,50 +106,104 @@ export async function POST(request: NextRequest) {
     // 1. Enrichissement minimal et rapide (<50ms, cache uniquement)
     const minimalEnrichmentStartTime = Date.now()
     const minimalEnrichmentService = new MinimalEnrichmentService()
-    
+
     // Parser CCF et enrichissement minimal en parallèle
-    const minimalEnrichmentPromise = Promise.resolve().then(async () => {
-      // Attendre d'avoir les données extraites depuis CCF si disponibles
-      if (ccfData?.company?.siret) {
-        return await minimalEnrichmentService.getMinimalEnrichment({
-          company: {
-            siret: ccfData.company.siret,
-            name: ccfData.company.name || '',
-          },
-        } as any)
-      }
-      return null
-    }).catch(() => null)
-    
+    const minimalEnrichmentPromise = Promise.resolve()
+      .then(async () => {
+        // Attendre d'avoir les données extraites depuis CCF si disponibles
+        if (ccfData?.company?.siret) {
+          return await minimalEnrichmentService.getMinimalEnrichment({
+            company: {
+              siret: ccfData.company.siret,
+              name: ccfData.company.name || '',
+            },
+          } as any)
+        }
+        return null
+      })
+      .catch(() => null)
+
     // 2. Analyse LLM UNIQUE (une seule fois, avec enrichissement minimal si disponible)
     // On évite la double analyse (initiale + finale) pour gagner ~2-3s
     const llmStartTime = Date.now()
-    
+
     // Attendre enrichissement minimal (très rapide, <50ms)
     const resolvedMinimalEnrichment = await minimalEnrichmentPromise
     const minimalEnrichmentDuration = Date.now() - minimalEnrichmentStartTime
     if (minimalEnrichmentDuration > 10) {
-      console.log(`[LLM Analyze] Enrichissement minimal préparé (${minimalEnrichmentDuration}ms)`)
+      console.log(
+        `[LLM Analyze] Enrichissement minimal préparé (${minimalEnrichmentDuration}ms)`
+      )
     }
-    
+
+    // Enrichir les données minimales avec les données CCF pour le contexte LLM
+    const enrichmentWithCCF = resolvedMinimalEnrichment
+      ? {
+          ...resolvedMinimalEnrichment,
+          ccfData: ccfData
+            ? {
+                projectType: ccfData.projectType,
+                projectTitle: ccfData.projectTitle,
+                projectDescription: ccfData.projectDescription,
+                address: ccfData.address,
+                region: ccfData.region,
+                constraints: ccfData.constraints,
+                requirements: ccfData.requirements,
+                rooms: ccfData.rooms,
+                budgetRange: ccfData.budgetRange,
+                buildingData: ccfData.buildingData,
+                pluData: ccfData.pluData,
+                urbanismData: ccfData.urbanismData,
+                energyData: ccfData.energyData,
+              }
+            : undefined,
+        }
+      : ccfData
+        ? {
+            ccfData: {
+              projectType: ccfData.projectType,
+              projectTitle: ccfData.projectTitle,
+              projectDescription: ccfData.projectDescription,
+              address: ccfData.address,
+              region: ccfData.region,
+              constraints: ccfData.constraints,
+              requirements: ccfData.requirements,
+              rooms: ccfData.rooms,
+              budgetRange: ccfData.budgetRange,
+              buildingData: ccfData.buildingData,
+              pluData: ccfData.pluData,
+              urbanismData: ccfData.urbanismData,
+              energyData: ccfData.energyData,
+            },
+          }
+        : undefined
+
     const analysis = await analyzer.analyzeDevis(
-      tempFilePath, 
-      resolvedMinimalEnrichment || undefined
+      tempFilePath,
+      enrichmentWithCCF || undefined
     )
     const llmDuration = Date.now() - llmStartTime
-    console.log(`[LLM Analyze] Analyse LLM terminée (${llmDuration}ms, objectif: <3500ms)`)
+    console.log(
+      `[LLM Analyze] Analyse LLM terminée (${llmDuration}ms, objectif: <3500ms)`
+    )
 
     // 3. Enrichissement asynchrone (non-bloquant) pour mise à jour ultérieure
     // On lance l'enrichissement complet en arrière-plan sans attendre
     const enrichmentService = new AdvancedEnrichmentService()
     const tradeType = ccfData?.tradeType || inferTradeType(analysis.rawText)
-    const region = ccfData?.region 
-      || (analysis.extractedData.project?.location 
+    const region =
+      ccfData?.region ||
+      (analysis.extractedData.project?.location
         ? extractRegion(analysis.extractedData.project.location)
         : 'ILE_DE_FRANCE')
-    const projectType = ccfData?.projectType 
-      || (inferProjectType(analysis.extractedData) as 'construction' | 'renovation' | 'extension' | 'maintenance')
-    
+    const projectType =
+      ccfData?.projectType ||
+      (inferProjectType(analysis.extractedData) as
+        | 'construction'
+        | 'renovation'
+        | 'extension'
+        | 'maintenance')
+
     // Enrichissement asynchrone (ne bloque pas la réponse utilisateur)
     Promise.resolve().then(async () => {
       try {
@@ -158,24 +213,29 @@ export async function POST(request: NextRequest) {
           tradeType,
           region
         )
-        
+
         // Mettre en cache pour accélérer les prochaines analyses
-        if (analysis.extractedData.company.siret && fullEnrichmentData.company) {
+        if (
+          analysis.extractedData.company.siret &&
+          fullEnrichmentData.company
+        ) {
           const { globalCache } = await import('@/services/cache/data-cache')
           globalCache.setEnrichment(
             `company:${analysis.extractedData.company.siret}`,
             fullEnrichmentData.company
           )
         }
-        
+
         // Logger les sources utilisées
         const sources = extractSourcesFromEnrichment(fullEnrichmentData)
-        console.log(`[LLM Analyze] ✅ Enrichissement asynchrone terminé et mis en cache (sources: ${sources.join(', ') || 'aucune'})`)
-        
+        console.log(
+          `[LLM Analyze] ✅ Enrichissement asynchrone terminé et mis en cache (sources: ${sources.join(', ') || 'aucune'})`
+        )
+
         // Mettre à jour le devis avec les données enrichies pour les insights futurs
         // Note: enrichedData n'est pas dans le schema Prisma, on stocke dans extractedData pour l'instant
         try {
-          const currentExtractedData = devis.extractedData as any || {}
+          const currentExtractedData = (devis.extractedData as any) || {}
           await prisma.devis.update({
             where: { id: devis.id },
             data: {
@@ -186,15 +246,23 @@ export async function POST(request: NextRequest) {
             },
           })
         } catch (err) {
-          console.warn('[LLM Analyze] Erreur mise à jour devis avec données enrichies:', err)
+          console.warn(
+            '[LLM Analyze] Erreur mise à jour devis avec données enrichies:',
+            err
+          )
         }
       } catch (error) {
-        console.warn('[LLM Analyze] ⚠️ Erreur enrichissement asynchrone (non-bloquant):', error)
+        console.warn(
+          '[LLM Analyze] ⚠️ Erreur enrichissement asynchrone (non-bloquant):',
+          error
+        )
       }
     })
 
     const totalAnalysisDuration = Date.now() - analysisStartTime
-    console.log(`[LLM Analyze] Analyse complète terminée (${totalAnalysisDuration}ms, objectif: <5000ms)`)
+    console.log(
+      `[LLM Analyze] Analyse complète terminée (${totalAnalysisDuration}ms, objectif: <5000ms)`
+    )
 
     console.log('[LLM Analyze] Analyse terminée, création en DB...')
 
@@ -218,7 +286,7 @@ export async function POST(request: NextRequest) {
       data: {
         documentId: document.id,
         userId,
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
         extractedData: analysis.extractedData as any,
         validationStatus: 'COMPLETED',
         totalAmount: new Decimal(analysis.extractedData.totals.total),
@@ -235,7 +303,10 @@ export async function POST(request: NextRequest) {
       await globalScraper.scheduleDevisScraping(devis.id)
       console.log(`[LLM Analyze] Scraping programmé pour devis ${devis.id}`)
     } catch (error) {
-      console.warn('[LLM Analyze] Erreur programmation scraping (non bloquant):', error)
+      console.warn(
+        '[LLM Analyze] Erreur programmation scraping (non bloquant):',
+        error
+      )
     }
 
     // 3. Calcul du score OPTIMISÉ (utilisation du score LLM directement si disponible)
@@ -249,7 +320,7 @@ export async function POST(request: NextRequest) {
       // Convertir le score LLM (0-1000) vers le format avancé (0-1200)
       const llmScore = analysis.torpscore.scoreValue
       const convertedScore = Math.round((llmScore / 1000) * 1200) // Échelle 0-1200
-      
+
       // Utiliser le score LLM directement (plus rapide)
       advancedScore = {
         totalScore: convertedScore,
@@ -274,31 +345,45 @@ export async function POST(request: NextRequest) {
           conformite: {
             score: analysis.torpscore.breakdown.conformite.score * 1.2,
             weight: analysis.torpscore.breakdown.conformite.weight,
-            justification: analysis.torpscore.breakdown.conformite.justification,
+            justification:
+              analysis.torpscore.breakdown.conformite.justification,
           },
         },
         alerts: analysis.torpscore.alerts || [],
         recommendations: analysis.torpscore.recommendations || [],
         algorithmVersion: 'llm-optimized-v2.2',
       } as any
-      
+
       useAdvancedScoring = true
       const scoringDuration = Date.now() - scoringStartTime
-      console.log(`[LLM Analyze] Score LLM utilisé directement (${scoringDuration}ms): ${advancedScore.totalScore}/1200 (${advancedScore.grade})`)
+      console.log(
+        `[LLM Analyze] Score LLM utilisé directement (${scoringDuration}ms): ${advancedScore.totalScore}/1200 (${advancedScore.grade})`
+      )
     } else {
       // Fallback sur scoring avancé si score LLM manquant (rare)
       try {
         const scoringEngine = new AdvancedScoringEngine(false) // ML désactivé pour vitesse
-        
+
         const userProfile = 'B2C'
-        const projectTypeForScoring = ccfData?.projectType 
-          || (inferProjectType(analysis.extractedData) as 'construction' | 'renovation' | 'extension' | 'maintenance')
+        const projectTypeForScoring =
+          ccfData?.projectType ||
+          (inferProjectType(analysis.extractedData) as
+            | 'construction'
+            | 'renovation'
+            | 'extension'
+            | 'maintenance')
         const projectAmount = ccfData?.budgetRange?.preferred
-          ? (ccfData.budgetRange.preferred < 10000 ? 'low' : ccfData.budgetRange.preferred < 50000 ? 'medium' : 'high')
+          ? ccfData.budgetRange.preferred < 10000
+            ? 'low'
+            : ccfData.budgetRange.preferred < 50000
+              ? 'medium'
+              : 'high'
           : inferProjectAmount(analysis.extractedData.totals.total)
-        const tradeTypeForScoring = ccfData?.tradeType || inferTradeType(analysis.rawText)
-        const regionForScoring = ccfData?.region 
-          || (analysis.extractedData.project?.location 
+        const tradeTypeForScoring =
+          ccfData?.tradeType || inferTradeType(analysis.rawText)
+        const regionForScoring =
+          ccfData?.region ||
+          (analysis.extractedData.project?.location
             ? extractRegion(analysis.extractedData.project.location)
             : 'ILE_DE_FRANCE')
 
@@ -335,7 +420,9 @@ export async function POST(request: NextRequest) {
         )
 
         const scoringDuration = Date.now() - scoringStartTime
-        console.log(`[LLM Analyze] Score avancé calculé (fallback, ${scoringDuration}ms): ${advancedScore.totalScore}/1200`)
+        console.log(
+          `[LLM Analyze] Score avancé calculé (fallback, ${scoringDuration}ms): ${advancedScore.totalScore}/1200`
+        )
         useAdvancedScoring = true
       } catch (error) {
         console.error('[LLM Analyze] Erreur scoring avancé:', error)
@@ -344,93 +431,103 @@ export async function POST(request: NextRequest) {
     }
 
     // 4. Créer le score TORP (utiliser score avancé si disponible, sinon fallback LLM)
-    const finalRegion = analysis.extractedData.project?.location 
+    const finalRegion = analysis.extractedData.project?.location
       ? extractRegion(analysis.extractedData.project.location)
       : 'ILE_DE_FRANCE'
-    
-    const finalScore = useAdvancedScoring && advancedScore
-      ? {
-          scoreValue: new Decimal(advancedScore.totalScore),
-          scoreGrade: advancedScore.grade,
-          confidenceLevel: new Decimal(advancedScore.confidenceLevel),
-          breakdown: {
-            // Score avancé : structure complète avec 8 axes (si disponible)
-            version: 'advanced-v2.0.0',
-            totalScore: advancedScore.totalScore,
-            percentage: (advancedScore as any).percentage || Math.round((advancedScore.totalScore / 1200) * 100),
-            axes: ('axisScores' in advancedScore && Array.isArray((advancedScore as any).axisScores))
-              ? (advancedScore as any).axisScores.map((axis: any) => ({
-                  id: axis.axisId,
-                  score: axis.score,
-                  maxPoints: axis.maxPoints,
-                  percentage: axis.percentage,
-                  subCriteria: axis.subCriteriaScores,
-                }))
-              : [],
-            // Rétrocompatibilité avec l'ancien format
-            prix: findAxisScore(advancedScore, 'prix'),
-            qualite: findAxisScore(advancedScore, 'qualite'),
-            delais: findAxisScore(advancedScore, 'delais'),
-            conformite: findAxisScore(advancedScore, 'conformite'),
-          },
-          alerts: (advancedScore as any).overallAlerts || (advancedScore as any).alerts || [],
-          recommendations: (advancedScore as any).overallRecommendations || (advancedScore as any).recommendations || [],
-          algorithmVersion: (advancedScore as any).algorithmVersion || 'advanced-v2.0.0',
-          regionalBenchmark: {
-            region: finalRegion,
-            averagePriceSqm: 1500,
-            percentilePosition: 50,
-            comparisonData: {
-              devisPrice: analysis.extractedData.totals.total,
-              averagePrice: analysis.extractedData.totals.total,
-              priceRange: {
-                min: analysis.extractedData.totals.total * 0.8,
-                max: analysis.extractedData.totals.total * 1.2,
-              },
+
+    const finalScore =
+      useAdvancedScoring && advancedScore
+        ? {
+            scoreValue: new Decimal(advancedScore.totalScore),
+            scoreGrade: advancedScore.grade,
+            confidenceLevel: new Decimal(advancedScore.confidenceLevel),
+            breakdown: {
+              // Score avancé : structure complète avec 8 axes (si disponible)
+              version: 'advanced-v2.0.0',
+              totalScore: advancedScore.totalScore,
+              percentage:
+                (advancedScore as any).percentage ||
+                Math.round((advancedScore.totalScore / 1200) * 100),
+              axes:
+                'axisScores' in advancedScore &&
+                Array.isArray((advancedScore as any).axisScores)
+                  ? (advancedScore as any).axisScores.map((axis: any) => ({
+                      id: axis.axisId,
+                      score: axis.score,
+                      maxPoints: axis.maxPoints,
+                      percentage: axis.percentage,
+                      subCriteria: axis.subCriteriaScores,
+                    }))
+                  : [],
+              // Rétrocompatibilité avec l'ancien format
+              prix: findAxisScore(advancedScore, 'prix'),
+              qualite: findAxisScore(advancedScore, 'qualite'),
+              delais: findAxisScore(advancedScore, 'delais'),
+              conformite: findAxisScore(advancedScore, 'conformite'),
             },
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          } as any,
-        }
-      : {
-          // Fallback sur score LLM classique
-          scoreValue: new Decimal(analysis.torpscore.scoreValue),
-          scoreGrade: analysis.torpscore.scoreGrade,
-          confidenceLevel: new Decimal(analysis.torpscore.confidenceLevel),
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          breakdown: analysis.torpscore.breakdown as any,
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          alerts: analysis.torpscore.alerts as any,
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          recommendations: analysis.torpscore.recommendations as any,
-          algorithmVersion: 'claude-llm-v2.0-enhanced',
-          regionalBenchmark: {
-            region: finalRegion,
-            averagePriceSqm: 1500,
-            percentilePosition: 50,
-            comparisonData: {
-              devisPrice: analysis.extractedData.totals.total,
-              averagePrice: analysis.extractedData.totals.total,
-              priceRange: {
-                min: analysis.extractedData.totals.total * 0.8,
-                max: analysis.extractedData.totals.total * 1.2,
+            alerts:
+              (advancedScore as any).overallAlerts ||
+              (advancedScore as any).alerts ||
+              [],
+            recommendations:
+              (advancedScore as any).overallRecommendations ||
+              (advancedScore as any).recommendations ||
+              [],
+            algorithmVersion:
+              (advancedScore as any).algorithmVersion || 'advanced-v2.0.0',
+            regionalBenchmark: {
+              region: finalRegion,
+              averagePriceSqm: 1500,
+              percentilePosition: 50,
+              comparisonData: {
+                devisPrice: analysis.extractedData.totals.total,
+                averagePrice: analysis.extractedData.totals.total,
+                priceRange: {
+                  min: analysis.extractedData.totals.total * 0.8,
+                  max: analysis.extractedData.totals.total * 1.2,
+                },
               },
-            },
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          } as any,
-        }
+            } as any,
+          }
+        : {
+            // Fallback sur score LLM classique
+            scoreValue: new Decimal(analysis.torpscore.scoreValue),
+            scoreGrade: analysis.torpscore.scoreGrade,
+            confidenceLevel: new Decimal(analysis.torpscore.confidenceLevel),
+
+            breakdown: analysis.torpscore.breakdown as any,
+
+            alerts: analysis.torpscore.alerts as any,
+
+            recommendations: analysis.torpscore.recommendations as any,
+            algorithmVersion: 'claude-llm-v2.0-enhanced',
+            regionalBenchmark: {
+              region: finalRegion,
+              averagePriceSqm: 1500,
+              percentilePosition: 50,
+              comparisonData: {
+                devisPrice: analysis.extractedData.totals.total,
+                averagePrice: analysis.extractedData.totals.total,
+                priceRange: {
+                  min: analysis.extractedData.totals.total * 0.8,
+                  max: analysis.extractedData.totals.total * 1.2,
+                },
+              },
+            } as any,
+          }
 
     const torpScore = await prisma.tORPScore.create({
       data: {
         devisId: devis.id,
         userId,
         ...finalScore,
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
         breakdown: finalScore.breakdown as any,
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
         alerts: finalScore.alerts as any,
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
         recommendations: finalScore.recommendations as any,
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
         regionalBenchmark: finalScore.regionalBenchmark as any,
       },
     })
@@ -498,7 +595,7 @@ export async function POST(request: NextRequest) {
     console.error('[LLM Analyze] Erreur:', error)
     return NextResponse.json(
       {
-        error: 'Erreur lors de l\'analyse du document',
+        error: "Erreur lors de l'analyse du document",
         details: error instanceof Error ? error.message : 'Erreur inconnue',
       },
       { status: 500 }
@@ -508,14 +605,18 @@ export async function POST(request: NextRequest) {
     if (tempFilePath && fs.existsSync(tempFilePath)) {
       try {
         fs.unlinkSync(tempFilePath)
-        console.log(`[LLM Analyze] Fichier temporaire supprimé: ${tempFilePath}`)
+        console.log(
+          `[LLM Analyze] Fichier temporaire supprimé: ${tempFilePath}`
+        )
       } catch (err) {
-        console.error('Erreur lors de la suppression du fichier temporaire:', err)
+        console.error(
+          'Erreur lors de la suppression du fichier temporaire:',
+          err
+        )
       }
     }
   }
 }
-
 
 /**
  * Inférer le type de métier depuis le texte brut
@@ -523,25 +624,53 @@ export async function POST(request: NextRequest) {
 function inferTradeType(rawText: string): string {
   const text = rawText.toLowerCase()
 
-  if (text.includes('plomberie') || text.includes('plombier') || text.includes('sanitaire')) {
+  if (
+    text.includes('plomberie') ||
+    text.includes('plombier') ||
+    text.includes('sanitaire')
+  ) {
     return 'plomberie'
   }
-  if (text.includes('électricité') || text.includes('électricien') || text.includes('électrique')) {
+  if (
+    text.includes('électricité') ||
+    text.includes('électricien') ||
+    text.includes('électrique')
+  ) {
     return 'electricite'
   }
-  if (text.includes('maçonnerie') || text.includes('maçon') || text.includes('gros œuvre')) {
+  if (
+    text.includes('maçonnerie') ||
+    text.includes('maçon') ||
+    text.includes('gros œuvre')
+  ) {
     return 'maconnerie'
   }
-  if (text.includes('menuiserie') || text.includes('menuisier') || text.includes('charpente')) {
+  if (
+    text.includes('menuiserie') ||
+    text.includes('menuisier') ||
+    text.includes('charpente')
+  ) {
     return 'menuiserie'
   }
-  if (text.includes('peinture') || text.includes('peintre') || text.includes('revêtement')) {
+  if (
+    text.includes('peinture') ||
+    text.includes('peintre') ||
+    text.includes('revêtement')
+  ) {
     return 'peinture'
   }
-  if (text.includes('chauffage') || text.includes('climatisation') || text.includes('cvc')) {
+  if (
+    text.includes('chauffage') ||
+    text.includes('climatisation') ||
+    text.includes('cvc')
+  ) {
     return 'chauffage'
   }
-  if (text.includes('toiture') || text.includes('couvreur') || text.includes('zinguerie')) {
+  if (
+    text.includes('toiture') ||
+    text.includes('couvreur') ||
+    text.includes('zinguerie')
+  ) {
     return 'couverture'
   }
 
@@ -555,19 +684,31 @@ function inferProjectType(extractedData: any): string {
   const projectTitle = extractedData.project?.title?.toLowerCase() || ''
   const projectDesc = extractedData.project?.description?.toLowerCase() || ''
 
-  if (projectTitle.includes('construction') || projectTitle.includes('neuf') ||
-      projectDesc.includes('construction') || projectDesc.includes('neuf')) {
+  if (
+    projectTitle.includes('construction') ||
+    projectTitle.includes('neuf') ||
+    projectDesc.includes('construction') ||
+    projectDesc.includes('neuf')
+  ) {
     return 'construction'
   }
-  if (projectTitle.includes('rénovation') || projectTitle.includes('renovation') ||
-      projectDesc.includes('rénovation') || projectDesc.includes('renovation')) {
+  if (
+    projectTitle.includes('rénovation') ||
+    projectTitle.includes('renovation') ||
+    projectDesc.includes('rénovation') ||
+    projectDesc.includes('renovation')
+  ) {
     return 'renovation'
   }
   if (projectTitle.includes('extension') || projectDesc.includes('extension')) {
     return 'extension'
   }
-  if (projectTitle.includes('maintenance') || projectTitle.includes('entretien') ||
-      projectDesc.includes('maintenance') || projectDesc.includes('entretien')) {
+  if (
+    projectTitle.includes('maintenance') ||
+    projectTitle.includes('entretien') ||
+    projectDesc.includes('maintenance') ||
+    projectDesc.includes('entretien')
+  ) {
     return 'maintenance'
   }
 
@@ -589,15 +730,27 @@ function inferProjectAmount(total: number): 'low' | 'medium' | 'high' {
  */
 function extractRegion(location: string): string {
   const loc = location.toLowerCase()
-  
+
   // Mapping simplifié des régions françaises
-  if (loc.includes('paris') || loc.includes('île-de-france') || loc.includes('ile-de-france')) {
+  if (
+    loc.includes('paris') ||
+    loc.includes('île-de-france') ||
+    loc.includes('ile-de-france')
+  ) {
     return 'ILE_DE_FRANCE'
   }
-  if (loc.includes('lyon') || loc.includes('rhône') || loc.includes('auvergne')) {
+  if (
+    loc.includes('lyon') ||
+    loc.includes('rhône') ||
+    loc.includes('auvergne')
+  ) {
     return 'AUVERGNE_RHONE_ALPES'
   }
-  if (loc.includes('marseille') || loc.includes('paca') || loc.includes('provence')) {
+  if (
+    loc.includes('marseille') ||
+    loc.includes('paca') ||
+    loc.includes('provence')
+  ) {
     return 'PROVENCE_ALPES_COTE_AZUR'
   }
   if (loc.includes('toulouse') || loc.includes('occitanie')) {
@@ -609,7 +762,7 @@ function extractRegion(location: string): string {
   if (loc.includes('bordeaux') || loc.includes('nouvelle-aquitaine')) {
     return 'NOUVELLE_AQUITAINE'
   }
-  
+
   // Par défaut
   return 'ILE_DE_FRANCE'
 }
@@ -623,7 +776,8 @@ function extractSourcesFromEnrichment(enrichmentData: any): string[] {
   if (enrichmentData?.company?.siret) sources.push('Sirene')
   if (enrichmentData?.company?.financialData) sources.push('Infogreffe')
   if (enrichmentData?.company?.reputation) sources.push('Réputation')
-  if (enrichmentData?.priceReferences?.length > 0) sources.push('Prix Référence')
+  if (enrichmentData?.priceReferences?.length > 0)
+    sources.push('Prix Référence')
   if (enrichmentData?.regionalData) sources.push('Données Régionales')
   if (enrichmentData?.complianceData) sources.push('Conformité')
   if (enrichmentData?.weatherData) sources.push('Météo')
@@ -635,7 +789,11 @@ function extractSourcesFromEnrichment(enrichmentData: any): string[] {
  */
 function findAxisScore(advancedScore: any, axisId: string): any {
   // Vérifier si axisScores existe et est un tableau
-  if (!advancedScore || !('axisScores' in advancedScore) || !Array.isArray(advancedScore.axisScores)) {
+  if (
+    !advancedScore ||
+    !('axisScores' in advancedScore) ||
+    !Array.isArray(advancedScore.axisScores)
+  ) {
     // Si pas d'axisScores, chercher dans breakdown
     const breakdown = advancedScore?.breakdown || {}
     const axisData = breakdown[axisId]
@@ -648,10 +806,10 @@ function findAxisScore(advancedScore: any, axisId: string): any {
     }
     return { score: 0, weight: 0, justification: 'Non calculé' }
   }
-  
+
   const axis = advancedScore.axisScores.find((a: any) => a.axisId === axisId)
   if (!axis) return { score: 0, weight: 0, justification: 'Non calculé' }
-  
+
   return {
     score: axis.score,
     weight: axis.maxPoints / 1200,
