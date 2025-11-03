@@ -279,7 +279,6 @@ export default function AnalysisPage() {
     )
   }
 
-  const extractedDataAny = devis.extractedData as any
   const enrichedCompanyData = (devis as any).enrichedData?.company || {}
 
   return (
