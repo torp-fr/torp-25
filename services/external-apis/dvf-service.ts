@@ -2,7 +2,7 @@
  * Service pour récupérer les données DVF (Demandes de Valeurs Foncières)
  * Dataset data.gouv.fr: https://www.data.gouv.fr/fr/datasets/5c4ae55a634f4117716d5656/
  * API DVF+: https://www.data.gouv.fr/dataservices/api-dvf/
- * 
+ *
  * Les données DVF permettent de :
  * - Estimer la valeur d'un bien immobilier
  * - Comparer avec les transactions récentes du secteur
@@ -11,6 +11,9 @@
  */
 
 import type { AddressData } from './types'
+import { loggers } from '@/lib/logger'
+
+const log = loggers.enrichment
 
 export interface DVFTransaction {
   id?: string
@@ -119,7 +122,7 @@ export class DVFService {
       const { coordinates, city, postalCode } = address
 
       if (!postalCode && !coordinates) {
-        console.warn('[DVFService] Code postal ou coordonnées manquantes pour:', address.formatted)
+        log.warn({ formatted: address.formatted }, 'Code postal ou coordonnées manquantes')
         return null
       }
 
@@ -140,11 +143,11 @@ export class DVFService {
           }
         }
       } catch (error) {
-        console.warn('[DVFService] ⚠️ Erreur récupération code INSEE:', error)
+        log.warn({ err: error }, 'Erreur récupération code INSEE')
       }
 
       if (!codeInsee && !coordinates) {
-        console.warn('[DVFService] ⚠️ Code INSEE et coordonnées non disponibles')
+        log.warn('Code INSEE et coordonnées non disponibles')
         return null
       }
 
@@ -190,7 +193,7 @@ export class DVFService {
         lastUpdated: new Date().toISOString(),
       }
     } catch (error) {
-      console.error('[DVFService] ❌ Erreur récupération données DVF:', error)
+      log.error({ err: error }, 'Erreur récupération données DVF')
       return null
     }
   }
@@ -240,7 +243,7 @@ export class DVFService {
       })
 
       if (!response.ok) {
-        console.warn(`[DVFService] ⚠️ Erreur HTTP ${response.status} pour code INSEE ${codeInsee}`)
+        log.warn({ status: response.status, codeInsee }, 'Erreur HTTP pour code INSEE')
         return []
       }
 
@@ -273,10 +276,10 @@ export class DVFService {
         })
       }
 
-      console.log(`[DVFService] ✅ ${transactions.length} transaction(s) trouvée(s) pour commune ${codeInsee}`)
+      log.info({ count: transactions.length, codeInsee }, 'Transactions trouvées pour commune')
       return transactions
     } catch (error) {
-      console.warn('[DVFService] ⚠️ Erreur récupération transactions par commune:', error)
+      log.warn({ err: error }, 'Erreur récupération transactions par commune')
       return []
     }
   }
@@ -326,7 +329,7 @@ export class DVFService {
       })
 
       if (!response.ok) {
-        console.warn(`[DVFService] ⚠️ Erreur HTTP ${response.status} pour coordonnées`)
+        log.warn({ status: response.status }, 'Erreur HTTP pour coordonnées')
         return []
       }
 
@@ -350,10 +353,10 @@ export class DVFService {
         })
       }
 
-      console.log(`[DVFService] ✅ ${transactions.length} transaction(s) trouvée(s) dans un rayon de ${rayon}m`)
+      log.info({ count: transactions.length, rayon }, 'Transactions trouvées dans rayon')
       return transactions
     } catch (error) {
-      console.warn('[DVFService] ⚠️ Erreur récupération transactions par coordonnées:', error)
+      log.warn({ err: error }, 'Erreur récupération transactions par coordonnées')
       return []
     }
   }
