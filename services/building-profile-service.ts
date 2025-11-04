@@ -14,6 +14,9 @@ import { CadastreService } from './external-apis/cadastre-service'
 import { DVFService } from './external-apis/dvf-service'
 import type { AddressData } from './external-apis/types'
 import type { CadastralData } from './external-apis/cadastre-service'
+import { loggers } from '@/lib/logger'
+
+const log = loggers.enrichment
 
 export interface BuildingProfileCreateInput {
   userId: string
@@ -125,7 +128,7 @@ export class BuildingProfileService {
             sectionCadastrale = cadastralData.parcelle.section || null
           }
         } catch (error) {
-          console.warn('[BuildingProfileService] Erreur récupération cadastrales pour vérification unicité:', error)
+          log.warn({ err: error }, 'Erreur récupération cadastrales pour vérification unicité')
           // On continue quand même, l'enrichissement se fera après
         }
 
@@ -179,11 +182,11 @@ export class BuildingProfileService {
 
       // 4. L'enrichissement sera lancé explicitement par l'API /enrich après création
       // pour éviter les problèmes de timing et garantir qu'il démarre
-      console.log('[BuildingProfileService] ✅ Profil créé:', profile.id, '- Enrichissement à lancer via API /enrich')
+      log.info({ profileId: profile.id }, 'Profil créé - Enrichissement à lancer via API /enrich')
 
       return profile
     } catch (error) {
-      console.error('[BuildingProfileService] Erreur création profil:', error)
+      log.error({ err: error }, 'Erreur création profil')
       throw error
     }
   }
@@ -222,8 +225,8 @@ export class BuildingProfileService {
       const errors: string[] = []
       let enrichedData: any = {}
 
-      console.log('[BuildingProfileService] 🏠 ÉTAPE 1: Adresse → Parcelle cadastrale')
-      console.log('📍 Adresse:', addressData.formatted)
+      log.debug('ÉTAPE 1: Adresse → Parcelle cadastrale')
+      log.debug({ formatted: addressData.formatted }, 'Adresse')
 
       // ============================================
       // ÉTAPE 1: ADRESSE → PARCELLE CADASTRALE
@@ -234,10 +237,10 @@ export class BuildingProfileService {
         if (cadastralData) {
           // TOUJOURS sauvegarder les données cadastrales, même si c'est juste les données de base
           if (cadastralData.parcelle) {
-            console.log('✅ Parcelle identifiée:', cadastralData.parcelle.numero, 'Section:', cadastralData.parcelle.section)
+            log.info({ numero: cadastralData.parcelle.numero, section: cadastralData.parcelle.section }, 'Parcelle identifiée')
             sources.push('Cadastre IGN')
           } else {
-            console.log('✅ Données cadastrales de base récupérées (pas de parcelle identifiée)')
+            log.info('Données cadastrales de base récupérées (pas de parcelle identifiée)')
             sources.push('Cadastre (données de base)')
           }
           
@@ -254,30 +257,30 @@ export class BuildingProfileService {
           enrichedData.cadastre = cadastralData
           enrichedData.address = addressData // Toujours inclure l'adresse
         } else {
-          console.warn('⚠️ Aucune donnée cadastrale récupérée (même de base)')
+          log.warn('Aucune donnée cadastrale récupérée (même de base)')
           // Sauvegarder au moins l'adresse
           enrichedData.address = addressData
         }
       } catch (error) {
-        console.error('❌ Erreur identification parcelle:', error)
+        log.error({ err: error }, 'Erreur identification parcelle')
         errors.push(`Parcelle: ${error instanceof Error ? error.message : 'Unknown error'}`)
         // Même en cas d'erreur, sauvegarder au moins l'adresse
         enrichedData.address = addressData
       }
 
-      console.log('[BuildingProfileService] 🏗️ ÉTAPE 2: Parcelle → Bâti et données associées')
+      log.debug('ÉTAPE 2: Parcelle → Bâti et données associées')
 
       // ============================================
       // ÉTAPE 2: PARCELLE → BÂTI ET DONNÉES ASSOCIÉES
       // ============================================
       try {
-        console.log('📊 Récupération données agrégées du bâti...')
-        console.log('📍 Adresse formatée:', addressData.formatted)
+        log.debug('Récupération données agrégées du bâti...')
+        log.debug({ formatted: addressData.formatted }, 'Adresse formatée')
         
         const aggregatedData = await this.buildingService.getAggregatedData(addressData.formatted)
         
         if (aggregatedData) {
-          console.log('✅ Données bâti récupérées:', {
+          log.info('Données bâti récupérées:', {
             hasPLU: !!aggregatedData.plu,
             pluKeys: aggregatedData.plu ? Object.keys(aggregatedData.plu) : [],
             hasRNB: !!aggregatedData.rnb,
@@ -314,7 +317,7 @@ export class BuildingProfileService {
                lastUpdated: new Date().toISOString(),
              }
           
-          console.log('[BuildingProfileService] 📦 enrichedData construit:', {
+          log.debug('enrichedData construit:', {
             keys: Object.keys(enrichedData),
             hasCadastre: !!enrichedData.cadastre,
             hasPLU: !!enrichedData.plu,
@@ -337,16 +340,16 @@ export class BuildingProfileService {
             },
           })
           
-          console.log('[BuildingProfileService] ✅ Données sauvegardées en base')
+          log.info('Données sauvegardées en base')
         } else {
-          console.warn('⚠️ Aucune donnée bâti récupérée - aggregatedData est null')
+          log.warn('Aucune donnée bâti récupérée - aggregatedData est null')
         }
       } catch (error) {
-        console.error('❌ Erreur récupération données bâti:', error)
+        log.error({ err: error }, 'Erreur récupération données bâti')
         errors.push(`Bâti: ${error instanceof Error ? error.message : 'Unknown error'}`)
       }
 
-      console.log('[BuildingProfileService] 💰 ÉTAPE 3: Valorisation (DVF)')
+      log.debug('ÉTAPE 3: Valorisation (DVF)')
 
       // ============================================
       // ÉTAPE 3: VALORISATION (DVF)
@@ -358,7 +361,7 @@ export class BuildingProfileService {
         })
         
         if (dvfData) {
-          console.log('✅ Données DVF récupérées:', {
+          log.info('Données DVF récupérées:', {
             hasEstimation: !!dvfData.estimation,
             hasStatistics: !!dvfData.statistics,
             hasComparables: !!dvfData.comparables?.length,
@@ -373,10 +376,10 @@ export class BuildingProfileService {
             },
           })
         } else {
-          console.warn('⚠️ Aucune donnée DVF récupérée')
+          log.warn('Aucune donnée DVF récupérée')
         }
       } catch (error) {
-        console.error('❌ Erreur récupération DVF:', error)
+        log.error({ err: error }, 'Erreur récupération DVF')
         errors.push(`DVF: ${error instanceof Error ? error.message : 'Unknown error'}`)
       }
 
@@ -387,7 +390,7 @@ export class BuildingProfileService {
       const enrichedDataKeys = Object.keys(enrichedData)
       const hasData = enrichedDataKeys.length > 1 // Plus que juste "address"
       
-      console.log('[BuildingProfileService] ✅ Enrichissement terminé:', {
+      log.info('Enrichissement terminé:', {
         sources: uniqueSources.length,
         sourcesList: uniqueSources,
         hasData,
@@ -417,7 +420,7 @@ export class BuildingProfileService {
         lastUpdated: new Date().toISOString(),
       }
       
-      console.log('[BuildingProfileService] 💾 Sauvegarde enrichedData final:', {
+      log.debug('Sauvegarde enrichedData final:', {
         keys: Object.keys(finalEnrichedData),
         hasAddress: !!finalEnrichedData.address,
         hasCadastre: !!finalEnrichedData.cadastre,
@@ -441,7 +444,7 @@ export class BuildingProfileService {
         },
       })
       
-      console.log('[BuildingProfileService] ✅ Profil mis à jour en base avec enrichedData final (vérification)')
+      log.info('Profil mis à jour en base avec enrichedData final (vérification)')
       
       // VÉRIFICATION POST-SAUVEGARDE : Re-lire pour confirmer
       const verification = await prisma.buildingProfile.findUnique({
@@ -449,7 +452,7 @@ export class BuildingProfileService {
         select: { id: true, enrichedData: true, enrichmentStatus: true },
       })
       if (verification) {
-        console.log('[BuildingProfileService] ✅ Vérification post-sauvegarde:', {
+        log.info('Vérification post-sauvegarde:', {
           hasEnrichedData: !!verification.enrichedData,
           enrichedDataType: typeof verification.enrichedData,
           enrichmentStatus: verification.enrichmentStatus,
@@ -463,7 +466,7 @@ export class BuildingProfileService {
         enrichedAt: new Date(),
       }
     } catch (error) {
-      console.error('[BuildingProfileService] ❌ Erreur enrichissement profil:', error)
+      log.error({ err: error, profileId: id }, 'Erreur enrichissement profil')
       
       // Récupérer l'adresse depuis le profil pour sauvegarder au moins ça
       let addressDataForError: AddressData | null = null
@@ -476,7 +479,7 @@ export class BuildingProfileService {
           addressDataForError = profileForAddress.address as unknown as AddressData
         }
       } catch (addrError) {
-        console.warn('[BuildingProfileService] ⚠️ Erreur récupération adresse pour sauvegarde:', addrError)
+        log.warn({ err: addrError }, 'Erreur récupération adresse pour sauvegarde')
       }
       
       // MÊME EN CAS D'ERREUR, sauvegarder au moins l'adresse dans enrichedData
@@ -501,7 +504,7 @@ export class BuildingProfileService {
         },
       })
       
-      console.log('[BuildingProfileService] ✅ Données minimales sauvegardées même après erreur:', {
+      log.info('Données minimales sauvegardées même après erreur:', {
         hasAddress: !!errorEnrichedData.address,
       })
 
