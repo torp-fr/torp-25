@@ -5,6 +5,9 @@
 
 import { prisma } from '@/lib/db'
 import { globalCache } from '@/services/cache/data-cache'
+import { loggers } from '@/lib/logger'
+
+const log = loggers.enrichment
 
 interface ScrapingTask {
   id: string
@@ -56,7 +59,7 @@ export class DataScraper {
       return a.scheduledFor.getTime() - b.scheduledFor.getTime()
     })
 
-    console.log(`[DataScraper] 📋 Tâche programmée: ${type} pour ${target} (priorité: ${priority})`)
+    log.debug({ type, target, priority, taskId }, 'Tâche programmée')
     return taskId
   }
 
@@ -66,7 +69,7 @@ export class DataScraper {
   private async executeScraping(task: ScrapingTask): Promise<boolean> {
     try {
       task.status = 'in_progress'
-      console.log(`[DataScraper] 🔄 Exécution: ${task.type} - ${task.target}`)
+      log.debug({ type: task.type, target: task.target }, 'Exécution tâche')
 
       switch (task.type) {
         case 'price':
@@ -80,11 +83,11 @@ export class DataScraper {
         case 'compliance':
           return await this.scrapeComplianceData(task.target)
         default:
-          console.warn(`[DataScraper] Type inconnu: ${task.type}`)
+          log.warn({ type: task.type }, 'Type de tâche inconnu')
           return false
       }
     } catch (error) {
-      console.error(`[DataScraper] ❌ Erreur scraping ${task.type}:`, error)
+      log.error({ err: error, type: task.type }, 'Erreur scraping')
       return false
     }
   }
@@ -100,20 +103,20 @@ export class DataScraper {
       // Utiliser le cache pour éviter les doublons
       const cacheKey = `scrape:price:${category}:${region}`
       if (globalCache.get(cacheKey)) {
-        console.log(`[DataScraper] ⏭️  Prix déjà scrapés récemment pour ${target}`)
+        log.debug({ target, category, region }, 'Prix déjà scrapés récemment')
         return true
       }
 
       // Simuler le scraping (remplacer par vrai scraping si nécessaire)
       // Dans un vrai cas, on appellerait les APIs externes
-      console.log(`[DataScraper] 💰 Scraping prix: ${category} en ${region}`)
+      log.debug({ category, region }, 'Scraping prix')
       
       // Marquer comme scrapé
       globalCache.set(cacheKey, true, 1000 * 60 * 60 * 24) // 24h
       
       return true
     } catch (error) {
-      console.error(`[DataScraper] Erreur scraping prix:`, error)
+      log.error({ err: error }, 'Erreur scraping prix')
       return false
     }
   }
@@ -125,17 +128,17 @@ export class DataScraper {
     try {
       const cacheKey = `scrape:cadastre:${address}`
       if (globalCache.getCadastral(cacheKey)) {
-        console.log(`[DataScraper] ⏭️  Cadastre déjà scrapé pour ${address}`)
+        log.debug({ address }, 'Cadastre déjà scrapé')
         return true
       }
 
-      console.log(`[DataScraper] 🏠 Scraping cadastre: ${address}`)
+      log.debug({ address }, 'Scraping cadastre')
       
       // TODO: Appeler l'API cadastre et stocker les résultats
       
       return true
     } catch (error) {
-      console.error(`[DataScraper] Erreur scraping cadastre:`, error)
+      log.error({ err: error }, 'Erreur scraping cadastre')
       return false
     }
   }
@@ -147,17 +150,17 @@ export class DataScraper {
     try {
       const cacheKey = `scrape:georisques:${address}`
       if (globalCache.get(cacheKey)) {
-        console.log(`[DataScraper] ⏭️  Géorisques déjà scrapé pour ${address}`)
+        log.debug({ address }, 'Géorisques déjà scrapé')
         return true
       }
 
-      console.log(`[DataScraper] ⚠️  Scraping Géorisques: ${address}`)
+      log.debug({ address }, 'Scraping Géorisques')
       
       // TODO: Appeler l'API Géorisques et stocker les résultats
       
       return true
     } catch (error) {
-      console.error(`[DataScraper] Erreur scraping Géorisques:`, error)
+      log.error({ err: error }, 'Erreur scraping Géorisques')
       return false
     }
   }
@@ -169,17 +172,17 @@ export class DataScraper {
     try {
       const cacheKey = `scrape:company:${siret}`
       if (globalCache.getEnrichment(cacheKey)) {
-        console.log(`[DataScraper] ⏭️  Entreprise déjà scrapée pour ${siret}`)
+        log.debug({ siret }, 'Entreprise déjà scrapée')
         return true
       }
 
-      console.log(`[DataScraper] 🏢 Scraping entreprise: ${siret}`)
+      log.debug({ siret }, 'Scraping entreprise')
       
       // TODO: Appeler Sirene/Infogreffe et stocker les résultats
       
       return true
     } catch (error) {
-      console.error(`[DataScraper] Erreur scraping entreprise:`, error)
+      log.error({ err: error }, 'Erreur scraping entreprise')
       return false
     }
   }
@@ -189,13 +192,13 @@ export class DataScraper {
    */
   private async scrapeComplianceData(target: string): Promise<boolean> {
     try {
-      console.log(`[DataScraper] 📋 Scraping conformité: ${target}`)
+      log.debug({ target }, 'Scraping conformité')
       
       // TODO: Scraper DTU, normes, certifications
       
       return true
     } catch (error) {
-      console.error(`[DataScraper] Erreur scraping conformité:`, error)
+      log.error({ err: error }, 'Erreur scraping conformité')
       return false
     }
   }
@@ -209,7 +212,7 @@ export class DataScraper {
     // Vérifier l'intervalle minimum
     if (now - this.lastScrapingTime < this.minInterval) {
       const waitTime = Math.ceil((this.minInterval - (now - this.lastScrapingTime)) / 1000)
-      console.log(`[DataScraper] ⏸️  Attente ${waitTime}s avant prochain batch...`)
+      log.debug({ waitTime }, 'Attente avant prochain batch')
       return
     }
 
@@ -219,13 +222,13 @@ export class DataScraper {
     )
 
     if (readyTasks.length === 0) {
-      console.log(`[DataScraper] 📋 Aucune tâche prête (${this.scrapingQueue.length} en attente)`)
+      log.debug({ queueLength: this.scrapingQueue.length }, 'Aucune tâche prête')
       return
     }
 
     // Prendre un batch
     const batch = readyTasks.slice(0, this.batchSize)
-    console.log(`[DataScraper] 🚀 Traitement batch de ${batch.length} tâches`)
+    log.info({ batchSize: batch.length }, 'Traitement batch')
 
     // Exécuter en parallèle avec timeout et gestion d'erreurs optimisée
     const batchStartTime = Date.now()
@@ -240,7 +243,11 @@ export class DataScraper {
       )
     )
     const batchDuration = Date.now() - batchStartTime
-    console.log(`[DataScraper] ⏱️  Batch traité en ${batchDuration}ms (${(batchDuration / batch.length).toFixed(0)}ms/tâche)`)
+    log.info({
+      batchDuration,
+      avgTaskDuration: Math.round(batchDuration / batch.length),
+      batchSize: batch.length,
+    }, 'Batch traité')
 
     // Mettre à jour les statuts
     results.forEach((result, index) => {
@@ -248,16 +255,16 @@ export class DataScraper {
       
       if (result.status === 'fulfilled' && result.value) {
         task.status = 'completed'
-        console.log(`[DataScraper] ✅ Tâche ${task.id} complétée`)
+        log.debug({ taskId: task.id }, 'Tâche complétée')
       } else {
         task.retries++
         if (task.retries >= this.maxRetries) {
           task.status = 'failed'
-          console.error(`[DataScraper] ❌ Tâche ${task.id} échouée après ${task.retries} tentatives`)
+          log.error({ taskId: task.id, retries: task.retries }, 'Tâche échouée après plusieurs tentatives')
         } else {
           task.status = 'pending'
           task.scheduledFor = new Date(Date.now() + 1000 * 60 * 15 * task.retries) // Retry avec backoff
-          console.log(`[DataScraper] 🔄 Tâche ${task.id} reprogrammée (tentative ${task.retries}/${this.maxRetries})`)
+          log.debug({ taskId: task.id, retries: task.retries, maxRetries: this.maxRetries }, 'Tâche reprogrammée')
         }
       }
     })
@@ -268,7 +275,7 @@ export class DataScraper {
     )
 
     this.lastScrapingTime = now
-    console.log(`[DataScraper] 📊 Queue: ${this.scrapingQueue.length} tâches restantes`)
+    log.info({ queueLength: this.scrapingQueue.length }, 'Queue mise à jour')
   }
 
   /**
@@ -324,9 +331,9 @@ export class DataScraper {
         )
       }
 
-      console.log(`[DataScraper] 📋 Scraping programmé pour devis ${devisId}`)
+      log.info({ devisId }, 'Scraping programmé pour devis')
     } catch (error) {
-      console.error(`[DataScraper] Erreur programmation scraping devis:`, error)
+      log.error({ err: error, devisId }, 'Erreur programmation scraping devis')
     }
   }
 
