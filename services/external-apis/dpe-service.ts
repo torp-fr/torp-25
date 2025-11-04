@@ -2,7 +2,7 @@
  * Service pour récupérer les données DPE (Diagnostic de Performance Energétique) certifiées
  * Source : https://www.data.gouv.fr/fr/datasets/dpe-v2-logements-existants/
  * Dataset ID: 67f7e5758ffc5d79ab9e8c27
- * 
+ *
  * Le dataset DPE contient :
  * - Classes énergétiques (A à G)
  * - Consommations énergétiques (kWh/m²/an)
@@ -14,6 +14,9 @@
 
 import type { AddressData, EnergyData } from './types'
 import { ApiClient } from '../data-enrichment/api-client'
+import { loggers } from '@/lib/logger'
+
+const log = loggers.enrichment
 
 export interface DPEData extends EnergyData {
   // Identifiants
@@ -90,33 +93,33 @@ export class DPEService {
    */
   async getDPEData(address: AddressData): Promise<DPEData | null> {
     try {
-      console.log('[DPEService] 🔄 Récupération données DPE pour:', {
+      log.debug({
         formatted: address.formatted,
         city: address.city,
         postalCode: address.postalCode,
-      })
+      }, 'Récupération données DPE')
 
       // 1. Essayer de récupérer depuis un index local (si implémenté)
       // TODO: Implémenter DPEIndexer similaire à RNBIndexer si nécessaire
 
       // 2. Recherche directe via API data.gouv.fr ou ressources du dataset
       const dpeData = await this.searchDPEByAddress(address)
-      
+
       if (dpeData) {
-        console.log('[DPEService] ✅ Données DPE récupérées:', {
+        log.info({
           hasDPEClass: !!dpeData.dpeClass,
           hasEnergyConsumption: !!dpeData.energyConsumption,
           hasGHGEmissions: !!dpeData.ghgEmissions,
           dpeClass: dpeData.dpeClass,
-        })
+        }, 'Données DPE récupérées')
         return dpeData
       }
 
       // 3. Si aucune donnée trouvée, retourner null
-      console.warn('[DPEService] ⚠️ Aucune donnée DPE trouvée pour:', address.formatted)
+      log.info({ address: address.formatted }, 'Aucune donnée DPE trouvée')
       return null
     } catch (error) {
-      console.error('[DPEService] ❌ Erreur récupération données DPE:', error)
+      log.error({ err: error, address: address.formatted }, 'Erreur récupération données DPE')
       return null
     }
   }
@@ -130,20 +133,20 @@ export class DPEService {
       // Récupérer les métadonnées du dataset
       const dataset = await this.getDatasetInfo()
       if (!dataset || !dataset.resources || dataset.resources.length === 0) {
-        console.warn('[DPEService] Aucune ressource trouvée pour le dataset DPE')
+        log.warn('Aucune ressource trouvée pour le dataset DPE')
         return null
       }
 
       // Extraire le code INSEE depuis l'adresse
       const codeINSEE = this.extractCodeINSEE(address.postalCode, address.city)
-      
+
       // Chercher la ressource la plus récente
       const latestResource = dataset.resources
         .filter(r => r.format === 'csv' || r.format === 'json' || r.format === 'geojson')
         .sort((a, b) => new Date(b.last_modified).getTime() - new Date(a.last_modified).getTime())[0]
 
       if (!latestResource) {
-        console.warn('[DPEService] Aucune ressource récente trouvée')
+        log.warn('Aucune ressource récente trouvée')
         return null
       }
 
@@ -161,7 +164,7 @@ export class DPEService {
         lastUpdated: latestResource.last_modified,
       }
     } catch (error) {
-      console.error('[DPEService] Erreur recherche DPE par adresse:', error)
+      log.error({ err: error, address: address.formatted }, 'Erreur recherche DPE par adresse')
       return null
     }
   }
@@ -176,7 +179,7 @@ export class DPEService {
       )
       return response
     } catch (error) {
-      console.error('[DPEService] Erreur récupération métadonnées dataset:', error)
+      log.error({ err: error }, 'Erreur récupération métadonnées dataset')
       return null
     }
   }
@@ -195,12 +198,11 @@ export class DPEService {
       // ou d'utiliser un service de recherche externe
 
       // Pour l'instant, on retourne null et indique qu'une indexation est nécessaire
-      console.log('[DPEService] Recherche dans ressource:', resourceUrl)
-      console.log('[DPEService] Indexation recommandée pour recherche efficace')
+      log.debug({ resourceUrl }, 'Recherche dans ressource - Indexation recommandée')
 
       return null
     } catch (error) {
-      console.error('[DPEService] Erreur lecture ressource DPE:', error)
+      log.error({ err: error, resourceUrl }, 'Erreur lecture ressource DPE')
       return null
     }
   }
@@ -217,7 +219,7 @@ export class DPEService {
       // Peut utiliser un index local ou une API de recherche
       return []
     } catch (error) {
-      console.error('[DPEService] Erreur recherche DPE par localisation:', error)
+      log.error({ err: error, codeINSEE: _codeINSEE }, 'Erreur recherche DPE par localisation')
       return []
     }
   }
