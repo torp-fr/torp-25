@@ -2,7 +2,7 @@
  * Service pour récupérer les données RGE (Reconnu Garant de l'Environnement) certifiées
  * Source : https://www.data.gouv.fr/fr/datasets/liste-des-entreprises-rge/
  * Dataset ID: 62bd63b70ff1edf452b83a6b
- * 
+ *
  * Le dataset RGE contient :
  * - Liste des entreprises certifiées RGE
  * - SIRET des entreprises
@@ -12,6 +12,9 @@
  */
 
 import { ApiClient } from '../data-enrichment/api-client'
+import { loggers } from '@/lib/logger'
+
+const log = loggers.enrichment
 
 export interface RGECertification {
   // Identifiants
@@ -83,7 +86,7 @@ export class RGEService {
       // Normaliser le SIRET (14 chiffres)
       const normalizedSiret = this.normalizeSiret(siret)
       if (!normalizedSiret) {
-        console.warn('[RGEService] SIRET invalide:', siret)
+        log.warn({ siret }, 'SIRET invalide')
         return null
       }
 
@@ -93,24 +96,24 @@ export class RGEService {
           const { RGEIndexer } = await import('./rge-indexer')
           this.indexer = new RGEIndexer()
         }
-        
-        console.log('[RGEService] 🔍 Recherche dans l\'index local...')
+
+        log.debug('Recherche dans l\'index local')
         const indexedCert = await this.indexer.searchCertification(normalizedSiret)
         if (indexedCert && indexedCert.isValid) {
-          console.log('[RGEService] ✅ Certification RGE trouvée dans l\'index local')
+          log.info('Certification RGE trouvée dans l\'index local')
           return indexedCert
         } else if (indexedCert) {
-          console.log('[RGEService] ⚠️ Certification trouvée mais non valide dans l\'index')
+          log.warn('Certification trouvée mais non valide dans l\'index')
           // On continue quand même pour vérifier via API
         } else {
-          console.log('[RGEService] ℹ️ Aucune certification trouvée dans l\'index local')
+          log.debug('Aucune certification trouvée dans l\'index local')
         }
       } catch (error) {
-        console.warn('[RGEService] ⚠️ Erreur accès index local (continuation avec recherche API):', error)
+        log.warn({ err: error }, 'Erreur accès index local (continuation avec recherche API)')
       }
 
       // 2. Fallback: Recherche directe via API data.gouv.fr ou ressources du dataset
-      console.log('[RGEService] 🔍 Recherche via API data.gouv.fr...')
+      log.debug('Recherche via API data.gouv.fr')
       const rgeData = await this.searchRGEBySiret(normalizedSiret)
       
       if (rgeData && rgeData.isValid) {
@@ -120,18 +123,18 @@ export class RGEService {
             const { RGEIndexer } = await import('./rge-indexer')
             this.indexer = new RGEIndexer()
           }
-          console.log('[RGEService] 💾 Indexation de la certification trouvée...')
+          log.debug('Indexation de la certification trouvée')
           await this.indexer.indexCertification(rgeData).catch((err: any) => {
-            console.warn('[RGEService] ⚠️ Erreur indexation:', err)
+            log.warn({ err }, 'Erreur indexation')
           })
         } catch (error) {
-          console.warn('[RGEService] ⚠️ Erreur indexation automatique:', error)
+          log.warn({ err: error }, 'Erreur indexation automatique')
         }
       }
       
       return rgeData
     } catch (error) {
-      console.error('[RGEService] ❌ Erreur récupération certification RGE:', error)
+      log.error({ err: error }, 'Erreur récupération certification RGE')
       return null
     }
   }
@@ -142,16 +145,16 @@ export class RGEService {
    */
   private async searchRGEBySiret(siret: string): Promise<RGECertification | null> {
     try {
-      console.log('[RGEService] 🔍 Début recherche RGE pour SIRET:', siret)
+      log.debug({ siret }, 'Début recherche RGE')
       
       // Récupérer les métadonnées du dataset
       const dataset = await this.getDatasetInfo()
       if (!dataset || !dataset.resources || dataset.resources.length === 0) {
-        console.warn('[RGEService] ⚠️ Aucune ressource trouvée pour le dataset RGE')
+        log.warn('Aucune ressource trouvée pour le dataset RGE')
         return null
       }
 
-      console.log(`[RGEService] ✅ Dataset trouvé avec ${dataset.resources.length} ressources`)
+      log.info({ resourcesCount: dataset.resources.length }, 'Dataset trouvé')
 
       // Chercher la ressource la plus récente
       const latestResource = dataset.resources
@@ -159,12 +162,15 @@ export class RGEService {
         .sort((a, b) => new Date(b.last_modified).getTime() - new Date(a.last_modified).getTime())[0]
 
       if (!latestResource) {
-        console.warn('[RGEService] ⚠️ Aucune ressource récente trouvée')
+        log.warn('Aucune ressource récente trouvée')
         return null
       }
 
-      console.log(`[RGEService] 📦 Ressource sélectionnée: ${latestResource.title} (${latestResource.format})`)
-      console.log(`[RGEService] 🔗 URL: ${latestResource.url}`)
+      log.debug({
+        title: latestResource.title,
+        format: latestResource.format,
+        url: latestResource.url
+      }, 'Ressource sélectionnée')
 
       // Tenter une recherche directe dans le fichier si c'est un CSV/JSON accessible
       // Pour les gros fichiers, on peut utiliser une recherche par département ou indexation locale
@@ -172,17 +178,17 @@ export class RGEService {
         try {
           const cert = await this.searchInResource(latestResource.url, siret, latestResource.format)
           if (cert) {
-            console.log('[RGEService] ✅ Certification RGE trouvée dans la ressource')
+            log.info('Certification RGE trouvée dans la ressource')
             return cert
           }
         } catch (error) {
-          console.warn('[RGEService] ⚠️ Impossible de rechercher directement dans la ressource:', error)
+          log.warn({ err: error }, 'Impossible de rechercher directement dans la ressource')
           // Continue avec la méthode alternative
         }
       }
 
       // Fallback: Retourner une structure indiquant que la recherche nécessite une indexation
-      console.log('[RGEService] ℹ️ Indexation recommandée pour recherche efficace')
+      log.debug('Indexation recommandée pour recherche efficace')
       
       return {
         siret,
@@ -193,7 +199,7 @@ export class RGEService {
         verifiedAt: new Date().toISOString(),
       }
     } catch (error) {
-      console.error('[RGEService] ❌ Erreur recherche RGE par SIRET:', error)
+      log.error({ err: error, siret }, 'Erreur recherche RGE par SIRET')
       return null
     }
   }
@@ -207,7 +213,7 @@ export class RGEService {
     format: string
   ): Promise<RGECertification | null> {
     try {
-      console.log(`[RGEService] 🔎 Recherche dans ressource ${format}:`, resourceUrl)
+      log.debug({ format, resourceUrl }, 'Recherche dans ressource')
       
       const response = await fetch(resourceUrl, {
         headers: {
@@ -216,7 +222,7 @@ export class RGEService {
       })
 
       if (!response.ok) {
-        console.warn(`[RGEService] ⚠️ Réponse HTTP ${response.status} pour la ressource`)
+        log.warn({ status: response.status }, 'Réponse HTTP pour la ressource')
         return null
       }
 
@@ -239,7 +245,7 @@ export class RGEService {
 
       return null
     } catch (error) {
-      console.error('[RGEService] ❌ Erreur recherche dans ressource:', error)
+      log.error({ err: error }, 'Erreur recherche dans ressource')
       return null
     }
   }
@@ -283,7 +289,7 @@ export class RGEService {
     )
 
     if (siretColumnIndex === -1) {
-      console.warn('[RGEService] ⚠️ Colonne SIRET non trouvée dans le CSV')
+      log.warn('Colonne SIRET non trouvée dans le CSV')
       return null
     }
 
@@ -346,21 +352,20 @@ export class RGEService {
    */
   async getDatasetInfo(): Promise<DataGouvRGEDataset | null> {
     try {
-      console.log(`[RGEService] 🔍 Récupération dataset RGE: ${this.datasetId}`)
-      
+      log.debug({ datasetId: this.datasetId }, 'Récupération dataset RGE')
+
       const response = await this.client.get<any>(
         `/datasets/${this.datasetId}/`
       )
-      
-      console.log('[RGEService] 📦 Réponse API data.gouv.fr:', {
+
+      log.debug({
         hasResponse: !!response,
         hasResources: !!(response?.resources),
         resourcesCount: response?.resources?.length || 0,
-        responseKeys: response ? Object.keys(response) : [],
-      })
+      }, 'Réponse API data.gouv.fr')
 
       if (!response) {
-        console.error('[RGEService] ❌ Réponse vide de l\'API')
+        log.error('Réponse vide de l\'API')
         return null
       }
 
@@ -407,19 +412,18 @@ export class RGEService {
         }),
       }
 
-      console.log(`[RGEService] ✅ Dataset mappé: ${dataset.resources.length} ressource(s) trouvée(s)`)
-      
+      log.info({ resourcesCount: dataset.resources.length }, 'Dataset mappé')
+
       if (dataset.resources.length === 0) {
-        console.warn('[RGEService] ⚠️ Aucune ressource valide trouvée dans le dataset')
-        console.warn('[RGEService] 📋 Structure de réponse:', JSON.stringify(response, null, 2).substring(0, 500))
+        log.warn('Aucune ressource valide trouvée dans le dataset')
+        log.warn({ response: JSON.stringify(response, null, 2).substring(0, 500) }, 'Structure de réponse')
       }
 
       return dataset
     } catch (error) {
-      console.error('[RGEService] ❌ Erreur récupération métadonnées dataset:', error)
+      log.error({ err: error }, 'Erreur récupération métadonnées dataset')
       if (error instanceof Error) {
-        console.error('[RGEService] ❌ Détails erreur:', error.message)
-        console.error('[RGEService] ❌ Stack:', error.stack)
+        log.error({ message: error.message, stack: error.stack }, 'Détails erreur')
       }
       return null
     }
@@ -438,12 +442,12 @@ export class RGEService {
       // un système d'indexation local (similaire à RNBIndexer)
       // ou d'utiliser un service de recherche externe
 
-      console.log('[RGEService] Recherche dans ressource:', resourceUrl)
-      console.log('[RGEService] Indexation recommandée pour recherche efficace')
+      log.debug({ resourceUrl }, 'Recherche dans ressource')
+      log.debug('Indexation recommandée pour recherche efficace')
 
       return null
     } catch (error) {
-      console.error('[RGEService] Erreur lecture ressource RGE:', error)
+      log.error({ err: error }, 'Erreur lecture ressource RGE')
       return null
     }
   }
@@ -460,7 +464,7 @@ export class RGEService {
       // Peut utiliser un index local ou une API de recherche
       return []
     } catch (error) {
-      console.error('[RGEService] Erreur recherche RGE par activité:', error)
+      log.error({ err: error }, 'Erreur recherche RGE par activité')
       return []
     }
   }
@@ -515,7 +519,7 @@ export class RGEService {
         missingActivities: missingActivities.length > 0 ? missingActivities : undefined,
       }
     } catch (error) {
-      console.error('[RGEService] Erreur vérification certification RGE:', error)
+      log.error({ err: error }, 'Erreur vérification certification RGE')
       return {
         isRGECertified: false,
         hasRequiredActivities: false,
