@@ -56,12 +56,12 @@ export class RNBService {
    */
   async getBuildingData(address: AddressData): Promise<RNBBuildingData | null> {
     try {
-      log.debug( {
+      log.debug({
         formatted: address.formatted,
         city: address.city,
         postalCode: address.postalCode,
         hasCoordinates: !!address.coordinates,
-      })
+      }, 'Récupération données bâtiment RNB')
 
       // 1. Essayer de récupérer depuis l'index local
       const { RNBIndexer } = await import('./rnb-indexer')
@@ -88,17 +88,17 @@ export class RNBService {
       // 2. Si pas dans l'index, récupérer les métadonnées et proposer l'indexation
       const department = this.extractDepartment(address.postalCode)
       if (!department) {
-        log.warn({ address: address.postalCode }, ' Impossible d\'extraire le département depuis:', address.postalCode)
+        log.warn({ postalCode: address.postalCode }, 'Impossible d\'extraire le département')
         return null
       }
 
       const resource = await this.getDepartmentResource(department)
       if (!resource) {
-        log.warn({ address: address.postalCode }, ' Aucune ressource RNB trouvée pour le département:', department)
+        log.warn({ department, postalCode: address.postalCode }, 'Aucune ressource RNB trouvée pour le département')
         return null
       }
 
-      log.warn( Données RNB non indexées pour ce département, métadonnées uniquement')
+      log.warn({ department }, 'Données RNB non indexées pour ce département, métadonnées uniquement')
       // 3. Retourner les métadonnées avec indication que l'indexation est nécessaire
       return {
         id: `rnb-${department}-metadata`,
@@ -108,7 +108,7 @@ export class RNBService {
         lastUpdated: resource.lastModified,
       }
     } catch (error) {
-      log.error({ err: error }, ' Erreur récupération données RNB:', error)
+      log.error({ err: error }, 'Erreur récupération données RNB')
       return null
     }
   }
@@ -138,7 +138,7 @@ export class RNBService {
         jobId,
       }
     } catch (error) {
-      log.error({ err: error }, ' Erreur démarrage indexation:', error)
+      log.error({ err: error }, 'Erreur démarrage indexation')
       return { success: false }
     }
   }
@@ -181,7 +181,7 @@ export class RNBService {
 
       return resources
     } catch (error) {
-      log.error({ err: error }, ' Erreur récupération ressources:', error)
+      log.error({ err: error }, 'Erreur récupération ressources')
       return []
     }
   }
@@ -194,7 +194,7 @@ export class RNBService {
       const resources = await this.getAllResources()
       return resources.find((r) => r.department === department) || null
     } catch (error) {
-      log.error({ err: error }, ' Erreur récupération ressource département:', error)
+      log.error({ err: error }, 'Erreur récupération ressource département')
       return null
     }
   }
@@ -260,7 +260,7 @@ export class RNBService {
         department,
       }
     } catch (error) {
-      log.error({ err: error }, ' Erreur récupération métadonnées:', error)
+      log.error({ err: error }, 'Erreur récupération métadonnées')
       return null
     }
   }
