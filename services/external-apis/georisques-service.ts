@@ -2,7 +2,7 @@
  * Service pour récupérer les données de risques depuis l'API Géorisques
  * Base URL: https://www.georisques.gouv.fr/api/v1
  * Documentation: https://www.georisques.gouv.fr/api
- * 
+ *
  * Cette API fournit des informations sur les risques naturels et technologiques :
  * - Risques d'inondation (TRI, AZI, PAPI)
  * - Mouvements de terrain (MVT)
@@ -15,6 +15,9 @@
  */
 
 import type { AddressData } from './types'
+import { loggers } from '@/lib/logger'
+
+const log = loggers.enrichment
 
 export interface GeorisquesRiskData {
   // Risques d'inondation
@@ -120,15 +123,15 @@ export class GeorisquesService {
     try {
       const { coordinates, city, postalCode } = address
 
-      console.log('[GeorisquesService] 🔄 Récupération données risques pour:', {
+      log.debug({
         formatted: address.formatted,
         city,
         postalCode,
         hasCoordinates: !!coordinates,
-      })
+      }, 'Récupération données risques')
 
       if (!postalCode) {
-        console.warn('[GeorisquesService] ⚠️ Code postal manquant pour:', address.formatted)
+        log.warn({ formatted: address.formatted }, 'Code postal manquant')
         return null
       }
 
@@ -149,11 +152,11 @@ export class GeorisquesService {
           }
         }
       } catch (error) {
-        console.warn('[GeorisquesService] ⚠️ Erreur récupération code INSEE:', error)
+        log.warn({ err: error, postalCode, city }, 'Erreur récupération code INSEE')
       }
 
       if (!codeInsee) {
-        console.warn('[GeorisquesService] ⚠️ Code INSEE non trouvé pour:', address.formatted)
+        log.warn({ formatted: address.formatted, postalCode, city }, 'Code INSEE non trouvé')
         return null
       }
 
@@ -207,7 +210,7 @@ export class GeorisquesService {
         lastUpdated: new Date().toISOString(),
       }
 
-      console.log('[GeorisquesService] ✅ Données risques récupérées:', {
+      log.info({
         hasTri: !!(tri && tri.length > 0),
         hasAzi: !!(azi && azi.length > 0),
         hasRga: !!rga,
@@ -217,11 +220,12 @@ export class GeorisquesService {
         hasSSP: !!ssp,
         hasInstallations: !!(installations && installations.length > 0),
         sources,
-      })
+        codeInsee,
+      }, 'Données risques récupérées')
 
       return result
     } catch (error) {
-      console.error('[GeorisquesService] ❌ Erreur récupération données risques:', error)
+      log.error({ err: error, address: address.formatted }, 'Erreur récupération données risques')
       return null
     }
   }
@@ -267,7 +271,7 @@ export class GeorisquesService {
 
       return undefined
     } catch (error) {
-      console.warn('[GeorisquesService] ⚠️ Erreur récupération TRI:', error)
+      log.warn({ err: error, codeInsee }, 'Erreur récupération TRI')
       return undefined
     }
   }
@@ -304,7 +308,7 @@ export class GeorisquesService {
 
       return undefined
     } catch (error) {
-      console.warn('[GeorisquesService] ⚠️ Erreur récupération AZI:', error)
+      log.warn({ err: error, codeInsee }, 'Erreur récupération AZI')
       return undefined
     }
   }
@@ -341,7 +345,7 @@ export class GeorisquesService {
 
       return undefined
     } catch (error) {
-      console.warn('[GeorisquesService] ⚠️ Erreur récupération PAPI:', error)
+      log.warn({ err: error, codeInsee }, 'Erreur récupération PAPI')
       return undefined
     }
   }
@@ -378,7 +382,7 @@ export class GeorisquesService {
 
       return undefined
     } catch (error) {
-      console.warn('[GeorisquesService] ⚠️ Erreur récupération MVT:', error)
+      log.warn({ err: error, codeInsee }, 'Erreur récupération MVT')
       return undefined
     }
   }
@@ -413,7 +417,7 @@ export class GeorisquesService {
 
       return undefined
     } catch (error) {
-      console.warn('[GeorisquesService] ⚠️ Erreur récupération RGA:', error)
+      log.warn({ err: error, codeInsee }, 'Erreur récupération RGA')
       return undefined
     }
   }
@@ -470,7 +474,7 @@ export class GeorisquesService {
         sup,
       }
     } catch (error) {
-      console.warn('[GeorisquesService] ⚠️ Erreur récupération SSP:', error)
+      log.warn({ err: error, codeInsee }, 'Erreur récupération SSP')
       return undefined
     }
   }
@@ -505,7 +509,7 @@ export class GeorisquesService {
 
       return undefined
     } catch (error) {
-      console.warn('[GeorisquesService] ⚠️ Erreur récupération Radon:', error)
+      log.warn({ err: error, codeInsee }, 'Erreur récupération Radon')
       return undefined
     }
   }
@@ -540,7 +544,7 @@ export class GeorisquesService {
 
       return undefined
     } catch (error) {
-      console.warn('[GeorisquesService] ⚠️ Erreur récupération zonage sismique:', error)
+      log.warn({ err: error, codeInsee }, 'Erreur récupération zonage sismique')
       return undefined
     }
   }
@@ -590,7 +594,7 @@ export class GeorisquesService {
 
       return undefined
     } catch (error) {
-      console.warn('[GeorisquesService] ⚠️ Erreur récupération installations classées:', error)
+      log.warn({ err: error, codeInsee }, 'Erreur récupération installations classées')
       return undefined
     }
   }
@@ -626,7 +630,7 @@ export class GeorisquesService {
 
       return undefined
     } catch (error) {
-      console.warn('[GeorisquesService] ⚠️ Erreur récupération risques:', error)
+      log.warn({ err: error, codeInsee }, 'Erreur récupération risques')
       return undefined
     }
   }
@@ -664,7 +668,7 @@ export class GeorisquesService {
 
       return undefined
     } catch (error) {
-      console.warn('[GeorisquesService] ⚠️ Erreur récupération CatNat:', error)
+      log.warn({ err: error, codeInsee }, 'Erreur récupération CatNat')
       return undefined
     }
   }
