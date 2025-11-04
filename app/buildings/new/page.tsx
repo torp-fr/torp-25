@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { clientLoggers } from '@/lib/client-logger'
 import { Button } from '@/components/ui/button'
 import {
   Card,
@@ -20,6 +21,8 @@ import {
   CheckCircle2,
 } from 'lucide-react'
 import { AppHeader } from '@/components/app-header'
+
+const log = clientLoggers.page
 
 export const dynamic = 'force-dynamic'
 
@@ -65,7 +68,7 @@ export default function NewBuildingPage() {
       // Le format attendu est AddressData[] avec formatted, city, postalCode, coordinates
       setSuggestions(data.data || [])
     } catch (err) {
-      console.error('Erreur recherche adresse:', err)
+      log.error({ err }, 'Erreur recherche adresse')
       setError(err instanceof Error ? err.message : 'Erreur lors de la recherche d\'adresse')
       setSuggestions([])
     } finally {
@@ -118,9 +121,9 @@ export default function NewBuildingPage() {
 
       const createData = await createResponse.json()
       const profileId = createData.data.id
-      
-      console.log('[New Building] ✅ Profil créé:', profileId)
-      
+
+      log.debug({ profileId }, 'Profil créé')
+
       // 2. Lancer l'enrichissement immédiatement (en arrière-plan, non bloquant)
       // L'enrichissement se fera en arrière-plan pendant que l'utilisateur est redirigé
       fetch(`/api/building-profiles/${profileId}/enrich?userId=${DEMO_USER_ID}`, {
@@ -129,19 +132,19 @@ export default function NewBuildingPage() {
         .then(async (enrichResponse) => {
           if (!enrichResponse.ok) {
             const errorData = await enrichResponse.json().catch(() => ({}))
-            console.error('[New Building] ❌ Erreur enrichissement:', errorData)
+            log.error({ errorData }, 'Erreur enrichissement')
             return
           }
           const enrichData = await enrichResponse.json()
-          console.log('[New Building] ✅ Enrichissement lancé:', enrichData)
+          log.debug({ enrichData }, 'Enrichissement lancé')
         })
         .catch((enrichErr) => {
-          console.error('[New Building] ❌ Erreur enrichissement:', enrichErr)
+          log.error({ err: enrichErr }, 'Erreur enrichissement')
           // Ne pas bloquer, l'enrichissement peut être relancé depuis la page de détail
         })
-      
+
       // 3. Rediriger vers la page de détail
-      console.log('[New Building] 🔄 Redirection vers:', `/buildings/${profileId}`)
+      log.debug({ redirectTo: `/buildings/${profileId}` }, 'Redirection')
       router.push(`/buildings/${profileId}`)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erreur lors de la création')

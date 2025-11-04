@@ -1,5 +1,6 @@
 'use client'
 
+import { clientLoggers } from '@/lib/client-logger'
 import { useState, useEffect, useCallback } from 'react'
 import { Button } from '@/components/ui/button'
 import {
@@ -24,6 +25,7 @@ import {
 } from 'lucide-react'
 import { AppHeader } from '@/components/app-header'
 
+const log = clientLoggers.page
 interface CertificationStats {
   total: number
   valid: number
@@ -69,7 +71,7 @@ export default function AdminPage() {
         setError(data.error || 'Erreur lors du chargement des statistiques')
       }
     } catch (err: any) {
-      console.error('[Admin] Erreur chargement données:', err)
+      log.error({ err }, 'Erreur chargement données')
       setError(err.message || 'Erreur de connexion')
     } finally {
       setLoading(false)

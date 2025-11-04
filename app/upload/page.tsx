@@ -8,6 +8,7 @@
 
 import { useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
+import { clientLoggers } from '@/lib/client-logger'
 import { Button } from '@/components/ui/button'
 import {
   Card,
@@ -95,6 +96,8 @@ interface CertificationStep {
 
 export const dynamic = 'force-dynamic'
 
+const log = clientLoggers.page
+
 export default function UploadPage() {
   const router = useRouter()
   const [currentStep, setCurrentStep] = useState(1) // Étape du wizard (1-4)
@@ -169,7 +172,7 @@ export default function UploadPage() {
         setAddressSuggestions(data.data || [])
       }
     } catch (error) {
-      console.error('Erreur recherche adresse:', error)
+      log.error({ err: error }, 'Erreur recherche adresse')
     }
   }
 
@@ -194,7 +197,7 @@ export default function UploadPage() {
         }))
       }
     } catch (error) {
-      console.error('Erreur récupération données bâti:', error)
+      log.error({ err: error }, 'Erreur récupération données bâti')
     }
   }
 

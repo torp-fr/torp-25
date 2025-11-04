@@ -1,5 +1,6 @@
 'use client'
 
+import { clientLoggers } from '@/lib/client-logger'
 import { Button } from '@/components/ui/button'
 import {
   Card,
@@ -8,6 +9,8 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card'
+
+const log = clientLoggers.page
 
 /**
  * Page de test pour Sentry
@@ -29,9 +32,9 @@ export default function TestSentryPage() {
         throw new Error('Server error occurred')
       }
       const data = await response.json()
-      console.log(data)
+      log.debug({ data }, 'Test Sentry data')
     } catch (error) {
-      console.error('Error:', error)
+      log.error({ err: error }, 'Test Sentry error')
     }
   }
 

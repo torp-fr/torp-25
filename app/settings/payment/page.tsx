@@ -1,5 +1,6 @@
 'use client'
 
+import { clientLoggers } from '@/lib/client-logger'
 import { useState, useEffect } from 'react'
 import { AppHeader } from '@/components/app-header'
 import { Button } from '@/components/ui/button'
@@ -13,6 +14,7 @@ import {
 import { CreditCard, Plus, Loader2 } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 
+const log = clientLoggers.page
 const DEMO_USER_ID = 'demo-user-id'
 
 interface PaymentMethod {
@@ -42,7 +44,7 @@ export default function PaymentSettingsPage() {
         setPaymentMethods(data.data || [])
       }
     } catch (error) {
-      console.error('[Payment] Erreur chargement:', error)
+      log.error({ err: error }, 'Erreur chargement paiement')
     } finally {
       setLoading(false)
     }

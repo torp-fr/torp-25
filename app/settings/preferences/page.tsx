@@ -1,5 +1,6 @@
 'use client'
 
+import { clientLoggers } from '@/lib/client-logger'
 import { useState, useEffect } from 'react'
 import { AppHeader } from '@/components/app-header'
 import { Button } from '@/components/ui/button'
@@ -21,6 +22,7 @@ import {
 import { Settings, Save, Loader2 } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 
+const log = clientLoggers.page
 const DEMO_USER_ID = 'demo-user-id'
 
 interface UserPreferences {
@@ -63,7 +65,7 @@ export default function PreferencesSettingsPage() {
         }
       }
     } catch (error) {
-      console.error('[Preferences] Erreur chargement:', error)
+      log.error({ err: error }, 'Erreur chargement préférences')
     } finally {
       setLoading(false)
     }

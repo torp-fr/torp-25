@@ -1,5 +1,6 @@
 'use client'
 
+import { clientLoggers } from '@/lib/client-logger'
 import { useState, useEffect } from 'react'
 import { AppHeader } from '@/components/app-header'
 import { Button } from '@/components/ui/button'
@@ -14,6 +15,7 @@ import {
 import { Bell, Save, Loader2 } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 
+const log = clientLoggers.page
 const DEMO_USER_ID = 'demo-user-id'
 
 interface NotificationPreferences {
@@ -62,7 +64,7 @@ export default function NotificationsSettingsPage() {
         }
       }
     } catch (error) {
-      console.error('[Notifications] Erreur chargement:', error)
+      log.error({ err: error }, 'Erreur chargement notifications')
     } finally {
       setLoading(false)
     }

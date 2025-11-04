@@ -5,6 +5,7 @@
  * Remplace progressivement l'ancienne page d'upload
  */
 
+import { clientLoggers } from '@/lib/client-logger'
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
@@ -13,6 +14,7 @@ import { UploadWizard } from '@/components/wizard/upload-wizard'
 import { Upload, FileText, Loader2 } from 'lucide-react'
 import { AppHeader } from '@/components/app-header'
 
+const log = clientLoggers.page
 type UploadStep = 'wizard' | 'upload' | 'processing'
 
 export const dynamic = 'force-dynamic'
@@ -38,7 +40,7 @@ export default function UploadPageWithWizard() {
         setStep('upload')
       }
     } catch (error) {
-      console.error('Erreur sauvegarde CCF:', error)
+      log.error({ err: error }, 'Erreur sauvegarde CCF')
       // Continuer quand même vers l'upload
       setCcfData(data)
       setStep('upload')
@@ -71,7 +73,7 @@ export default function UploadPageWithWizard() {
         throw new Error('Upload failed')
       }
     } catch (error) {
-      console.error('Erreur upload:', error)
+      log.error({ err: error }, 'Erreur upload')
       setUploading(false)
     }
   }
