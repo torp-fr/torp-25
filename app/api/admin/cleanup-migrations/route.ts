@@ -7,14 +7,16 @@
 
 import { NextResponse } from 'next/server'
 import { PrismaClient } from '@prisma/client'
+import { loggers } from '@/lib/logger'
 
+const log = loggers.api
 const prisma = new PrismaClient()
 
 export const dynamic = 'force-dynamic'
 
 export async function GET() {
   try {
-    console.log('[API Cleanup] Démarrage du nettoyage automatique...')
+    log.info('Démarrage du nettoyage automatique migrations')
 
     const results = {
       migrations: { deleted: 0, errors: [] as string[] },
@@ -40,10 +42,10 @@ export async function GET() {
         AND finished_at IS NULL
       `
       results.migrations.deleted = deletedMigrations as number
-      console.log(`[API Cleanup] ${results.migrations.deleted} migration(s) supprimée(s)`)
+      log.info({ deleted: results.migrations.deleted }, 'Migrations supprimées')
     } catch (error: any) {
       results.migrations.errors.push(error.message)
-      console.error('[API Cleanup] Erreur suppression migrations:', error)
+      log.error({ err: error }, 'Erreur suppression migrations')
     }
 
     // 2. Supprimer les tables
@@ -59,14 +61,14 @@ export async function GET() {
         try {
           await prisma.$executeRawUnsafe(`DROP TABLE IF EXISTS "${table.table_name}" CASCADE`)
           results.tables.dropped++
-          console.log(`[API Cleanup] Table ${table.table_name} supprimée`)
+          log.info({ tableName: table.table_name }, 'Table supprimée')
         } catch (error: any) {
           results.tables.errors.push(`Table ${table.table_name}: ${error.message}`)
         }
       }
     } catch (error: any) {
       results.tables.errors.push(error.message)
-      console.error('[API Cleanup] Erreur suppression tables:', error)
+      log.error({ err: error }, 'Erreur suppression tables')
     }
 
     // 3. Supprimer l'enum
@@ -80,11 +82,11 @@ export async function GET() {
       if (enumExists[0]?.exists) {
         await prisma.$executeRawUnsafe(`DROP TYPE IF EXISTS "rnb_import_status" CASCADE`)
         results.enum.dropped = true
-        console.log('[API Cleanup] Enum rnb_import_status supprimé')
+        log.info('Enum rnb_import_status supprimé')
       }
     } catch (error: any) {
       results.enum.errors.push(error.message)
-      console.error('[API Cleanup] Erreur suppression enum:', error)
+      log.error({ err: error }, 'Erreur suppression enum')
     }
 
     // 4. Vérification finale
@@ -141,7 +143,7 @@ export async function GET() {
         : 'Vérifiez les erreurs et réessayez, ou utilisez le script SQL directement dans Railway.',
     })
   } catch (error: any) {
-    console.error('[API Cleanup] Erreur fatale:', error)
+    log.error({ err: error }, 'Erreur fatale cleanup migrations')
     return NextResponse.json(
       {
         success: false,
