@@ -6,9 +6,12 @@
  */
 
 import { useState } from 'react'
+import { clientLoggers } from '@/lib/client-logger'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Paperclip, Star, CheckCircle2 } from 'lucide-react'
+
+const log = clientLoggers.component
 
 interface Recommendation {
   id?: string
@@ -56,7 +59,7 @@ export function RecommendationCard({ recommendation, devisId, userId, index }: R
         alert('Document ajouté avec succès !')
       }
     } catch (error) {
-      console.error('Erreur upload:', error)
+      log.error({ err: error }, 'Erreur upload document')
       alert('Erreur lors de l\'ajout du document')
     } finally {
       setUploading(false)
@@ -82,7 +85,7 @@ export function RecommendationCard({ recommendation, devisId, userId, index }: R
         setFeedbackSent(true)
       }
     } catch (error) {
-      console.error('Erreur feedback:', error)
+      log.error({ err: error }, 'Erreur feedback')
     }
   }
 

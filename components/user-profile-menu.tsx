@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
+import { clientLoggers } from '@/lib/client-logger'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -27,6 +28,8 @@ import {
   Check,
   X,
 } from 'lucide-react'
+
+const log = clientLoggers.component
 
 const DEMO_USER_ID = 'demo-user-id'
 
@@ -72,7 +75,7 @@ export function UserProfileMenu() {
         )
       }
     } catch (error) {
-      console.error('[UserProfileMenu] Erreur chargement profil:', error)
+      log.error({ err: error }, 'Erreur chargement profil')
     } finally {
       setLoading(false)
     }
@@ -94,7 +97,7 @@ export function UserProfileMenu() {
         setIsEditing(false)
       }
     } catch (error) {
-      console.error('[UserProfileMenu] Erreur sauvegarde nom:', error)
+      log.error({ err: error }, 'Erreur sauvegarde nom')
     }
   }
 

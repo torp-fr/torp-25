@@ -6,10 +6,13 @@
  */
 
 import { useState, useEffect, useRef } from 'react'
+import { clientLoggers } from '@/lib/client-logger'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card } from '@/components/ui/card'
 import { Send, Paperclip, Loader2 } from 'lucide-react'
+
+const log = clientLoggers.component
 
 interface Message {
   id: string
@@ -51,7 +54,7 @@ export function DevisChat({ devisId, userId, recommendations = [] }: DevisChatPr
         setMessages(data.messages || [])
       }
     } catch (error) {
-      console.error('Erreur chargement messages:', error)
+      log.error({ err: error }, 'Erreur chargement messages')
     }
   }
 
@@ -94,7 +97,7 @@ export function DevisChat({ devisId, userId, recommendations = [] }: DevisChatPr
         setMessages((prev) => [...prev, assistantMessage])
       }
     } catch (error) {
-      console.error('Erreur envoi message:', error)
+      log.error({ err: error }, 'Erreur envoi message')
       const errorMessage: Message = {
         id: Date.now().toString(),
         role: 'system',
@@ -138,7 +141,7 @@ export function DevisChat({ devisId, userId, recommendations = [] }: DevisChatPr
         setMessages((prev) => [...prev, systemMessage])
       }
     } catch (error) {
-      console.error('Erreur upload document:', error)
+      log.error({ err: error }, 'Erreur upload document')
     } finally {
       setUploadingFile(false)
     }

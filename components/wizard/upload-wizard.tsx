@@ -6,6 +6,7 @@
  */
 
 import { useState } from 'react'
+import { clientLoggers } from '@/lib/client-logger'
 import { Button } from '@/components/ui/button'
 import {
   Card,
@@ -32,6 +33,8 @@ import {
   DollarSign,
   CheckCircle2,
 } from 'lucide-react'
+
+const log = clientLoggers.component
 
 interface CCFData {
   // Étape 1: Type de projet
@@ -136,7 +139,7 @@ export function UploadWizard({ onComplete, onCancel }: UploadWizardProps) {
         setAddressSuggestions(data.data || [])
       }
     } catch (error) {
-      console.error('Erreur recherche adresse:', error)
+      log.error({ err: error }, 'Erreur recherche adresse')
     }
   }
 
@@ -172,7 +175,7 @@ export function UploadWizard({ onComplete, onCancel }: UploadWizardProps) {
         }
       }
     } catch (error) {
-      console.error('Erreur récupération données bâti:', error)
+      log.error({ err: error }, 'Erreur récupération données bâti')
     } finally {
       setLoading(false)
     }
@@ -237,7 +240,7 @@ export function UploadWizard({ onComplete, onCancel }: UploadWizardProps) {
         }))
       }
     } catch (error) {
-      console.error('Erreur génération étude de faisabilité:', error)
+      log.error({ err: error }, 'Erreur génération étude de faisabilité')
     } finally {
       setLoading(false)
     }
