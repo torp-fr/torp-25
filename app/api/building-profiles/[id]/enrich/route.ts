@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { BuildingProfileService } from '@/services/building-profile-service'
+import { loggers } from '@/lib/logger'
+
+const log = loggers.api
 
 export const dynamic = 'force-dynamic'
 
@@ -16,7 +19,7 @@ export async function POST(
     const searchParams = request.nextUrl.searchParams
     const userId = searchParams.get('userId')
 
-    console.log('[API Enrich] 🚀 Démarrage enrichissement:', { profileId: id, userId })
+    log.info({ profileId: id, userId }, 'Démarrage enrichissement')
 
     if (!userId) {
       return NextResponse.json(
@@ -26,29 +29,31 @@ export async function POST(
     }
 
     const service = new BuildingProfileService()
-    
+
     // Appeler refreshEnrichment qui va appeler enrichProfile
-    console.log('[API Enrich] 📞 Appel refreshEnrichment pour profileId:', id)
+    log.debug({ profileId: id }, 'Appel refreshEnrichment')
     const startTime = Date.now()
-    
+
     const result = await service.refreshEnrichment(id, userId)
-    
+
     const duration = Date.now() - startTime
-    console.log('[API Enrich] ✅ Enrichissement terminé en', duration, 'ms:', {
+    log.info({
+      profileId: id,
+      duration,
       success: result.success,
       sourcesCount: result.sources.length,
       sources: result.sources,
       errorsCount: result.errors?.length || 0,
       errors: result.errors,
       enrichedAt: result.enrichedAt,
-    })
+    }, 'Enrichissement terminé')
 
     return NextResponse.json({
       success: true,
       data: result,
     })
   } catch (error) {
-    console.error('[API Enrich] ❌ Erreur:', error)
+    log.error({ err: error }, 'Erreur enrichissement profil')
     return NextResponse.json(
       {
         error: 'Erreur lors de l\'enrichissement du profil',

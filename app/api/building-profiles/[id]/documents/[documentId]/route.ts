@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
+import { loggers } from '@/lib/logger'
+
+const log = loggers.api
 
 export const dynamic = 'force-dynamic'
 
@@ -49,7 +52,7 @@ export async function GET(
       data: document,
     })
   } catch (error) {
-    console.error('[API Building Document GET] Erreur:', error)
+    log.error({ err: error }, 'Erreur récupération document')
     return NextResponse.json(
       {
         error: 'Erreur lors de la récupération du document',
@@ -120,7 +123,7 @@ export async function PATCH(
       data: updatedDocument,
     })
   } catch (error) {
-    console.error('[API Building Document PATCH] Erreur:', error)
+    log.error({ err: error }, 'Erreur mise à jour document')
     return NextResponse.json(
       {
         error: 'Erreur lors de la mise à jour du document',
@@ -167,7 +170,7 @@ export async function DELETE(
       // TODO: Implémenter delete dans documentUploadService si nécessaire
       // Pour l'instant, on supprime juste en base
     } catch (error) {
-      console.warn('[API Building Document DELETE] Erreur suppression S3:', error)
+      log.warn({ err: error }, 'Erreur suppression S3')
       // Continuer quand même la suppression en base
     }
 
@@ -181,7 +184,7 @@ export async function DELETE(
       message: 'Document supprimé avec succès',
     })
   } catch (error) {
-    console.error('[API Building Document DELETE] Erreur:', error)
+    log.error({ err: error }, 'Erreur suppression document')
     return NextResponse.json(
       {
         error: 'Erreur lors de la suppression du document',

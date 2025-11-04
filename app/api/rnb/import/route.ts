@@ -11,6 +11,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { RNBImporter } from '@/services/external-apis/rnb-importer'
 import { z } from 'zod'
+import { loggers } from '@/lib/logger'
+
+const log = loggers.api
 
 export const dynamic = 'force-dynamic'
 
@@ -42,7 +45,7 @@ export async function POST(request: NextRequest) {
       maxRows,
       onProgress: (progress) => {
         // TODO: Utiliser Server-Sent Events ou WebSocket pour notifier la progression en temps réel
-        console.log(`[RNB Import] Département ${department}: ${progress.percentage.toFixed(1)}%`)
+        log.debug({ department, percentage: progress.percentage }, 'Progression import RNB')
       },
     })
 
@@ -53,7 +56,7 @@ export async function POST(request: NextRequest) {
       errors: result.errors,
     })
   } catch (error) {
-    console.error('[API RNB Import] Erreur:', error)
+    log.error({ err: error }, 'Erreur import RNB')
     return NextResponse.json(
       {
         error: 'Failed to import RNB data',
@@ -84,7 +87,7 @@ export async function GET() {
       stats,
     })
   } catch (error) {
-    console.error('[API RNB Import] Erreur récupération jobs:', error)
+    log.error({ err: error }, 'Erreur récupération jobs RNB')
     return NextResponse.json(
       {
         error: 'Failed to fetch import jobs',
