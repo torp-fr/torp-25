@@ -16,6 +16,9 @@ import type {
   ScoringEnrichmentData,
 } from '../scoring/advanced/types'
 import type { ExtractedDevisData } from '@/services/llm/document-analyzer'
+import { loggers } from '@/lib/logger'
+
+const log = loggers.enrichment
 
 /**
  * NOTE: Ce service est maintenant utilisé en ASYNCHRONE pour ne pas bloquer la réponse
@@ -101,7 +104,7 @@ export class AdvancedEnrichmentService {
               confidence += 5
             }
           } catch (error) {
-            console.warn('[AdvancedEnrichment] Erreur Infogreffe:', error)
+            log.warn({ err: error }, 'Erreur Infogreffe')
             confidence -= 3
           }
         }
@@ -127,7 +130,7 @@ export class AdvancedEnrichmentService {
             confidence += 5
           }
         } catch (error) {
-          console.warn('[AdvancedEnrichment] Erreur Pappers:', error)
+          log.warn({ err: error }, 'Erreur Pappers')
           confidence -= 2
         }
 
@@ -143,15 +146,13 @@ export class AdvancedEnrichmentService {
             confidence += 3
           }
         } catch (error) {
-          console.warn('[AdvancedEnrichment] Erreur réputation:', error)
+          log.warn({ err: error }, 'Erreur réputation')
           confidence -= 2
         }
 
         // Source 5: Certifications (RGE, Qualibat, etc.)
         try {
-          console.log(
-            `[AdvancedEnrichment] 🔍 Recherche certifications pour SIRET: ${extractedData.company.siret}`
-          )
+          log.debug({ siret: extractedData.company.siret }, 'Recherche certifications')
           const certifications =
             await this.certificationsService.getCompanyCertifications(
               extractedData.company.siret
@@ -182,26 +183,23 @@ export class AdvancedEnrichmentService {
             confidence += 8
 
             // Log détaillé des certifications trouvées
-            console.log(
-              `[AdvancedEnrichment] ✅ ${certifications.certifications.length} certification(s) trouvée(s):`,
-              certifications.certifications
-                .map((c) => `${c.type}: ${c.name} (valide: ${c.valid})`)
-                .join(', ')
-            )
+            log.info({
+              count: certifications.certifications.length,
+              certifications: certifications.certifications.map((c) => ({
+                type: c.type,
+                name: c.name,
+                valid: c.valid,
+              })),
+            }, 'Certifications trouvées')
           } else {
-            console.log(
-              '[AdvancedEnrichment] ℹ️ Aucune certification trouvée pour cette entreprise'
-            )
+            log.debug('Aucune certification trouvée pour cette entreprise')
           }
         } catch (error) {
-          console.error('[AdvancedEnrichment] ❌ Erreur certifications:', error)
+          log.error({ err: error }, 'Erreur certifications')
           confidence -= 2
         }
       } catch (error) {
-        console.error(
-          '[AdvancedEnrichment] Erreur enrichissement entreprise:',
-          error
-        )
+        log.error({ err: error }, 'Erreur enrichissement entreprise')
         confidence -= 10
       }
     }
@@ -248,7 +246,7 @@ export class AdvancedEnrichmentService {
         }
       }
     } catch (error) {
-      console.error('[AdvancedEnrichment] Erreur prix:', error)
+      log.error({ err: error }, 'Erreur prix')
       confidence -= 5
     }
 
@@ -262,7 +260,7 @@ export class AdvancedEnrichmentService {
         confidence += 3
       }
     } catch (error) {
-      console.error('[AdvancedEnrichment] Erreur régional:', error)
+      log.error({ err: error }, 'Erreur régional')
       confidence -= 3
     }
 
@@ -289,7 +287,7 @@ export class AdvancedEnrichmentService {
         complianceData.dtus = dtus
       }
     } catch (error) {
-      console.error('[AdvancedEnrichment] Erreur conformité:', error)
+      log.error({ err: error }, 'Erreur conformité')
       confidence -= 5
     }
 
@@ -319,7 +317,7 @@ export class AdvancedEnrichmentService {
         confidence += 2
       }
     } catch (error) {
-      console.error('[AdvancedEnrichment] Erreur météo:', error)
+      log.error({ err: error }, 'Erreur météo')
       confidence -= 2
     }
 
@@ -341,14 +339,12 @@ export class AdvancedEnrichmentService {
           : complianceData?.certifications || [],
     }
 
-    console.log('[AdvancedEnrichment] ✅ Enrichissement terminé')
-    console.log(
-      `[AdvancedEnrichment] 📊 Sources utilisées: ${sources.join(', ') || 'Aucune'}`
-    )
-    console.log(`[AdvancedEnrichment] 📈 Confiance finale: ${confidence}%`)
-    console.log(
-      `[AdvancedEnrichment] 🏅 Certifications: ${result.certifications.length} trouvée(s)`
-    )
+    log.info({
+      sources: sources.length > 0 ? sources : ['Aucune'],
+      sourcesCount: sources.length,
+      confidence,
+      certificationsCount: result.certifications.length,
+    }, 'Enrichissement terminé')
 
     return result
   }
