@@ -13,6 +13,9 @@ import { CadastreService } from './cadastre-service'
 import { GeorisquesService } from './georisques-service'
 import { RNBService } from './rnb-service'
 import { DPEService } from './dpe-service'
+import { loggers } from '@/lib/logger'
+
+const log = loggers.enrichment
 
 export class BuildingService {
   private addressService: AddressService
@@ -42,7 +45,7 @@ export class BuildingService {
       // 1. Géocodage de l'adresse
       const addresses = await this.addressService.searchAddress(address)
       if (addresses.length === 0) {
-        console.warn('[BuildingService] Adresse non trouvée:', address)
+        log.warn({ address }, 'Adresse non trouvée')
         return null
       }
       addressData = addresses[0]
@@ -61,35 +64,35 @@ export class BuildingService {
         georisquesResult,
       ] = await Promise.allSettled([
         this.getUrbanismData(addressData).catch(err => {
-          console.warn('[BuildingService] Erreur getUrbanismData:', err)
+          log.warn({ err, address: addressData.formatted }, 'Erreur getUrbanismData')
           return null
         }),
         this.getBuildingData(addressData).catch(err => {
-          console.warn('[BuildingService] Erreur getBuildingData:', err)
+          log.warn({ err, address: addressData.formatted }, 'Erreur getBuildingData')
           return null
         }),
         this.getEnergyData(addressData).catch(err => {
-          console.warn('[BuildingService] Erreur getEnergyData:', err)
+          log.warn({ err, address: addressData.formatted }, 'Erreur getEnergyData')
           return null
         }),
         this.pluService.getPLUData(addressData).catch(err => {
-          console.warn('[BuildingService] Erreur getPLUData:', err)
+          log.warn({ err, address: addressData.formatted }, 'Erreur getPLUData')
           return null
         }),
         this.cadastreService.getCadastralData(addressData).catch(err => {
-          console.warn('[BuildingService] Erreur getCadastralData:', err)
+          log.warn({ err, address: addressData.formatted }, 'Erreur getCadastralData')
           return null
         }),
         this.rnbService.getBuildingData(addressData).catch(err => {
-          console.warn('[BuildingService] Erreur getRNBData:', err)
+          log.warn({ err, address: addressData.formatted }, 'Erreur getRNBData')
           return null
         }),
         this.dpeService.getDPEData(addressData).catch(err => {
-          console.warn('[BuildingService] Erreur getDPEData:', err)
+          log.warn({ err, address: addressData.formatted }, 'Erreur getDPEData')
           return null
         }),
         this.georisquesService.getRiskData(addressData).catch(err => {
-          console.warn('[BuildingService] Erreur getRiskData:', err)
+          log.warn({ err, address: addressData.formatted }, 'Erreur getRiskData')
           return null
         }),
       ])
@@ -104,7 +107,7 @@ export class BuildingService {
       const dpe = dpeResult.status === 'fulfilled' ? dpeResult.value : null
       const georisques = georisquesResult.status === 'fulfilled' ? georisquesResult.value : null
 
-      console.log('[BuildingService] ✅ Résultats récupération données:', {
+      log.debug({
         urbanism: !!urbanism,
         building: !!building,
         energy: !!energy,
@@ -113,11 +116,7 @@ export class BuildingService {
         rnb: !!rnb,
         dpe: !!dpe,
         georisques: !!georisques,
-        pluKeys: plu ? Object.keys(plu) : [],
-        rnbKeys: rnb ? Object.keys(rnb) : [],
-        dpeKeys: dpe ? Object.keys(dpe) : [],
-        georisquesKeys: georisques ? Object.keys(georisques) : [],
-      })
+      }, 'Résultats récupération données')
 
       if (urbanism) sources.push('APU Urbanisme')
       if (building) sources.push('ONTB')
@@ -189,8 +188,7 @@ export class BuildingService {
         lastUpdated: new Date().toISOString(),
       }
 
-      console.log('[BuildingService] ✅ Données agrégées finales:', {
-        keys: Object.keys(result),
+      log.info({
         hasAddress: !!result.address,
         hasPLU: !!result.plu,
         hasRNB: !!result.rnb,
@@ -199,11 +197,11 @@ export class BuildingService {
         hasGeorisques: !!result.georisques,
         hasCadastre: !!result.cadastre,
         sources: result.sources,
-      })
+      }, 'Données agrégées finales')
 
       return result
     } catch (error) {
-      console.error('[BuildingService] Erreur agrégation données:', error)
+      log.error({ err: error, address }, 'Erreur agrégation données')
       return addressData
         ? {
             address: addressData,
@@ -234,7 +232,7 @@ export class BuildingService {
         constraints: [],
       }
     } catch (error) {
-      console.error('[BuildingService] Erreur récupération données urbanisme:', error)
+      log.error({ err: error }, 'Erreur récupération données urbanisme')
       return null
     }
   }
@@ -247,14 +245,14 @@ export class BuildingService {
     try {
       // Placeholder - À remplacer par l'API réelle
       // TODO: Intégrer avec ONTB et données PLU
-      
+
       return {
         buildingType: 'unknown',
         pluZone: 'unknown',
         pluConstraints: [],
       }
     } catch (error) {
-      console.error('[BuildingService] Erreur récupération données bâti:', error)
+      log.error({ err: error }, 'Erreur récupération données bâti')
       return null
     }
   }
@@ -281,10 +279,11 @@ export class BuildingService {
           ghgEmissions: rnbData.ghgEmissions,
         }
       }
-      
+
+
       return null
     } catch (error) {
-      console.error('[BuildingService] Erreur récupération données DPE:', error)
+      log.error({ err: error, address: address.formatted }, 'Erreur récupération données DPE')
       return null
     }
   }
