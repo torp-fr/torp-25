@@ -2,7 +2,7 @@
  * Service pour récupérer les données du Référentiel National des Bâtiments (RNB)
  * Source : https://www.data.gouv.fr/fr/datasets/referentiel-national-des-batiments/
  * Dataset ID: 65a5568dfc88169d0a5416ca
- * 
+ *
  * Le RNB contient :
  * - Données DPE (Diagnostic de Performance Energétique)
  * - Informations bâti (année construction, type, surface, etc.)
@@ -11,6 +11,9 @@
  */
 
 import type { AddressData } from './types'
+import { loggers } from '@/lib/logger'
+
+const log = loggers.enrichment
 
 export interface RNBBuildingData {
   id: string // Identifiant unique du bâtiment (RNB)
@@ -53,7 +56,7 @@ export class RNBService {
    */
   async getBuildingData(address: AddressData): Promise<RNBBuildingData | null> {
     try {
-      console.log('[RNBService] 🔄 Récupération données RNB pour:', {
+      log.debug( {
         formatted: address.formatted,
         city: address.city,
         postalCode: address.postalCode,
@@ -71,31 +74,31 @@ export class RNBService {
       )
 
       if (indexedData) {
-        console.log('[RNBService] ✅ Données récupérées depuis l\'index local:', {
+        log.info({
           hasConstructionYear: !!indexedData.constructionYear,
           hasBuildingType: !!indexedData.buildingType,
           hasSurface: !!indexedData.surface,
           hasDPEClass: !!indexedData.dpeClass,
           hasEnergyConsumption: !!indexedData.energyConsumption,
           dpeClass: indexedData.dpeClass,
-        })
+        }, 'Données récupérées depuis l\'index local')
         return indexedData
       }
 
       // 2. Si pas dans l'index, récupérer les métadonnées et proposer l'indexation
       const department = this.extractDepartment(address.postalCode)
       if (!department) {
-        console.warn('[RNBService] ⚠️ Impossible d\'extraire le département depuis:', address.postalCode)
+        log.warn({ address: address.postalCode }, ' Impossible d\'extraire le département depuis:', address.postalCode)
         return null
       }
 
       const resource = await this.getDepartmentResource(department)
       if (!resource) {
-        console.warn('[RNBService] ⚠️ Aucune ressource RNB trouvée pour le département:', department)
+        log.warn({ address: address.postalCode }, ' Aucune ressource RNB trouvée pour le département:', department)
         return null
       }
 
-      console.log('[RNBService] ⚠️ Données RNB non indexées pour ce département, métadonnées uniquement')
+      log.warn( Données RNB non indexées pour ce département, métadonnées uniquement')
       // 3. Retourner les métadonnées avec indication que l'indexation est nécessaire
       return {
         id: `rnb-${department}-metadata`,
@@ -105,7 +108,7 @@ export class RNBService {
         lastUpdated: resource.lastModified,
       }
     } catch (error) {
-      console.error('[RNBService] ❌ Erreur récupération données RNB:', error)
+      log.error({ err: error }, ' Erreur récupération données RNB:', error)
       return null
     }
   }
@@ -135,7 +138,7 @@ export class RNBService {
         jobId,
       }
     } catch (error) {
-      console.error('[RNBService] Erreur démarrage indexation:', error)
+      log.error({ err: error }, ' Erreur démarrage indexation:', error)
       return { success: false }
     }
   }
@@ -150,7 +153,7 @@ export class RNBService {
       })
 
       if (!response.ok) {
-        console.warn('[RNBService] Erreur récupération dataset:', response.statusText)
+        log.warn({ status: response.status, statusText: response.statusText }, 'Erreur récupération dataset')
         return []
       }
 
@@ -178,7 +181,7 @@ export class RNBService {
 
       return resources
     } catch (error) {
-      console.error('[RNBService] Erreur récupération ressources:', error)
+      log.error({ err: error }, ' Erreur récupération ressources:', error)
       return []
     }
   }
@@ -191,7 +194,7 @@ export class RNBService {
       const resources = await this.getAllResources()
       return resources.find((r) => r.department === department) || null
     } catch (error) {
-      console.error('[RNBService] Erreur récupération ressource département:', error)
+      log.error({ err: error }, ' Erreur récupération ressource département:', error)
       return null
     }
   }
@@ -257,7 +260,7 @@ export class RNBService {
         department,
       }
     } catch (error) {
-      console.error('[RNBService] Erreur récupération métadonnées:', error)
+      log.error({ err: error }, ' Erreur récupération métadonnées:', error)
       return null
     }
   }
