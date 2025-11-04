@@ -33,12 +33,12 @@ export class RGEIndexer {
    */
   async searchCertification(siret: string): Promise<RGECertification | null> {
     try {
-      log.info(`[RGEIndexer] 🔍 Recherche certification RGE pour SIRET: ${siret}`)
-      
+      log.info({ siret }, 'Recherche certification RGE pour SIRET')
+
       // Normaliser le SIRET
       const normalizedSiret = this.normalizeSiret(siret)
       if (!normalizedSiret) {
-        log.warn('[RGEIndexer] ⚠️ SIRET invalide:', siret)
+        log.warn({ siret }, 'SIRET invalide')
         return null
       }
 
@@ -48,7 +48,7 @@ export class RGEIndexer {
       })
 
       if (certification) {
-        log.info(`[RGEIndexer] ✅ Certification trouvée dans l'index local`)
+        log.info({ siret: normalizedSiret }, 'Certification trouvée dans l\'index local')
         return this.mapToRGECertification(certification)
       }
 
@@ -60,14 +60,14 @@ export class RGEIndexer {
       })
 
       if (certificationBySiren) {
-        log.info(`[RGEIndexer] ✅ Certification trouvée par SIREN dans l'index local`)
+        log.info({ siren }, 'Certification trouvée par SIREN dans l\'index local')
         return this.mapToRGECertification(certificationBySiren)
       }
 
-      log.info(`[RGEIndexer] ℹ️ Aucune certification trouvée dans l'index local`)
+      log.debug({ siret: normalizedSiret }, 'Aucune certification trouvée dans l\'index local')
       return null
     } catch (error) {
-      log.error('[RGEIndexer] ❌ Erreur recherche certification:', error)
+      log.error({ err: error, siret }, 'Erreur recherche certification')
       return null
     }
   }
@@ -114,7 +114,7 @@ export class RGEIndexer {
 
       return certifications.map((c) => this.mapToRGECertification(c))
     } catch (error) {
-      log.error('[RGEIndexer] ❌ Erreur recherche certifications:', error)
+      log.error({ err: error }, 'Erreur recherche certifications')
       return []
     }
   }
@@ -126,7 +126,7 @@ export class RGEIndexer {
     try {
       const normalizedSiret = this.normalizeSiret(certData.siret)
       if (!normalizedSiret) {
-        log.warn('[RGEIndexer] ⚠️ SIRET invalide pour indexation:', certData.siret)
+        log.warn({ siret: certData.siret }, 'SIRET invalide pour indexation')
         return null
       }
 
@@ -168,7 +168,7 @@ export class RGEIndexer {
 
       return certification.id
     } catch (error) {
-      log.error('[RGEIndexer] ❌ Erreur indexation certification:', error)
+      log.error({ err: error, siret: certData.siret }, 'Erreur indexation certification')
       return null
     }
   }
@@ -200,7 +200,10 @@ export class RGEIndexer {
 
       // Log de progression
       if ((i + batchSize) % 1000 === 0 || i + batchSize >= certificationsData.length) {
-        log.info(`[RGEIndexer] 📊 Progression: ${Math.min(i + batchSize, certificationsData.length)}/${certificationsData.length} certifications traitées`)
+        log.debug({
+          processed: Math.min(i + batchSize, certificationsData.length),
+          total: certificationsData.length,
+        }, 'Progression indexation certifications')
       }
     }
 
