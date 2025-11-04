@@ -4,6 +4,9 @@
  */
 
 import Anthropic from '@anthropic-ai/sdk'
+import { loggers } from '@/lib/logger'
+
+const log = loggers.llm
 
 export interface AvailableModel {
   name: string
@@ -68,7 +71,7 @@ export class ModelResolver {
       },
     ]
 
-    console.log('[ModelResolver] 🔍 Détection des modèles disponibles...')
+    log.debug('Détection des modèles disponibles')
 
     // Tester d'abord les modèles prioritaires (Claude 3.5 Sonnet)
     for (const model of priorityModels) {
@@ -92,13 +95,11 @@ export class ModelResolver {
             supportsImages: model.supportsPdf,
             version: model.version,
           })
-          console.log(`[ModelResolver] ✅ ${model.name} est disponible`)
+          log.info({ modelName: model.name, version: model.version }, 'Modèle disponible')
           // Si on trouve un modèle Claude 3.5 Sonnet, on peut arrêter ici pour gagner du temps
           // car c'est le meilleur pour notre cas d'usage
           if (models.length >= 1 && model.name.includes('3-5-sonnet')) {
-            console.log(
-              '[ModelResolver] ✅ Modèle optimal trouvé, arrêt de la détection'
-            )
+            log.info({ modelName: model.name }, 'Modèle optimal trouvé, arrêt de la détection')
             this.cachedModels = models
             return models
           }
@@ -106,23 +107,21 @@ export class ModelResolver {
       } catch (error: any) {
         // Erreur 404 = modèle non disponible pour ce compte
         if (error.status === 404 || error.error?.type === 'not_found_error') {
-          console.log(
-            `[ModelResolver] ❌ ${model.name} n'est pas disponible (404)`
-          )
+          log.debug({ modelName: model.name, status: 404 }, 'Modèle non disponible')
         } else {
           // Autre erreur (401, 403, etc.) = problème de clé API ou permissions
-          console.error(
-            `[ModelResolver] ⚠️ ${model.name} - erreur: ${error.status || 'unknown'} - ${error.message || error.error?.message || 'unknown'}`
-          )
+          log.warn({
+            modelName: model.name,
+            status: error.status || 'unknown',
+            message: error.message || error.error?.message || 'unknown',
+          }, 'Erreur test modèle')
         }
       }
     }
 
     // Si aucun modèle prioritaire n'est disponible, tester les fallbacks
     if (models.length === 0) {
-      console.log(
-        '[ModelResolver] ⚠️ Aucun modèle prioritaire disponible, test des fallbacks...'
-      )
+      log.warn('Aucun modèle prioritaire disponible, test des fallbacks')
       for (const model of fallbackModels) {
         try {
           const testResponse = await this.client.messages.create({
@@ -143,16 +142,12 @@ export class ModelResolver {
               supportsImages: model.supportsPdf,
               version: model.version,
             })
-            console.log(
-              `[ModelResolver] ✅ ${model.name} est disponible (fallback)`
-            )
+            log.info({ modelName: model.name, version: model.version }, 'Modèle fallback disponible')
             break // Un fallback suffit
           }
         } catch (error: any) {
           if (error.status === 404 || error.error?.type === 'not_found_error') {
-            console.log(
-              `[ModelResolver] ❌ ${model.name} n'est pas disponible (404)`
-            )
+            log.debug({ modelName: model.name, status: 404 }, 'Modèle fallback non disponible')
           }
         }
       }
@@ -170,9 +165,10 @@ export class ModelResolver {
       )
     }
 
-    console.log(
-      `[ModelResolver] ✅ ${models.length} modèle(s) disponible(s): ${models.map((m) => m.name).join(', ')}`
-    )
+    log.info({
+      count: models.length,
+      models: models.map((m) => m.name),
+    }, 'Modèles disponibles détectés')
 
     return models
   }
@@ -197,17 +193,13 @@ export class ModelResolver {
     // Prioriser Claude 3.5 Sonnet (meilleure qualité)
     const sonnet35 = pdfModels.find((m) => m.name.includes('3-5-sonnet'))
     if (sonnet35) {
-      console.log(
-        `[ModelResolver] ✅ Modèle sélectionné pour PDF: ${sonnet35.name}`
-      )
+      log.info({ modelName: sonnet35.name }, 'Modèle sélectionné pour PDF')
       return sonnet35.name
     }
 
     // Sinon, prendre le premier disponible qui supporte PDF
     const selected = pdfModels[0]
-    console.log(
-      `[ModelResolver] ✅ Modèle sélectionné pour PDF: ${selected.name}`
-    )
+    log.info({ modelName: selected.name }, 'Modèle sélectionné pour PDF (fallback)')
     return selected.name
   }
 
