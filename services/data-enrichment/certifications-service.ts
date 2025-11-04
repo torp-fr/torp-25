@@ -8,6 +8,9 @@
 
 import { ApiClient } from './api-client'
 import { RGEService } from '../external-apis/rge-service'
+import { loggers } from '@/lib/logger'
+
+const log = loggers.enrichment
 
 export interface CertificationData {
   type: 'RGE' | 'Qualibat' | 'Capeb' | 'FFB' | 'other'
@@ -69,7 +72,7 @@ export class CertificationsEnrichmentService {
         lastUpdated: new Date().toISOString(),
       }
     } catch (error) {
-      console.error('[CertificationsService] Erreur récupération certifications:', error)
+      log.error({ err: error }, 'Erreur récupération certifications')
       return null
     }
   }
@@ -80,15 +83,19 @@ export class CertificationsEnrichmentService {
    */
   private async getRGECertification(siret: string): Promise<CertificationData | null> {
     try {
-      console.log(`[CertificationsService] 🔍 Début recherche certification RGE pour SIRET: ${siret}`)
+      log.debug({ siret }, 'Début recherche certification RGE')
       const rgeCert = await this.rgeService.getRGECertification(siret)
-      
+
       if (!rgeCert) {
-        console.log('[CertificationsService] ℹ️ Aucune certification RGE trouvée')
+        log.debug('Aucune certification RGE trouvée')
         return null
       }
 
-      console.log(`[CertificationsService] ${rgeCert.isValid ? '✅' : '⚠️'} Certification RGE trouvée (valide: ${rgeCert.isValid})`)
+      log.info({
+        siret,
+        valid: rgeCert.isValid,
+        certificationNumber: rgeCert.certificationNumber
+      }, 'Certification RGE trouvée')
 
       // Retourner la certification même si isValid est false pour traçabilité
       // Le scoring pourra décider comment l'utiliser
@@ -104,7 +111,7 @@ export class CertificationsEnrichmentService {
         verifiedAt: rgeCert.verifiedAt,
       }
     } catch (error) {
-      console.error('[CertificationsService] ❌ Erreur récupération RGE:', error)
+      log.error({ err: error, siret }, 'Erreur récupération RGE')
       return null
     }
   }
@@ -115,7 +122,7 @@ export class CertificationsEnrichmentService {
   private async getQualibatCertification(siret: string): Promise<CertificationData | null> {
     try {
       if (!process.env.QUALIBAT_API_KEY) {
-        console.warn('[CertificationsService] QUALIBAT_API_KEY non configurée')
+        log.warn('QUALIBAT_API_KEY non configurée')
         return null
       }
 
@@ -145,7 +152,7 @@ export class CertificationsEnrichmentService {
         verifiedAt: new Date().toISOString(),
       }
     } catch (error) {
-      console.warn('[CertificationsService] Erreur récupération Qualibat:', error)
+      log.warn({ err: error }, 'Erreur récupération Qualibat')
       return null
     }
   }

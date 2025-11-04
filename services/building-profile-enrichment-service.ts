@@ -4,6 +4,10 @@
  * Masque les sources et met en avant les résultats
  */
 
+import { loggers } from '@/lib/logger'
+
+const log = loggers.enrichment
+
 export interface BuildingCharacteristic {
   id: string
   category: 
@@ -45,15 +49,14 @@ export class BuildingProfileEnrichmentService {
   ): BuildingCharacteristic[] {
     // NORMALISATION : S'assurer qu'enrichedData est un objet
     if (!enrichedData || typeof enrichedData !== 'object' || Array.isArray(enrichedData)) {
-      console.warn('[BuildingProfileEnrichmentService] ⚠️ enrichedData invalide, normalisation:', {
+      log.warn({
         type: typeof enrichedData,
         isArray: Array.isArray(enrichedData),
-        value: enrichedData,
-      })
+      }, 'enrichedData invalide, normalisation')
       enrichedData = enrichedData && typeof enrichedData === 'object' && !Array.isArray(enrichedData) ? enrichedData : {}
     }
-    
-    console.log('[BuildingProfileEnrichmentService] 🔄 Extraction caractéristiques:', {
+
+    log.debug({
       hasEnrichedData: !!enrichedData && Object.keys(enrichedData).length > 0,
       enrichedDataKeys: enrichedData ? Object.keys(enrichedData) : [],
       enrichedDataAddress: enrichedData?.address?.formatted || enrichedData?.address || 'pas d\'adresse',
@@ -71,7 +74,7 @@ export class BuildingProfileEnrichmentService {
       hasRiskData: !!profileRiskData,
       hasCadastralData: !!profileCadastralData,
       hasDvfData: !!profileDvfData,
-    })
+    }, 'Extraction caractéristiques')
     
     // Utiliser les données du profil si disponibles, sinon celles de enrichedData
     // DPE peut être dans plusieurs endroits : profileDpeData, enrichedData.energy, enrichedData.dpe, ou enrichedData.rnb
@@ -101,7 +104,7 @@ export class BuildingProfileEnrichmentService {
     // RNB pour données structure (année, surface, type)
     const rnbData = enrichedData?.rnb
     
-    console.log('[BuildingProfileEnrichmentService] 📊 Données extraites pour traitement:', {
+    log.debug({
       hasDpeData: !!dpeData,
       dpeDataKeys: dpeData ? Object.keys(dpeData) : [],
       dpeClass: dpeData?.dpeClass,
@@ -764,24 +767,17 @@ export class BuildingProfileEnrichmentService {
       return a.label.localeCompare(b.label)
     })
     
-    console.log('[BuildingProfileEnrichmentService] ✅ Caractéristiques extraites:', {
+    log.debug({
       total: sorted.length,
-      known: sorted.filter(c => c.status === 'known').length,
-      unknown: sorted.filter(c => c.status === 'unknown').length,
-      partial: sorted.filter(c => c.status === 'partial').length,
-    })
-    
-    console.log('[BuildingProfileEnrichmentService] ✅ Caractéristiques extraites:', {
-      total: sorted.length,
-      known: sorted.filter(c => c.status === 'known').length,
-      unknown: sorted.filter(c => c.status === 'unknown').length,
-      partial: sorted.filter(c => c.status === 'partial').length,
-      categories: Array.from(new Set(sorted.map(c => c.category))),
-    })
-    
+      known: sorted.filter((c: BuildingCharacteristic) => c.status === 'known').length,
+      unknown: sorted.filter((c: BuildingCharacteristic) => c.status === 'unknown').length,
+      partial: sorted.filter((c: BuildingCharacteristic) => c.status === 'partial').length,
+      categories: Array.from(new Set(sorted.map((c: BuildingCharacteristic) => c.category))),
+    }, 'Caractéristiques extraites')
+
     // GARANTIE : Toujours retourner au moins quelques caractéristiques de base
     if (sorted.length === 0) {
-      console.warn('[BuildingProfileEnrichmentService] ⚠️ Aucune caractéristique générée, ajout caractéristiques de base')
+      log.warn('Aucune caractéristique générée, ajout caractéristiques de base')
       const baseCharacteristics: BuildingCharacteristic[] = [
         {
           id: 'structure-property-type',
@@ -808,11 +804,11 @@ export class BuildingProfileEnrichmentService {
           description: 'Nombre de pièces principales',
         },
       ]
-      console.log('[BuildingProfileEnrichmentService] ✅ Retour caractéristiques de base:', baseCharacteristics.length)
+      log.info({ count: baseCharacteristics.length }, 'Retour caractéristiques de base')
       return baseCharacteristics
     }
-    
-    console.log('[BuildingProfileEnrichmentService] ✅ Retour', sorted.length, 'caractéristiques')
+
+    log.info({ count: sorted.length }, 'Retour caractéristiques')
     return sorted
   }
 

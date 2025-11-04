@@ -7,6 +7,9 @@
  */
 
 import type { AddressData } from './types'
+import { loggers } from '@/lib/logger'
+
+const log = loggers.enrichment
 
 export interface PLUData {
   commune: string
@@ -45,21 +48,21 @@ export class PLUService {
     try {
       const { city, postalCode, coordinates } = address
 
-      console.log('[PLUService] 🔄 Récupération données PLU pour:', {
+      log.debug({
         formatted: address.formatted,
         city,
         postalCode,
         hasCoordinates: !!coordinates,
-      })
+      }, 'Récupération données PLU')
 
       // 1. Identifier la commune depuis le code postal
       const communeData = await this.identifyCommune(city, postalCode)
       if (!communeData) {
-        console.warn('[PLUService] ⚠️ Commune non identifiée pour:', city, postalCode)
+        log.warn({ city, postalCode }, 'Commune non identifiée')
         return null
       }
 
-      console.log('[PLUService] ✅ Commune identifiée:', communeData)
+      log.info({ codeINSEE: communeData.codeINSEE, nom: communeData.nom }, 'Commune identifiée')
 
       // 2. Récupérer les données PLU depuis data.gouv.fr
       const pluData = await this.fetchPLUFromDataGouv(communeData.codeINSEE)
@@ -68,28 +71,28 @@ export class PLUService {
       if (!pluData && coordinates) {
         const altData = await this.fetchPLUFromAlternativeSources(communeData, coordinates)
         if (altData) {
-          console.log('[PLUService] ✅ Données PLU récupérées (source alternative):', {
+          log.info({
             hasZone: !!altData.zone,
             hasZonage: !!altData.zonage,
             hasContraintes: !!(altData.contraintes && altData.contraintes.length > 0),
-          })
+          }, 'Données PLU récupérées (source alternative)')
           return altData
         }
       }
 
       if (pluData) {
-        console.log('[PLUService] ✅ Données PLU récupérées:', {
+        log.info({
           hasZone: !!pluData.zone,
           hasZonage: !!pluData.zonage,
           hasContraintes: !!(pluData.contraintes && pluData.contraintes.length > 0),
-        })
+        }, 'Données PLU récupérées')
       } else {
-        console.warn('[PLUService] ⚠️ Aucune donnée PLU trouvée pour:', address.formatted)
+        log.warn({ formatted: address.formatted }, 'Aucune donnée PLU trouvée')
       }
 
       return pluData
     } catch (error) {
-      console.error('[PLUService] ❌ Erreur récupération PLU:', error)
+      log.error({ err: error }, 'Erreur récupération PLU')
       return null
     }
   }
@@ -122,7 +125,7 @@ export class PLUService {
 
       return null
     } catch (error) {
-      console.error('[PLUService] Erreur identification commune:', error)
+      log.error({ err: error }, 'Erreur identification commune')
       return null
     }
   }
@@ -178,7 +181,7 @@ export class PLUService {
           })),
       }
     } catch (error) {
-      console.warn('[PLUService] Pas de données PLU disponibles sur data.gouv.fr:', error)
+      log.warn({ err: error }, 'Pas de données PLU disponibles sur data.gouv.fr')
       return null
     }
   }

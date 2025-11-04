@@ -4,6 +4,9 @@
  */
 
 import { prisma } from '@/lib/db'
+import { loggers } from '@/lib/logger'
+
+const log = loggers.enrichment
 
 export interface BenchmarkMetrics {
   // Métriques de précision
@@ -74,32 +77,31 @@ export class BenchmarkEngine {
     sampleSize: number = 100,
     dateRange?: { start: Date; end: Date }
   ): Promise<BenchmarkResult> {
-    console.log(`[BenchmarkEngine] 🚀 Démarrage benchmark v${this.version}`)
-    console.log(`[BenchmarkEngine] 📊 Échantillon: ${sampleSize} devis`)
+    log.info({ version: this.version, sampleSize }, 'Démarrage benchmark')
 
     // 1. Sélectionner un échantillon représentatif
     const testCases = await this.selectSample(sampleSize, dateRange)
-    console.log(`[BenchmarkEngine] ✅ ${testCases.length} devis sélectionnés`)
+    log.info({ count: testCases.length }, 'Devis sélectionnés')
 
     // 2. Calculer les métriques de précision
     const accuracy = await this.calculateAccuracy(testCases)
-    console.log(`[BenchmarkEngine] 📈 Précision calculée:`, accuracy)
+    log.info({ accuracy }, 'Précision calculée')
 
     // 3. Calculer les métriques de cohérence
     const consistency = await this.calculateConsistency(testCases)
-    console.log(`[BenchmarkEngine] 🔄 Cohérence calculée:`, consistency)
+    log.info({ consistency }, 'Cohérence calculée')
 
     // 4. Évaluer la qualité des données
     const dataQuality = await this.calculateDataQuality(testCases)
-    console.log(`[BenchmarkEngine] 📦 Qualité données:`, dataQuality)
+    log.info({ dataQuality }, 'Qualité données calculée')
 
     // 5. Mesurer la performance algorithmique
     const algorithmPerformance = await this.calculateAlgorithmPerformance(testCases)
-    console.log(`[BenchmarkEngine] ⚡ Performance algorithmique:`, algorithmPerformance)
+    log.info({ algorithmPerformance }, 'Performance algorithmique calculée')
 
     // 6. Évaluer l'impact business
     const businessImpact = await this.calculateBusinessImpact(testCases)
-    console.log(`[BenchmarkEngine] 💼 Impact business:`, businessImpact)
+    log.info({ businessImpact }, 'Impact business calculé')
 
     // 7. Générer des recommandations
     const recommendations = this.generateRecommendations({
