@@ -26,6 +26,9 @@ import { Axe6Garanties } from './axes/axe6-garanties'
 import { Axe7Innovation } from './axes/axe7-innovation'
 import { Axe8Delais } from './axes/axe8-delais'
 import { ScoringML } from '@/services/ml/scoring-ml'
+import { loggers } from '@/lib/logger'
+
+const log = loggers.scoring
 
 interface AxisConfig {
   id: string
@@ -255,10 +258,15 @@ export class AdvancedScoringEngine {
         const mlWeight = mlPrediction.confidence * 0.3 // Max 30% d'ajustement
         finalScore = totalScore * (1 - mlWeight) + mlPrediction.predictedScore * mlWeight
         finalScore = Math.max(0, Math.min(1200, finalScore))
-        
-        console.log(`[AdvancedScoringEngine] ML adjustment: ${(finalScore - totalScore).toFixed(1)} points (confidence: ${(mlPrediction.confidence * 100).toFixed(1)}%)`)
+
+        log.info({
+          adjustment: (finalScore - totalScore).toFixed(1),
+          confidence: (mlPrediction.confidence * 100).toFixed(1),
+          baseScore: totalScore,
+          finalScore,
+        }, 'Ajustement ML appliqué au score')
       } catch (error) {
-        console.warn('[AdvancedScoringEngine] Erreur ML, utilisation score de base:', error)
+        log.warn({ err: error }, 'Erreur ML, utilisation score de base')
       }
     }
 

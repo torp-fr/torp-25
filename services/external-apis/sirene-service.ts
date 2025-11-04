@@ -12,6 +12,10 @@
  * - Obtenir les informations légales (forme juridique, activité, adresse, etc.)
  */
 
+import { loggers } from '@/lib/logger'
+
+const log = loggers.enrichment
+
 export interface SireneCompany {
   // Identifiants
   siren: string // 9 chiffres (unité légale)
@@ -113,7 +117,7 @@ export class SireneService {
       const cleanSiren = siren.replace(/[\s-]/g, '')
 
       if (cleanSiren.length !== 9 || !/^\d{9}$/.test(cleanSiren)) {
-        console.warn('[SireneService] SIREN invalide:', siren)
+        log.warn({ siren, cleanSiren }, 'SIREN invalide')
         return null
       }
 
@@ -128,10 +132,7 @@ export class SireneService {
       // Fallback sur data.gouv.fr ou recherche locale
       return await this.fetchFromDataGouv(cleanSiren, 'siren')
     } catch (error) {
-      console.error(
-        '[SireneService] Erreur récupération entreprise par SIREN:',
-        error
-      )
+      log.error({ err: error, siren }, 'Erreur récupération entreprise par SIREN')
       return null
     }
   }
@@ -144,7 +145,7 @@ export class SireneService {
       const cleanSiret = siret.replace(/[\s-]/g, '')
 
       if (cleanSiret.length !== 14 || !/^\d{14}$/.test(cleanSiret)) {
-        console.warn('[SireneService] SIRET invalide:', siret)
+        log.warn({ siret, cleanSiret }, 'SIRET invalide')
         return null
       }
 
@@ -157,10 +158,7 @@ export class SireneService {
 
       return await this.fetchFromDataGouv(cleanSiret, 'siret')
     } catch (error) {
-      console.error(
-        '[SireneService] Erreur récupération établissement par SIRET:',
-        error
-      )
+      log.error({ err: error, siret }, 'Erreur récupération établissement par SIRET')
       return null
     }
   }
@@ -195,7 +193,7 @@ export class SireneService {
         hasMore: false,
       }
     } catch (error) {
-      console.error('[SireneService] Erreur recherche entreprises:', error)
+      log.error({ err: error, query: query }, 'Erreur recherche entreprises')
       return {
         companies: [],
         total: 0,
@@ -297,7 +295,7 @@ export class SireneService {
         matchScore: Math.round(matchScore),
       }
     } catch (error) {
-      console.error('[SireneService] Erreur vérification entreprise:', error)
+      log.error({ err: error, data }, 'Erreur vérification entreprise')
       return {
         valid: false,
         errors: ['Erreur lors de la vérification'],
@@ -340,7 +338,7 @@ export class SireneService {
       const data = await response.json()
       return this.mapINSEEResponseToCompany(data, type)
     } catch (error) {
-      console.error('[SireneService] Erreur API INSEE:', error)
+      log.error({ err: error, identifier, type }, 'Erreur API INSEE')
       return null
     }
   }
@@ -404,7 +402,7 @@ export class SireneService {
       const data = await response.json()
       return this.mapINSEESearchToResult(data, page, perPage)
     } catch (error) {
-      console.error('[SireneService] Erreur recherche INSEE:', error)
+      log.error({ err: error, query }, 'Erreur recherche INSEE')
       return {
         companies: [],
         total: 0,
@@ -428,8 +426,9 @@ export class SireneService {
     // Dataset ID: 5b7ffc618b4c4169d30727e0
     // Base URL: https://www.data.gouv.fr/api/1
     // Pour l'instant, on retourne null et on suggère l'utilisation de l'API INSEE
-    console.warn(
-      `[SireneService] ⚠️ fetchFromDataGouv non implémenté pour ${type}:${identifier}. Utilisez l'API INSEE (INSEE_API_KEY) pour les requêtes temps réel, ou laissez CompanyEnrichmentService utiliser l'API Recherche d'Entreprises comme fallback.`
+    log.warn(
+      { identifier, type },
+      'fetchFromDataGouv non implémenté. Utilisez l\'API INSEE (INSEE_API_KEY) pour les requêtes temps réel'
     )
     return null
   }

@@ -7,6 +7,9 @@ import { prisma } from '@/lib/db'
 import fs from 'fs'
 import path from 'path'
 import { Decimal } from '@prisma/client/runtime/library'
+import { loggers } from '@/lib/logger'
+
+const log = loggers.api
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -86,11 +89,11 @@ export async function POST(request: NextRequest) {
     const buffer = Buffer.from(await file.arrayBuffer())
     fs.writeFileSync(tempFilePath, buffer)
 
-    console.log(`[LLM Analyze] Fichier sauvegardé: ${tempFilePath}`)
+    log.debug({ tempFilePath, fileSize: file.size, fileName: file.name }, 'Fichier sauvegardé')
 
     // OPTIMISATION: Une seule analyse LLM avec enrichissement minimal en cache
     const analysisStartTime = Date.now()
-    console.log("[LLM Analyze] Début de l'analyse optimisée (objectif <5s)...")
+    log.info({ targetDuration: 5000 }, 'Début de l\'analyse optimisée')
     const analyzer = new DocumentAnalyzer()
 
     // Parser les données CCF si fournies
@@ -100,7 +103,7 @@ export async function POST(request: NextRequest) {
         ccfData = JSON.parse(ccfDataStr)
       }
     } catch (error) {
-      console.warn('[LLM Analyze] Erreur parsing CCF:', error)
+      log.warn({ err: error }, 'Erreur parsing CCF')
     }
 
     // 1. Enrichissement minimal et rapide (<50ms, cache uniquement)
@@ -131,9 +134,7 @@ export async function POST(request: NextRequest) {
     const resolvedMinimalEnrichment = await minimalEnrichmentPromise
     const minimalEnrichmentDuration = Date.now() - minimalEnrichmentStartTime
     if (minimalEnrichmentDuration > 10) {
-      console.log(
-        `[LLM Analyze] Enrichissement minimal préparé (${minimalEnrichmentDuration}ms)`
-      )
+      log.debug({ duration: minimalEnrichmentDuration }, 'Enrichissement minimal préparé')
     }
 
     // Enrichir les données minimales avec les données CCF pour le contexte LLM
@@ -183,9 +184,7 @@ export async function POST(request: NextRequest) {
       enrichmentWithCCF || undefined
     )
     const llmDuration = Date.now() - llmStartTime
-    console.log(
-      `[LLM Analyze] Analyse LLM terminée (${llmDuration}ms, objectif: <3500ms)`
-    )
+    log.info({ duration: llmDuration, target: 3500 }, 'Analyse LLM terminée')
 
     // 3. DÉCLENCHEMENT IMMÉDIAT de l'enrichissement si SIRET trouvé
     // Dès que l'OCR trouve le SIRET, on lance immédiatement l'enrichissement
@@ -193,9 +192,7 @@ export async function POST(request: NextRequest) {
     let enrichmentData: any = null
 
     if (detectedSiret) {
-      console.log(
-        `[LLM Analyze] 🔍 SIRET détecté par OCR: ${detectedSiret} → Déclenchement enrichissement immédiat...`
-      )
+      log.info({ siret: detectedSiret }, 'SIRET détecté par OCR, déclenchement enrichissement immédiat')
 
       const enrichmentStartTime = Date.now()
       const enrichmentService = new AdvancedEnrichmentService()
@@ -224,16 +221,15 @@ export async function POST(request: NextRequest) {
 
         const enrichmentDuration = Date.now() - enrichmentStartTime
         const sources = extractSourcesFromEnrichment(enrichmentData)
-        console.log(
-          `[LLM Analyze] ✅ Enrichissement terminé (${enrichmentDuration}ms) - Sources: ${sources.join(', ') || 'aucune'}`
-        )
-        console.log(`[LLM Analyze] 📊 Données enrichies disponibles:`, {
+        log.info({
+          duration: enrichmentDuration,
+          sources: sources.join(', ') || 'aucune',
           hasCompany: !!enrichmentData.company?.siret,
           hasFinancialData: !!enrichmentData.company?.financialData,
           hasReputation: !!enrichmentData.company?.reputation,
           hasCertifications: !!enrichmentData.company?.certifications?.length,
           hasQualifications: !!enrichmentData.company?.qualifications?.length,
-        })
+        }, 'Enrichissement terminé')
 
         // Mettre en cache pour accélérer les prochaines analyses
         if (enrichmentData.company?.siret) {
@@ -242,32 +238,27 @@ export async function POST(request: NextRequest) {
             `company:${enrichmentData.company.siret}`,
             enrichmentData.company
           )
-          console.log(
-            `[LLM Analyze] 💾 Données mises en cache pour SIRET: ${enrichmentData.company.siret}`
-          )
+          log.debug({ siret: enrichmentData.company.siret }, 'Données mises en cache')
         }
       } catch (enrichmentError) {
-        console.error(
-          '[LLM Analyze] ❌ Erreur enrichissement:',
-          enrichmentError instanceof Error
-            ? enrichmentError.message
-            : String(enrichmentError)
-        )
+        log.error({
+          err: enrichmentError,
+          message: enrichmentError instanceof Error ? enrichmentError.message : String(enrichmentError)
+        }, 'Erreur enrichissement')
         // Continuer même si l'enrichissement échoue
         enrichmentData = null
       }
     } else {
-      console.log(
-        '[LLM Analyze] ℹ️ Aucun SIRET détecté, enrichissement non déclenché'
-      )
+      log.info('Aucun SIRET détecté, enrichissement non déclenché')
     }
 
     const totalAnalysisDuration = Date.now() - analysisStartTime
-    console.log(
-      `[LLM Analyze] Analyse complète terminée (${totalAnalysisDuration}ms, objectif: <5000ms)`
-    )
+    log.info({
+      duration: totalAnalysisDuration,
+      target: 5000
+    }, 'Analyse complète terminée')
 
-    console.log('[LLM Analyze] Analyse terminée, création en DB...')
+    log.debug('Analyse terminée, création en DB')
 
     // 1. Créer le Document d'abord
     const document = await prisma.document.create({
@@ -282,7 +273,7 @@ export async function POST(request: NextRequest) {
       },
     })
 
-    console.log(`[LLM Analyze] Document créé: ${document.id}`)
+    log.info({ documentId: document.id, fileName: file.name }, 'Document créé')
 
     // 2. Créer le Devis avec le documentId et les données enrichies (si disponibles)
     const enrichedDataForDevis = enrichmentData
@@ -304,23 +295,19 @@ export async function POST(request: NextRequest) {
       },
     })
 
-    console.log(`[LLM Analyze] Devis créé: ${devis.id}`)
-    if (enrichedDataForDevis?.company) {
-      console.log(
-        `[LLM Analyze] ✅ Devis créé avec données enrichies (SIRET: ${enrichedDataForDevis.company.siret})`
-      )
-    }
+    log.info({
+      devisId: devis.id,
+      hasEnrichedData: !!enrichedDataForDevis?.company,
+      siret: enrichedDataForDevis?.company?.siret
+    }, 'Devis créé')
 
     // Programmer le scraping pour enrichissement asynchrone
     try {
       const { globalScraper } = await import('@/services/scraping/data-scraper')
       await globalScraper.scheduleDevisScraping(devis.id)
-      console.log(`[LLM Analyze] Scraping programmé pour devis ${devis.id}`)
+      log.debug({ devisId: devis.id }, 'Scraping programmé')
     } catch (error) {
-      console.warn(
-        '[LLM Analyze] Erreur programmation scraping (non bloquant):',
-        error
-      )
+      log.warn({ err: error }, 'Erreur programmation scraping (non bloquant)')
     }
 
     // 3. Calcul du score OPTIMISÉ (utilisation du score LLM directement si disponible)
@@ -370,9 +357,12 @@ export async function POST(request: NextRequest) {
 
       useAdvancedScoring = true
       const scoringDuration = Date.now() - scoringStartTime
-      console.log(
-        `[LLM Analyze] Score LLM utilisé directement (${scoringDuration}ms): ${advancedScore.totalScore}/1200 (${advancedScore.grade})`
-      )
+      log.info({
+        duration: scoringDuration,
+        score: advancedScore.totalScore,
+        grade: advancedScore.grade,
+        method: 'llm-direct'
+      }, 'Score LLM utilisé directement')
     } else {
       // Fallback sur scoring avancé si score LLM manquant (rare)
       try {
@@ -434,12 +424,14 @@ export async function POST(request: NextRequest) {
         )
 
         const scoringDuration = Date.now() - scoringStartTime
-        console.log(
-          `[LLM Analyze] Score avancé calculé (fallback, ${scoringDuration}ms): ${advancedScore.totalScore}/1200`
-        )
+        log.info({
+          duration: scoringDuration,
+          score: advancedScore.totalScore,
+          method: 'advanced-fallback'
+        }, 'Score avancé calculé (fallback)')
         useAdvancedScoring = true
       } catch (error) {
-        console.error('[LLM Analyze] Erreur scoring avancé:', error)
+        log.error({ err: error }, 'Erreur scoring avancé')
         useAdvancedScoring = false
       }
     }
@@ -546,7 +538,11 @@ export async function POST(request: NextRequest) {
       },
     })
 
-    console.log(`[LLM Analyze] Score TORP créé: ${torpScore.id}`)
+    log.info({
+      torpScoreId: torpScore.id,
+      grade: torpScore.scoreGrade,
+      score: Number(torpScore.scoreValue)
+    }, 'Score TORP créé')
 
     // 5. Lier le CCF au devis si fourni
     if (ccfData && ccfData.projectType) {
@@ -579,9 +575,9 @@ export async function POST(request: NextRequest) {
             status: 'linked',
           },
         })
-        console.log('[LLM Analyze] CCF lié au devis')
+        log.debug({ devisId: devis.id }, 'CCF lié au devis')
       } catch (error) {
-        console.warn('[LLM Analyze] Erreur lors de la liaison CCF:', error)
+        log.warn({ err: error, devisId: devis.id }, 'Erreur lors de la liaison CCF')
         // Ne pas bloquer si la liaison CCF échoue
       }
     }
@@ -606,7 +602,10 @@ export async function POST(request: NextRequest) {
       { status: 200 }
     )
   } catch (error) {
-    console.error('[LLM Analyze] Erreur:', error)
+    log.error({
+      err: error,
+      message: error instanceof Error ? error.message : 'Erreur inconnue'
+    }, 'Erreur lors de l\'analyse du document')
     return NextResponse.json(
       {
         error: "Erreur lors de l'analyse du document",
@@ -619,14 +618,9 @@ export async function POST(request: NextRequest) {
     if (tempFilePath && fs.existsSync(tempFilePath)) {
       try {
         fs.unlinkSync(tempFilePath)
-        console.log(
-          `[LLM Analyze] Fichier temporaire supprimé: ${tempFilePath}`
-        )
+        log.debug({ tempFilePath }, 'Fichier temporaire supprimé')
       } catch (err) {
-        console.error(
-          'Erreur lors de la suppression du fichier temporaire:',
-          err
-        )
+        log.error({ err, tempFilePath }, 'Erreur lors de la suppression du fichier temporaire')
       }
     }
   }

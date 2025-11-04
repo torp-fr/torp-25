@@ -2,17 +2,21 @@
  * Service pour récupérer les données Infogreffe (Registre du Commerce et des Sociétés)
  * Dataset data.gouv.fr: https://www.data.gouv.fr/fr/datasets/5620c13fc751df08e3cdbb48/
  * Dataset ID: 5620c13fc751df08e3cdbb48
- * 
+ *
  * Sources disponibles :
  * - Explore API v2 (publique) : https://www.data.gouv.fr/es/dataservices/explore-api-v2-94/
  * - API Extrait RCS (Bouquet API Entreprise - réservé aux administrations)
- * 
+ *
  * Ce service permet de :
  * - Récupérer les données financières (CA, résultat, bilan)
  * - Récupérer les informations juridiques (procédures collectives, statut)
  * - Récupérer les informations sur les mandataires sociaux
  * - Vérifier la santé financière des entreprises
  */
+
+import { loggers } from '@/lib/logger'
+
+const log = loggers.enrichment
 
 export interface InfogreffeFinancialData {
   // Chiffre d'affaires
@@ -109,28 +113,28 @@ export class InfogreffeService {
    */
   async getCompanyData(siren: string): Promise<InfogreffeCompanyData | null> {
     try {
-      console.log(`[InfogreffeService] 🔍 Récupération données Infogreffe pour SIREN: ${siren}`)
-      
+      log.debug({ siren }, 'Récupération données Infogreffe')
+
       // Vérifier que le SIREN est valide (9 chiffres)
       if (!/^\d{9}$/.test(siren)) {
-        console.warn(`[InfogreffeService] ⚠️ SIREN invalide: ${siren}`)
+        log.warn({ siren }, 'SIREN invalide')
         return null
       }
-      
+
       // Tenter plusieurs sources pour récupérer les données
       // 1. Explore API v2 (si disponible publiquement)
       const exploreData = await this.fetchFromExploreAPI(siren)
       if (exploreData) {
         return exploreData
       }
-      
+
       // 2. Dataset data.gouv.fr (si disponible)
       const datasetData = await this.fetchFromDataset(siren)
       if (datasetData) {
         return datasetData
       }
-      
-      console.warn(`[InfogreffeService] ⚠️ Aucune donnée Infogreffe trouvée pour SIREN: ${siren}`)
+
+      log.info({ siren }, 'Aucune donnée Infogreffe trouvée')
       return {
         siren,
         available: false,
@@ -138,7 +142,7 @@ export class InfogreffeService {
         lastUpdated: new Date().toISOString(),
       }
     } catch (error) {
-      console.error('[InfogreffeService] ❌ Erreur récupération données Infogreffe:', error)
+      log.error({ err: error, siren }, 'Erreur récupération données Infogreffe')
       return null
     }
   }
@@ -152,25 +156,25 @@ export class InfogreffeService {
       // L'Explore API v2 d'Infogreffe n'est pas directement accessible via une URL publique standard
       // Il faudrait consulter la documentation officielle pour les endpoints exacts
       // Pour l'instant, on retourne null et on utilise le dataset data.gouv.fr en fallback
-      
-      console.log(`[InfogreffeService] 🔄 Tentative récupération depuis Explore API v2 pour SIREN: ${siren}`)
+
+      log.debug({ siren }, 'Tentative récupération depuis Explore API v2')
       // TODO: Implémenter quand l'endpoint exact sera connu
       // Endpoint potentiel: /api/v2/companies/{siren} ou similaire
-      
+
       return null
     } catch (error) {
-      console.warn('[InfogreffeService] ⚠️ Erreur Explore API v2:', error)
+      log.warn({ err: error }, 'Erreur Explore API v2')
       return null
     }
   }
-  
+
   /**
    * Tente de récupérer les données depuis le dataset data.gouv.fr
    */
   private async fetchFromDataset(siren: string): Promise<InfogreffeCompanyData | null> {
     try {
-      console.log(`[InfogreffeService] 🔄 Tentative récupération depuis dataset data.gouv.fr...`)
-      
+      log.debug('Tentative récupération depuis dataset data.gouv.fr')
+
       // Récupérer les métadonnées du dataset
       const datasetResponse = await fetch(
         `${this.baseUrl}/datasets/${this.datasetId}/`,
@@ -178,22 +182,22 @@ export class InfogreffeService {
           headers: { Accept: 'application/json' },
         }
       )
-      
+
       if (!datasetResponse.ok) {
-        console.warn(`[InfogreffeService] ⚠️ Dataset non accessible: ${datasetResponse.status}`)
+        log.warn({ status: datasetResponse.status }, 'Dataset non accessible')
         return null
       }
-      
+
       const dataset = await datasetResponse.json()
-      console.log(`[InfogreffeService] ✅ Dataset trouvé:`, {
+      log.debug({
         title: dataset.title || dataset.name,
         resourcesCount: dataset.resources?.length || 0,
-      })
-      
+      }, 'Dataset trouvé')
+
       // Le dataset peut contenir des fichiers CSV/JSON avec les données
       // Pour l'instant, on retourne une structure de base
       // TODO: Parser les ressources du dataset si elles contiennent des données accessibles
-      
+
       return {
         siren,
         available: true,
@@ -201,7 +205,7 @@ export class InfogreffeService {
         lastUpdated: new Date().toISOString(),
       }
     } catch (error) {
-      console.warn('[InfogreffeService] ⚠️ Erreur récupération dataset:', error)
+      log.warn({ err: error }, 'Erreur récupération dataset')
       return null
     }
   }

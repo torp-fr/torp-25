@@ -10,6 +10,9 @@ import {
   type SireneCompany,
 } from '../external-apis/sirene-service'
 import { InfogreffeService } from '../external-apis/infogreffe-service'
+import { loggers } from '@/lib/logger'
+
+const log = loggers.enrichment
 
 export class CompanyEnrichmentService {
   private sireneClient: ApiClient
@@ -40,47 +43,36 @@ export class CompanyEnrichmentService {
     try {
       // Nettoyer le SIRET (supprimer espaces)
       const cleanSiret = siret.replace(/\s/g, '')
-      console.log(
-        `[CompanyService] 🔍 Enrichissement pour SIRET: ${cleanSiret}`
-      )
+      log.info({ siret: cleanSiret }, 'Début enrichissement SIRET')
 
       if (!this.isValidSiret(cleanSiret)) {
-        console.warn(
-          `[CompanyService] ❌ SIRET invalide: ${siret} (après nettoyage: ${cleanSiret})`
-        )
+        log.warn({ siret, cleanSiret }, 'SIRET invalide')
         return null
       }
 
       // 1. Essayer d'abord avec le service Sirene complet (API INSEE)
-      console.log(
-        '[CompanyService] 🔄 Tentative SireneService.getCompanyBySiret...'
-      )
+      log.debug('Tentative SireneService.getCompanyBySiret')
       try {
         const sireneCompany =
           await this.sireneService.getCompanyBySiret(cleanSiret)
         if (sireneCompany) {
-          console.log(
-            '[CompanyService] ✅ Données récupérées via SireneService'
-          )
+          log.info('Données récupérées via SireneService')
           return this.mapSireneCompanyToEnrichment(sireneCompany)
         } else {
-          console.log(
-            '[CompanyService] ⚠️ SireneService.getCompanyBySiret a retourné null'
-          )
+          log.debug('SireneService.getCompanyBySiret a retourné null')
         }
       } catch (sireneError) {
-        console.warn(
-          `[CompanyService] ⚠️ Erreur SireneService:`,
-          sireneError instanceof Error
-            ? sireneError.message
-            : String(sireneError)
+        log.warn(
+          {
+            err: sireneError,
+            message: sireneError instanceof Error ? sireneError.message : String(sireneError)
+          },
+          'Erreur SireneService'
         )
       }
 
       // 2. Fallback sur l'API Recherche d'Entreprises (data.gouv.fr) - gratuite
-      console.log(
-        "[CompanyService] 🔄 Fallback sur API Recherche d'Entreprises (data.gouv.fr)..."
-      )
+      log.debug('Fallback sur API Recherche d\'Entreprises (data.gouv.fr)')
       const data = await this.sireneClient.get<{
         results?: Array<{
           siret: string
@@ -103,27 +95,22 @@ export class CompanyEnrichmentService {
         per_page: '1',
       })
 
-      console.log(`[CompanyService] 📋 Réponse API Recherche d'Entreprises:`, {
+      log.debug({
         hasResults: !!data.results,
         resultsCount: data.results?.length || 0,
-      })
+      }, 'Réponse API Recherche d\'Entreprises')
 
       if (!data.results || data.results.length === 0) {
-        console.warn(
-          `[CompanyService] ❌ Aucune entreprise trouvée pour SIRET: ${siret} via API Recherche d'Entreprises`
-        )
+        log.warn({ siret }, 'Aucune entreprise trouvée via API Recherche d\'Entreprises')
         return null
       }
 
       const company = data.results[0]
-      console.log(
-        "[CompanyService] ✅ Données récupérées via API Recherche d'Entreprises:",
-        {
-          siret: company.siret,
-          name: company.nom_complet,
-          hasAddress: !!company.adresse,
-        }
-      )
+      log.info({
+        siret: company.siret,
+        name: company.nom_complet,
+        hasAddress: !!company.adresse,
+      }, 'Données récupérées via API Recherche d\'Entreprises')
 
       // Construire l'enrichissement
       const enrichment: CompanyEnrichment = {
@@ -160,9 +147,7 @@ export class CompanyEnrichmentService {
       try {
         const siren = company.siren || cleanSiret.substring(0, 9)
         if (siren) {
-          console.log(
-            `[CompanyService] 🔄 Enrichissement Infogreffe pour SIREN: ${siren}`
-          )
+          log.debug({ siren }, 'Enrichissement Infogreffe')
           infogreffeData = await this.infogreffeService.getCompanyData(siren)
 
           if (infogreffeData && infogreffeData.available) {
@@ -206,17 +191,14 @@ export class CompanyEnrichmentService {
               }
             }
 
-            console.log(`[CompanyService] ✅ Données Infogreffe récupérées:`, {
+            log.info({
               hasFinancial: !!enrichment.financialData,
               hasLegal: !!enrichment.legalStatusDetails,
-            })
+            }, 'Données Infogreffe récupérées')
           }
         }
       } catch (error) {
-        console.warn(
-          `[CompanyService] ⚠️ Erreur enrichissement Infogreffe:`,
-          error
-        )
+        log.warn({ err: error }, 'Erreur enrichissement Infogreffe')
         // Ne pas échouer si Infogreffe échoue, on garde les données Sirene
       }
 
@@ -224,14 +206,14 @@ export class CompanyEnrichmentService {
       // - API Assurance (à implémenter)
       // - API Certifications (à implémenter)
 
-      console.log('[CompanyService] ✅ Enrichissement terminé avec succès')
+      log.info('Enrichissement terminé avec succès')
       return enrichment
     } catch (error) {
-      console.error(
-        `[CompanyService] ❌ Erreur lors de l'enrichissement SIRET ${siret}:`,
-        error instanceof Error ? error.message : String(error),
-        error instanceof Error ? error.stack : undefined
-      )
+      log.error({
+        err: error,
+        siret,
+        message: error instanceof Error ? error.message : String(error),
+      }, 'Erreur lors de l\'enrichissement SIRET')
       return null
     }
   }
@@ -346,10 +328,7 @@ export class CompanyEnrichmentService {
           : undefined,
       }))
     } catch (error) {
-      console.error(
-        `[CompanyService] Erreur lors de la recherche par nom "${name}":`,
-        error
-      )
+      log.error({ err: error, name }, 'Erreur lors de la recherche par nom')
       return []
     }
   }
@@ -382,7 +361,7 @@ export class CompanyEnrichmentService {
         matchScore: verification.matchScore,
       }
     } catch (error) {
-      console.error('[CompanyService] Erreur vérification entreprise:', error)
+      log.error({ err: error }, 'Erreur vérification entreprise')
       return {
         valid: false,
         errors: ['Erreur lors de la vérification'],

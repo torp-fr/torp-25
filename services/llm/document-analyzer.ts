@@ -2,6 +2,9 @@ import Anthropic from '@anthropic-ai/sdk'
 import { ModelResolver } from './model-resolver'
 import fs from 'fs'
 import path from 'path'
+import { loggers } from '@/lib/logger'
+
+const log = loggers.llm
 
 // Types
 export interface ExtractedDevisData {
@@ -336,19 +339,15 @@ Structure JSON exacte:
 IMPORTANT: Retourne UNIQUEMENT le JSON, pas de texte explicatif avant ou après.`
 
       // Détecter automatiquement le meilleur modèle disponible pour PDFs
-      console.log(
-        '[DocumentAnalyzer] 🔍 Détection du meilleur modèle pour PDF...'
-      )
+      log.debug('Détection du meilleur modèle pour PDF')
       const model = await this.modelResolver.findBestModelForPdf()
-      console.log(`[DocumentAnalyzer] ✅ Utilisation du modèle: ${model}`)
+      log.info({ model }, 'Modèle sélectionné pour analyse')
 
       // Déterminer max_tokens selon le modèle (Haiku a une limite plus basse)
       // Claude 3.5 Sonnet: 12000 tokens max
       // Claude 3.5 Haiku: 8192 tokens max
       const maxTokens = model.includes('haiku') ? 8192 : 12000
-      console.log(
-        `[DocumentAnalyzer] Max tokens: ${maxTokens} pour modèle ${model}`
-      )
+      log.debug({ model, maxTokens }, 'Configuration tokens')
 
       // Appel à Claude avec le modèle détecté
       const message = await this.client.messages.create({
@@ -382,7 +381,7 @@ IMPORTANT: Retourne UNIQUEMENT le JSON, pas de texte explicatif avant ou après.
 
       return jsonResponse
     } catch (error) {
-      console.error('Erreur analyse LLM:', error)
+      log.error({ err: error, filePath }, 'Erreur lors de l\'analyse LLM')
       throw error
     }
   }
@@ -459,7 +458,7 @@ IMPORTANT: Retourne UNIQUEMENT le JSON, pas de texte explicatif avant ou après.
             message: 'Erreur de parsing',
           }
     } catch (error) {
-      console.error('Erreur quick check:', error)
+      log.error({ err: error, filePath }, 'Erreur lors du quick check')
       return {
         isValid: false,
         documentType: 'error',
