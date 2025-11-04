@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { BuildingProfileEnrichmentService } from '@/services/building-profile-enrichment-service'
+import { loggers } from '@/lib/logger'
+
+const log = loggers.api
 
 export const dynamic = 'force-dynamic'
 
@@ -38,7 +41,7 @@ export async function GET(
         )
       }
     } catch (error) {
-      console.error('[API Characteristics] Erreur récupération profil:', error)
+      log.error({ err: error, profileId }, 'Erreur récupération profil')
       return NextResponse.json(
         { error: 'Erreur lors de la récupération du profil' },
         { status: 500 }
@@ -90,13 +93,12 @@ export async function GET(
     }
     
     // Log pour déboguer - DÉTAILLÉ
-    console.log('[API Characteristics] 📊 Données disponibles:', {
+    log.debug({
       profileId,
       hasEnrichedData: !!profile.enrichedData,
       enrichedDataType: typeof profile.enrichedData,
       enrichedDataIsArray: Array.isArray(profile.enrichedData),
       enrichedDataKeys: Object.keys(enrichedData),
-      enrichedDataStringified: JSON.stringify(enrichedData).substring(0, 200),
       enrichedDataStructure: {
         hasCadastre: !!enrichedData.cadastre,
         cadastreKeys: enrichedData.cadastre ? Object.keys(enrichedData.cadastre) : [],
@@ -109,26 +111,25 @@ export async function GET(
         hasAddress: !!enrichedData.address,
       },
       hasCadastralData: !!profile.cadastralData,
-      cadastralDataType: typeof profile.cadastralData,
       hasPLUData: !!profile.pluData,
       hasRNBData: !!profile.rnbData,
       hasDPEData: !!profile.dpeData,
       hasAddress: !!profile.address,
       enrichmentStatus: profile.enrichmentStatus,
-    })
+    }, 'Données profil disponibles')
     
     // VÉRIFICATION CRITIQUE : Si enrichedData est vraiment vide, utiliser au moins l'adresse
     if (Object.keys(enrichedData).length === 0 || (!enrichedData.address && profile.address)) {
-      console.warn('[API Characteristics] ⚠️ enrichedData vide ou incomplet, utilisation données de base')
+      log.warn({ profileId }, 'enrichedData vide ou incomplet, utilisation données de base')
       enrichedData = {
         address: profile.address || enrichedData.address,
         cadastre: profile.cadastralData || enrichedData.cadastre || null,
       }
-      console.log('[API Characteristics] ✅ enrichedData corrigé:', {
+      log.debug({
         keys: Object.keys(enrichedData),
         hasAddress: !!enrichedData.address,
         hasCadastre: !!enrichedData.cadastre,
-      })
+      }, 'enrichedData corrigé')
     }
     
     // Extraire georisques (peut être dans enrichedData.georisques OU directement)
@@ -139,13 +140,13 @@ export async function GET(
     
     // TOUJOURS extraire les caractéristiques, même si données vides
     // Cela affichera au moins les champs "unknown" avec possibilité de saisie manuelle
-    console.log('[API Characteristics] 🔄 Extraction caractéristiques avec données:', {
+    log.debug({
       enrichedDataKeys: Object.keys(enrichedData),
       hasDPEData: !!profile.dpeData || !!enrichedData.energy || !!enrichedData.dpe,
       hasGeorisques: !!georisquesData,
       hasCadastral: !!(profile.cadastralData || enrichedData.cadastre),
       hasDVF: !!dvfData,
-    })
+    }, 'Extraction caractéristiques avec données')
     
     const characteristics = enrichmentService.extractCharacteristics(
       enrichedData,
@@ -155,21 +156,21 @@ export async function GET(
       dvfData
     )
     
-    console.log('[API Characteristics] ✅ Caractéristiques extraites:', {
+    log.info({
       total: characteristics.length,
       known: characteristics.filter(c => c.status === 'known').length,
       unknown: characteristics.filter(c => c.status === 'unknown').length,
       partial: characteristics.filter(c => c.status === 'partial').length,
       categories: Array.from(new Set(characteristics.map(c => c.category))),
-    })
+    }, 'Caractéristiques extraites')
 
     // Grouper par catégorie
     const grouped = enrichmentService.groupByCategory(characteristics)
-    
-    console.log('[API Characteristics] 📊 Caractéristiques groupées:', {
+
+    log.debug({
       groupedCategories: Object.keys(grouped),
       totalInGrouped: Object.values(grouped).reduce((sum, chars) => sum + chars.length, 0),
-    })
+    }, 'Caractéristiques groupées')
 
     const response = {
       success: true,
@@ -185,16 +186,16 @@ export async function GET(
       },
     }
     
-    console.log('[API Characteristics] 📤 Réponse envoyée:', {
+    log.debug({
       success: response.success,
       characteristicsCount: response.data.characteristics.length,
       groupedCount: Object.keys(response.data.grouped).length,
       counts: response.data.counts,
-    })
+    }, 'Réponse envoyée')
 
     return NextResponse.json(response)
   } catch (error) {
-    console.error('[API Building Profiles Characteristics] Erreur:', error)
+    log.error({ err: error }, 'Erreur récupération caractéristiques')
     return NextResponse.json(
       {
         error: 'Erreur lors de la récupération des caractéristiques',
@@ -267,7 +268,7 @@ export async function PATCH(
       message: 'Caractéristique mise à jour avec succès',
     })
   } catch (error) {
-    console.error('[API Building Profiles Characteristics PATCH] Erreur:', error)
+    log.error({ err: error, profileId }, 'Erreur mise à jour caractéristique')
     return NextResponse.json(
       {
         error: 'Erreur lors de la mise à jour de la caractéristique',
