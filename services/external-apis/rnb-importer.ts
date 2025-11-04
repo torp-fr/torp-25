@@ -6,6 +6,9 @@
 import { RNBService } from './rnb-service'
 import { RNBIndexer } from './rnb-indexer'
 import type { RNBBuildingData } from './rnb-service'
+import { loggers } from '@/lib/logger'
+
+const log = loggers.enrichment
 
 export interface ImportOptions {
   department: string
@@ -42,7 +45,7 @@ export class RNBImporter {
       await this.indexer.updateImportJob(jobId, { status: 'IN_PROGRESS' })
 
       // 3. Télécharger et parser le fichier CSV
-      console.log(`[RNBImporter] Début import département ${department} depuis ${resource.url}`)
+      log.info({ department, url: resource.url }, "Début import département")
 
       let indexed = 0
       let errors = 0
@@ -63,8 +66,8 @@ export class RNBImporter {
         // En production, utiliser une bibliothèque comme 'csv-parser' ou 'papaparse'
         // avec traitement stream pour éviter de charger tout le fichier en mémoire
 
-        console.warn('[RNBImporter] Le parsing CSV complet nécessite une bibliothèque externe')
-        console.warn('[RNBImporter] Import partiel simulé pour le département', department)
+        log.warn({ err: error }, ' Le parsing CSV complet nécessite une bibliothèque externe')
+        log.warn({ err: error }, ' Import partiel simulé pour le département', department)
 
         // Exemple de structure pour un vrai parsing :
         // const csvStream = createReadStream(csvFilePath).pipe(csv())
@@ -104,7 +107,7 @@ export class RNBImporter {
           totalRows: totalRows || indexed,
         })
       } catch (error) {
-        console.error(`[RNBImporter] Erreur import département ${department}:`, error)
+        log.error({ err: error, department }, "Erreur import département")
         await this.indexer.updateImportJob(jobId, {
           status: 'FAILED',
           errorMessage: error instanceof Error ? error.message : 'Unknown error',
@@ -114,7 +117,7 @@ export class RNBImporter {
 
       return { success: true, indexed, errors }
     } catch (error) {
-      console.error('[RNBImporter] Erreur import département:', error)
+      log.error({ err: error }, ' Erreur import département:', error)
       return { success: false, indexed: 0, errors: 1 }
     }
   }
@@ -141,10 +144,10 @@ export class RNBImporter {
 
       // 2. Si pas trouvé, récupérer depuis le CSV (nécessite parsing)
       // Pour l'instant, retourner null car le parsing CSV complet n'est pas implémenté
-      console.warn('[RNBImporter] Import ponctuel nécessite le parsing CSV complet')
+      log.warn({ err: error }, ' Import ponctuel nécessite le parsing CSV complet')
       return null
     } catch (error) {
-      console.error('[RNBImporter] Erreur import bâtiment unique:', error)
+      log.error({ err: error }, ' Erreur import bâtiment unique:', error)
       return null
     }
   }
@@ -179,7 +182,7 @@ export class RNBImporter {
    *       lastUpdated: new Date().toISOString(),
    *     }
    *   } catch (error) {
-   *     console.error('[RNBImporter] Erreur parsing ligne CSV:', error)
+   *     log.error({ err: error }, ' Erreur parsing ligne CSV:', error)
    *     return null
    *   }
    * }
@@ -196,12 +199,12 @@ export class RNBImporter {
 
     // Importer séquentiellement pour éviter de surcharger
     for (const dept of departments) {
-      console.log(`[RNBImporter] Import département ${dept}...`)
+      log.info({ department: dept }, "Import département")
       results[dept] = await this.importDepartment({
         department: dept,
         maxRows: options?.maxRowsPerDepartment,
         onProgress: (progress) => {
-          console.log(`[RNBImporter] Département ${dept}: ${progress.percentage.toFixed(1)}%`)
+          log.debug({ department: dept, percentage: progress.percentage.toFixed(1) }, "Progression import")
         },
       })
     }
