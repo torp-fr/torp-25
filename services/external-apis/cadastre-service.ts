@@ -9,6 +9,9 @@
 import type { AddressData } from './types'
 import { APICartoCadastreService } from './apicarto-cadastre-service'
 import { DataGouvCadastreService } from './datagouv-cadastre-service'
+import { loggers } from '@/lib/logger'
+
+const log = loggers.enrichment
 
 export interface CadastralParcel {
   id: string // Identifiant parcellaire
@@ -93,40 +96,40 @@ export class CadastreService {
     try {
       const { coordinates, city, postalCode } = address
 
-      console.log('[CadastreService] 🔄 Récupération données cadastrales pour:', {
+      log.debug({
         formatted: address.formatted,
         city,
         postalCode,
         hasCoordinates: !!coordinates,
         coordinates: coordinates ? { lat: coordinates.lat, lng: coordinates.lng } : null,
-      })
+      }, 'Récupération données cadastrales')
 
       if (!coordinates) {
-        console.warn('[CadastreService] ⚠️ Coordonnées manquantes pour:', address.formatted)
+        log.warn({ formatted: address.formatted }, 'Coordonnées manquantes')
         return null
       }
 
       // 1. Identifier la parcelle depuis les coordonnées
       let parcelle = await this.identifyParcelle(coordinates)
       if (!parcelle) {
-        console.warn('[CadastreService] ⚠️ Parcelle non identifiée, utilisation données de base')
+        log.warn('Parcelle non identifiée, utilisation données de base')
         const basicData = await this.getBasicCadastralData(address)
         if (basicData) {
-          console.log('[CadastreService] ✅ Données cadastrales de base retournées:', {
+          log.info({
             hasCommune: !!basicData.commune,
             hasCodeINSEE: !!basicData.codeINSEE,
             codeINSEE: basicData.codeINSEE,
             hasCoordinates: !!basicData.coordinates,
-          })
+          }, 'Données cadastrales de base retournées')
         }
         return basicData
       }
       
-      console.log('[CadastreService] ✅ Parcelle identifiée:', {
+      log.info({
         numero: parcelle.numero,
         section: parcelle.section,
         hasSurface: !!parcelle.surface,
-      })
+      }, 'Parcelle identifiée')
 
       // 2. Récupérer les détails de la parcelle
       const [parcelleDetails, constraints, connectivity] = await Promise.all([
@@ -152,7 +155,7 @@ export class CadastreService {
           }
         }
       } catch (error) {
-        console.warn('[CadastreService] Erreur récupération code INSEE:', error)
+        log.warn({ err: error }, 'Erreur récupération code INSEE')
       }
 
       // Enrichir avec les données de cadastre.data.gouv.fr si disponibles
@@ -174,7 +177,7 @@ export class CadastreService {
             }
           }
         } catch (error) {
-          console.warn('[CadastreService] ⚠️ Erreur enrichissement cadastre.data.gouv.fr:', error)
+          log.warn({ err: error }, 'Erreur enrichissement cadastre.data.gouv.fr')
         }
       }
 
@@ -199,14 +202,14 @@ export class CadastreService {
         lastUpdated: new Date().toISOString(),
       }
     } catch (error) {
-      console.error('[CadastreService] ❌ Erreur récupération données cadastrales:', error)
+      log.error({ err: error }, 'Erreur récupération données cadastrales')
       // En cas d'erreur, retourner au moins les données de base
       const basicData = await this.getBasicCadastralData(address)
-      console.log('[CadastreService] ✅ Retour données de base après erreur:', {
+      log.info({
         hasCommune: !!basicData.commune,
         hasCodeINSEE: !!basicData.codeINSEE,
         codeINSEE: basicData.codeINSEE,
-      })
+      }, 'Retour données de base après erreur')
       return basicData
     }
   }
@@ -218,16 +221,16 @@ export class CadastreService {
   private async identifyParcelle(coordinates: { lat: number; lng: number }): Promise<CadastralParcel | null> {
     try {
       // 1. Essayer d'abord avec l'API PCI via cadastre.data.gouv.fr (plus fiable et complet)
-      console.log('[CadastreService] 🔍 Tentative identification parcelle via API PCI...')
+      log.debug('Tentative identification parcelle via API PCI...')
       const pciParcelle = await this.dataGouvCadastreService.getParcelleByCoordinates(coordinates)
       
       if (pciParcelle) {
-        console.log('[CadastreService] ✅ Parcelle identifiée via API PCI:', {
+        log.info({
           numero: pciParcelle.numero,
           section: pciParcelle.section,
           codeInsee: pciParcelle.codeInsee,
           hasSurface: !!pciParcelle.surface,
-        })
+        }, 'Parcelle identifiée via API PCI')
         
         return {
           id: pciParcelle.id,
@@ -239,7 +242,7 @@ export class CadastreService {
       }
 
       // 2. Fallback sur API Carto IGN (recommandé - PCI Express)
-      console.log('[CadastreService] 🔄 Fallback sur API Carto IGN...')
+      log.debug('Fallback sur API Carto IGN...')
       const geom = APICartoCadastreService.createPointGeometry(coordinates.lat, coordinates.lng)
       const result = await this.apicartoService.getParcellesByGeometry(geom, 'PCI', 1)
 
@@ -251,10 +254,10 @@ export class CadastreService {
         const codeCom = props.code_com || ''
         const id = feature.id || `${codeCom}-${props.section}-${props.numero}`
 
-        console.log('[CadastreService] ✅ Parcelle identifiée via API Carto IGN:', {
+        log.info({
           numero: props.numero,
           section: props.section,
-        })
+        }, 'Parcelle identifiée via API Carto IGN')
 
         return {
           id,
@@ -267,14 +270,14 @@ export class CadastreService {
 
       // 3. Fallback sur Géoportail si clé disponible
       if (this.geoportailApiKey) {
-        console.log('[CadastreService] 🔄 Fallback sur Géoportail...')
+        log.debug('Fallback sur Géoportail...')
         return await this.identifyParcelleGeoportail(coordinates)
       }
 
-      console.warn('[CadastreService] ⚠️ Aucune parcelle identifiée pour les coordonnées:', coordinates)
+      log.warn({ coordinates }, 'Aucune parcelle identifiée')
       return null
     } catch (error) {
-      console.warn('[CadastreService] ❌ Erreur identification parcelle:', error)
+      log.warn({ err: error }, 'Erreur identification parcelle')
       // Dernier fallback sur Géoportail si erreur
       if (this.geoportailApiKey) {
         return await this.identifyParcelleGeoportail(coordinates)
@@ -318,7 +321,7 @@ export class CadastreService {
 
       return null
     } catch (error) {
-      console.warn('[CadastreService] Erreur identification parcelle Géoportail:', error)
+      log.warn({ err: error }, 'Erreur identification parcelle Géoportail')
       return null
     }
   }
@@ -398,7 +401,7 @@ export class CadastreService {
         contenance: parcelle.surface ? parcelle.surface / 10000 : undefined,
       }
     } catch (error) {
-      console.warn('[CadastreService] Erreur détails parcelle:', error)
+      log.warn({ err: error }, 'Erreur détails parcelle')
       // Retourner les données de base en cas d'erreur
       return {
         ...parcelle,
@@ -437,7 +440,7 @@ export class CadastreService {
           constraints.hasRisk = hasMVT || hasRGA || hasSSP
         }
       } catch (error) {
-        console.warn('[CadastreService] ⚠️ Erreur service Géorisques (fallback):', error)
+        log.warn({ err: error }, 'Erreur service Géorisques (fallback)')
         
         // Fallback sur appel direct API Géorisques simplifié
         try {
@@ -453,7 +456,7 @@ export class CadastreService {
             constraints.isFloodZone = floodData && floodData.length > 0
           }
         } catch (fallbackError) {
-          console.warn('[CadastreService] ⚠️ Erreur fallback zones inondables:', fallbackError)
+          log.warn({ err: fallbackError }, 'Erreur fallback zones inondables')
         }
       }
 
@@ -474,7 +477,7 @@ export class CadastreService {
           }
         }
       } catch (error) {
-        console.warn('[CadastreService] ⚠️ Erreur vérification monuments historiques:', error)
+        log.warn({ err: error }, 'Erreur vérification monuments historiques')
       }
 
       // Sites archéologiques (placeholder - nécessite source spécifique)
@@ -482,7 +485,7 @@ export class CadastreService {
 
       return constraints
     } catch (error) {
-      console.warn('[CadastreService] ⚠️ Erreur récupération contraintes:', error)
+      log.warn({ err: error }, 'Erreur récupération contraintes')
       return {}
     }
   }
@@ -520,7 +523,7 @@ export class CadastreService {
 
       return connectivity
     } catch (error) {
-      console.warn('[CadastreService] Erreur récupération connectivité:', error)
+      log.warn({ err: error }, 'Erreur récupération connectivité')
       return {
         hasElectricity: true, // Par défaut, supposer disponible
         hasWater: true,
@@ -543,7 +546,7 @@ export class CadastreService {
 
       return undefined
     } catch (error) {
-      console.warn('[CadastreService] Erreur récupération historique:', error)
+      log.warn({ err: error }, 'Erreur récupération historique')
       return undefined
     }
   }
@@ -572,7 +575,7 @@ export class CadastreService {
         }
       }
     } catch (error) {
-      console.warn('[CadastreService] ⚠️ Erreur récupération code INSEE pour données de base:', error)
+      log.warn({ err: error }, 'Erreur récupération code INSEE pour données de base')
     }
 
     return {
