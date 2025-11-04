@@ -214,8 +214,10 @@ export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  let profileId: string | undefined
   try {
-    const { id: profileId } = await params
+    const resolvedParams = await params
+    profileId = resolvedParams.id
     const body = await request.json()
     const { userId, characteristicId, value } = body
 

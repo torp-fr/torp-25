@@ -280,7 +280,7 @@ export class BuildingProfileService {
         const aggregatedData = await this.buildingService.getAggregatedData(addressData.formatted)
         
         if (aggregatedData) {
-          log.info('Données bâti récupérées:', {
+          log.info({
             hasPLU: !!aggregatedData.plu,
             pluKeys: aggregatedData.plu ? Object.keys(aggregatedData.plu) : [],
             hasRNB: !!aggregatedData.rnb,
@@ -293,7 +293,7 @@ export class BuildingProfileService {
             hasBuilding: !!aggregatedData.building,
             hasUrbanism: !!aggregatedData.urbanism,
             sources: aggregatedData.sources || [],
-          })
+          }, 'Données bâti récupérées')
           
           sources.push(...(aggregatedData.sources || []))
           
@@ -317,7 +317,7 @@ export class BuildingProfileService {
                lastUpdated: new Date().toISOString(),
              }
           
-          log.debug('enrichedData construit:', {
+          log.debug({
             keys: Object.keys(enrichedData),
             hasCadastre: !!enrichedData.cadastre,
             hasPLU: !!enrichedData.plu,
@@ -326,7 +326,7 @@ export class BuildingProfileService {
             hasDpe: !!enrichedData.dpe,
             hasGeorisques: !!enrichedData.georisques,
             cadastreKeys: enrichedData.cadastre ? Object.keys(enrichedData.cadastre) : [],
-          })
+          }, 'enrichedData construit')
           
           // Sauvegarder dans les champs séparés aussi
           await prisma.buildingProfile.update({
@@ -361,11 +361,11 @@ export class BuildingProfileService {
         })
         
         if (dvfData) {
-          log.info('Données DVF récupérées:', {
+          log.info({
             hasEstimation: !!dvfData.estimation,
             hasStatistics: !!dvfData.statistics,
             hasComparables: !!dvfData.comparables?.length,
-          })
+          }, 'Données DVF récupérées')
           sources.push('DVF (Demandes de Valeurs Foncières)')
           enrichedData.dvf = dvfData
           
@@ -390,7 +390,7 @@ export class BuildingProfileService {
       const enrichedDataKeys = Object.keys(enrichedData)
       const hasData = enrichedDataKeys.length > 1 // Plus que juste "address"
       
-      log.info('Enrichissement terminé:', {
+      log.info({
         sources: uniqueSources.length,
         sourcesList: uniqueSources,
         hasData,
@@ -409,7 +409,7 @@ export class BuildingProfileService {
         },
         errors: errors.length,
         errorsList: errors,
-      })
+      }, 'Enrichissement terminé')
 
       // Sauvegarder enrichedData final - TOUJOURS sauvegarder même si partiel
       // GARANTIR qu'on a au moins l'adresse
@@ -420,7 +420,7 @@ export class BuildingProfileService {
         lastUpdated: new Date().toISOString(),
       }
       
-      log.debug('Sauvegarde enrichedData final:', {
+      log.debug({
         keys: Object.keys(finalEnrichedData),
         hasAddress: !!finalEnrichedData.address,
         hasCadastre: !!finalEnrichedData.cadastre,
@@ -431,7 +431,7 @@ export class BuildingProfileService {
         hasGeorisques: !!finalEnrichedData.georisques,
         hasDVF: !!finalEnrichedData.dvf,
         sources: finalEnrichedData.sources,
-      })
+      }, 'Sauvegarde enrichedData final')
       
       await prisma.buildingProfile.update({
         where: { id: profileId },
@@ -452,11 +452,11 @@ export class BuildingProfileService {
         select: { id: true, enrichedData: true, enrichmentStatus: true },
       })
       if (verification) {
-        log.info('Vérification post-sauvegarde:', {
+        log.info({
           hasEnrichedData: !!verification.enrichedData,
           enrichedDataType: typeof verification.enrichedData,
           enrichmentStatus: verification.enrichmentStatus,
-        })
+        }, 'Vérification post-sauvegarde')
       }
 
       return {
@@ -466,7 +466,7 @@ export class BuildingProfileService {
         enrichedAt: new Date(),
       }
     } catch (error) {
-      log.error({ err: error, profileId: id }, 'Erreur enrichissement profil')
+      log.error({ err: error, profileId }, 'Erreur enrichissement profil')
       
       // Récupérer l'adresse depuis le profil pour sauvegarder au moins ça
       let addressDataForError: AddressData | null = null
@@ -504,9 +504,9 @@ export class BuildingProfileService {
         },
       })
       
-      log.info('Données minimales sauvegardées même après erreur:', {
+      log.info({
         hasAddress: !!errorEnrichedData.address,
-      })
+      }, 'Données minimales sauvegardées même après erreur')
 
       throw error
     }

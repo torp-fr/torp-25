@@ -66,8 +66,8 @@ export class RNBImporter {
         // En production, utiliser une bibliothèque comme 'csv-parser' ou 'papaparse'
         // avec traitement stream pour éviter de charger tout le fichier en mémoire
 
-        log.warn({ err: error }, 'Le parsing CSV complet nécessite une bibliothèque externe')
-        log.warn({ err: error, department }, 'Import partiel simulé pour le département')
+        log.warn('Le parsing CSV complet nécessite une bibliothèque externe')
+        log.warn({ department }, 'Import partiel simulé pour le département')
 
         // Exemple de structure pour un vrai parsing :
         // const csvStream = createReadStream(csvFilePath).pipe(csv())
@@ -144,7 +144,7 @@ export class RNBImporter {
 
       // 2. Si pas trouvé, récupérer depuis le CSV (nécessite parsing)
       // Pour l'instant, retourner null car le parsing CSV complet n'est pas implémenté
-      log.warn({ err: error }, 'Import ponctuel nécessite le parsing CSV complet')
+      log.warn('Import ponctuel nécessite le parsing CSV complet')
       return null
     } catch (error) {
       log.error({ err: error }, 'Erreur import bâtiment unique')
