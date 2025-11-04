@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import { RGEImporter } from '@/services/external-apis/rge-importer'
 import { RGEService } from '@/services/external-apis/rge-service'
 import { z } from 'zod'
+import { loggers } from '@/lib/logger'
+
+const log = loggers.api
 
 export const dynamic = 'force-dynamic'
 
@@ -48,11 +51,11 @@ export async function POST(request: NextRequest) {
 
     // Auto-détection de la ressource si demandé
     if (autoDetect && !resourceUrl) {
-      console.log('[RGE Import API] 🔍 Auto-détection de la ressource...')
-      
+      log.debug('Auto-détection de la ressource RGE')
+
       const dataset = await rgeService.getDatasetInfo()
       if (!dataset) {
-        console.error('[RGE Import API] ❌ Dataset non trouvé ou erreur API')
+        log.error('Dataset RGE non trouvé ou erreur API')
         return NextResponse.json(
           { 
             error: 'Impossible de récupérer les informations du dataset RGE',
@@ -63,9 +66,10 @@ export async function POST(request: NextRequest) {
       }
       
       if (!dataset.resources || dataset.resources.length === 0) {
-        console.error('[RGE Import API] ❌ Aucune ressource trouvée dans le dataset')
-        console.error('[RGE Import API] 📋 Dataset ID:', dataset.id)
-        console.error('[RGE Import API] 📋 Dataset Title:', dataset.title)
+        log.error({
+          datasetId: dataset.id,
+          datasetTitle: dataset.title,
+        }, 'Aucune ressource trouvée dans le dataset RGE')
         return NextResponse.json(
           { 
             error: 'Aucune ressource disponible dans le dataset RGE',
@@ -92,7 +96,11 @@ export async function POST(request: NextRequest) {
       finalResourceTitle = latestResource.title
       finalResourceFormat = latestResource.format
 
-      console.log(`[RGE Import API] ✅ Ressource sélectionnée: ${latestResource.title} (${latestResource.format})`)
+      log.info({
+        title: latestResource.title,
+        format: latestResource.format,
+        resourceId: latestResource.id,
+      }, 'Ressource RGE sélectionnée')
     }
 
     if (!finalResourceUrl) {
@@ -102,10 +110,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    console.log(`[RGE Import API] 🚀 Démarrage import depuis: ${finalResourceUrl}`)
-    if (maxRows) {
-      console.log(`[RGE Import API] 📊 Import limité à ${maxRows} lignes`)
-    }
+    log.info({ resourceUrl: finalResourceUrl, maxRows }, 'Démarrage import RGE')
 
       // Lancer l'import en arrière-plan (ne pas bloquer la réponse)
       // L'import se poursuivra même après la réponse HTTP
@@ -117,12 +122,14 @@ export async function POST(request: NextRequest) {
         maxRows,
         batchSize,
         onProgress: (progress) => {
-          console.log(
-            `[RGE Import API] 📈 Progression: ${progress.percentage.toFixed(1)}% (${progress.processed}/${progress.total || '?'})`
-          )
+          log.debug({
+            percentage: Math.round(progress.percentage * 10) / 10,
+            processed: progress.processed,
+            total: progress.total || null,
+          }, 'Progression import RGE')
         },
       }).catch((error) => {
-        console.error('[RGE Import API] ❌ Erreur lors de l\'import:', error)
+        log.error({ err: error }, 'Erreur lors de l\'import RGE')
       })
 
     return NextResponse.json({
@@ -141,7 +148,7 @@ export async function POST(request: NextRequest) {
       note: 'L\'import se poursuit en arrière-plan. Consultez les logs pour suivre la progression.',
     })
   } catch (error) {
-    console.error('[RGE Import API] ❌ Erreur:', error)
+    log.error({ err: error }, 'Erreur démarrage import RGE')
     return NextResponse.json(
       {
         error: 'Erreur lors du démarrage de l\'import',
@@ -180,7 +187,7 @@ export async function GET(request: NextRequest) {
       },
     })
   } catch (error) {
-    console.error('[RGE Import API] ❌ Erreur récupération stats:', error)
+    log.error({ err: error }, 'Erreur récupération stats RGE')
     return NextResponse.json(
       {
         error: 'Erreur lors de la récupération des statistiques',
