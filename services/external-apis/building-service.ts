@@ -39,7 +39,7 @@ export class BuildingService {
    */
   async getAggregatedData(address: string): Promise<AggregatedBuildingData | null> {
     const sources: string[] = []
-    let addressData
+    let addressData: AddressData | undefined
 
     try {
       // 1. Géocodage de l'adresse
@@ -53,6 +53,8 @@ export class BuildingService {
 
       // 2. Récupération des données depuis différentes sources
       // Utiliser Promise.allSettled pour ne pas échouer si une API échoue
+      // At this point, addressData is guaranteed to be defined
+      const validAddressData = addressData as AddressData
       const [
         urbanismResult,
         buildingResult,
@@ -63,36 +65,36 @@ export class BuildingService {
         dpeResult,
         georisquesResult,
       ] = await Promise.allSettled([
-        this.getUrbanismData(addressData).catch(err => {
-          log.warn({ err, address: addressData.formatted }, 'Erreur getUrbanismData')
+        this.getUrbanismData(validAddressData).catch(err => {
+          log.warn({ err, address: validAddressData.formatted }, 'Erreur getUrbanismData')
           return null
         }),
-        this.getBuildingData(addressData).catch(err => {
-          log.warn({ err, address: addressData.formatted }, 'Erreur getBuildingData')
+        this.getBuildingData(validAddressData).catch(err => {
+          log.warn({ err, address: validAddressData.formatted }, 'Erreur getBuildingData')
           return null
         }),
-        this.getEnergyData(addressData).catch(err => {
-          log.warn({ err, address: addressData.formatted }, 'Erreur getEnergyData')
+        this.getEnergyData(validAddressData).catch(err => {
+          log.warn({ err, address: validAddressData.formatted }, 'Erreur getEnergyData')
           return null
         }),
-        this.pluService.getPLUData(addressData).catch(err => {
-          log.warn({ err, address: addressData.formatted }, 'Erreur getPLUData')
+        this.pluService.getPLUData(validAddressData).catch(err => {
+          log.warn({ err, address: validAddressData.formatted }, 'Erreur getPLUData')
           return null
         }),
-        this.cadastreService.getCadastralData(addressData).catch(err => {
-          log.warn({ err, address: addressData.formatted }, 'Erreur getCadastralData')
+        this.cadastreService.getCadastralData(validAddressData).catch(err => {
+          log.warn({ err, address: validAddressData.formatted }, 'Erreur getCadastralData')
           return null
         }),
-        this.rnbService.getBuildingData(addressData).catch(err => {
-          log.warn({ err, address: addressData.formatted }, 'Erreur getRNBData')
+        this.rnbService.getBuildingData(validAddressData).catch(err => {
+          log.warn({ err, address: validAddressData.formatted }, 'Erreur getRNBData')
           return null
         }),
-        this.dpeService.getDPEData(addressData).catch(err => {
-          log.warn({ err, address: addressData.formatted }, 'Erreur getDPEData')
+        this.dpeService.getDPEData(validAddressData).catch(err => {
+          log.warn({ err, address: validAddressData.formatted }, 'Erreur getDPEData')
           return null
         }),
-        this.georisquesService.getRiskData(addressData).catch(err => {
-          log.warn({ err, address: addressData.formatted }, 'Erreur getRiskData')
+        this.georisquesService.getRiskData(validAddressData).catch(err => {
+          log.warn({ err, address: validAddressData.formatted }, 'Erreur getRiskData')
           return null
         }),
       ])

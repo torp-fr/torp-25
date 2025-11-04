@@ -112,7 +112,7 @@ export class RGEIndexer {
         },
       })
 
-      return certifications.map((c) => this.mapToRGECertification(c))
+      return certifications.map((c: any) => this.mapToRGECertification(c))
     } catch (error) {
       log.error({ err: error }, 'Erreur recherche certifications')
       return []
@@ -277,7 +277,7 @@ export class RGEIndexer {
       },
     })
 
-    return jobs.map((job) => ({
+    return jobs.map((job: any) => ({
       status: job.status.toLowerCase() as 'pending' | 'in_progress' | 'completed' | 'failed',
       progress: job.progress,
       totalRows: job.totalRows || undefined,
@@ -296,7 +296,7 @@ export class RGEIndexer {
       take: 50, // Limiter à 50 derniers jobs
     })
 
-    return jobs.map((job) => ({
+    return jobs.map((job: any) => ({
       id: job.id,
       resourceId: job.resourceId,
       resourceUrl: job.resourceUrl,
@@ -342,7 +342,7 @@ export class RGEIndexer {
     })
 
     const byDepartment: Record<string, number> = {}
-    stats.forEach((stat) => {
+    stats.forEach((stat: any) => {
       if (stat.department) {
         byDepartment[stat.department] = stat._count.id
       }

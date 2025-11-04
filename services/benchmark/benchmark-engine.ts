@@ -156,7 +156,7 @@ export class BenchmarkEngine {
       },
     })
 
-    return devis.map((devis) => {
+    return devis.map((devis: any) => {
       const latestScore = devis.torpScores[0]
       
       // Calculer la complétude des données
