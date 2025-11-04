@@ -2,7 +2,7 @@
  * Service pour récupérer les données cadastrales depuis cadastre.data.gouv.fr (Etalab)
  * Dataset data.gouv.fr: https://www.data.gouv.fr/fr/datasets/59b0020ec751df07d5f13bcf/
  * API Cadastre Etalab: https://cadastre.data.gouv.fr/
- * 
+ *
  * Cette API fournit des données cadastrales au format GeoJSON et permet de :
  * - Récupérer les parcelles par commune
  * - Récupérer les bâtiments par parcelle
@@ -11,6 +11,9 @@
 
 import type { AddressData } from './types'
 import { ApiClient } from '../data-enrichment/api-client'
+import { loggers } from '@/lib/logger'
+
+const log = loggers.enrichment
 
 export interface DataGouvCadastreDataset {
   id: string
@@ -62,20 +65,20 @@ export class DataGouvCadastreService {
    */
   async getDatasetInfo(): Promise<DataGouvCadastreDataset | null> {
     try {
-      console.log(`[DataGouvCadastreService] 🔍 Récupération dataset Cadastre: ${this.datasetId}`)
+      log.debug({ datasetId: this.datasetId }, "Récupération dataset Cadastre")
       
       const response = await this.client.get<any>(
         `/datasets/${this.datasetId}/`
       )
-      
-      console.log('[DataGouvCadastreService] 📦 Réponse API data.gouv.fr:', {
+
+      log.debug({
         hasResponse: !!response,
         hasResources: !!(response?.resources),
         resourcesCount: response?.resources?.length || 0,
       })
 
       if (!response) {
-        console.error('[DataGouvCadastreService] ❌ Réponse vide de l\'API')
+        log.error('Réponse vide de l\'API')
         return null
       }
 
@@ -98,13 +101,13 @@ export class DataGouvCadastreService {
         }),
       }
 
-      console.log(`[DataGouvCadastreService] ✅ Dataset mappé: ${dataset.resources.length} ressource(s) trouvée(s)`)
+      log.info({ resourcesCount: dataset.resources.length }, "Dataset mappé")
       
       return dataset
     } catch (error) {
-      console.error('[DataGouvCadastreService] ❌ Erreur récupération métadonnées dataset:', error)
+      log.error({ err: error }, 'Erreur récupération métadonnées dataset')
       if (error instanceof Error) {
-        console.error('[DataGouvCadastreService] ❌ Détails erreur:', error.message)
+        log.error({ message: error.message }, 'Détails erreur')
       }
       return null
     }
@@ -116,39 +119,35 @@ export class DataGouvCadastreService {
    */
   async getParcellesByCommune(codeInsee: string): Promise<CadastreDataGouvParcelle[]> {
     try {
-      console.log(`[DataGouvCadastreService] 🔍 Récupération parcelles pour commune: ${codeInsee}`)
-      console.log(`[DataGouvCadastreService] 📡 URL: ${this.cadastreApiBase}/communes/${codeInsee}/parcelles`)
-      
-      const response = await fetch(
-        `${this.cadastreApiBase}/communes/${codeInsee}/parcelles`,
-        {
-          headers: {
-            'Accept': 'application/json',
-          },
-        }
-      )
+      const url = `${this.cadastreApiBase}/communes/${codeInsee}/parcelles`
+      log.debug({ codeInsee, url }, 'Récupération parcelles pour commune')
 
-      console.log(`[DataGouvCadastreService] 📥 Réponse HTTP: ${response.status} ${response.statusText}`)
+      const response = await fetch(url, {
+        headers: {
+          'Accept': 'application/json',
+        },
+      })
+
+      log.debug({ status: response.status, statusText: response.statusText }, 'Réponse HTTP')
 
       if (!response.ok) {
         const errorText = await response.text().catch(() => '')
-        console.warn(`[DataGouvCadastreService] ⚠️ Erreur HTTP ${response.status} pour commune ${codeInsee}:`, errorText.substring(0, 200))
+        log.warn({ status: response.status, codeInsee, error: errorText.substring(0, 200) }, 'Erreur HTTP')
         return []
       }
 
       const data = await response.json()
-      
-      console.log(`[DataGouvCadastreService] 📦 Données reçues:`, {
+
+      log.debug({
         hasFeatures: !!(data.features),
         featuresType: Array.isArray(data.features) ? 'array' : typeof data.features,
         featuresLength: Array.isArray(data.features) ? data.features.length : 'N/A',
-        dataKeys: Object.keys(data),
-      })
-      
+      }, 'Données reçues')
+
       if (data.features && Array.isArray(data.features)) {
         const parcelles = data.features.map((feature: any) => {
           const props = feature.properties || {}
-          
+
           return {
             id: feature.id || `${codeInsee}-${props.section}-${props.numero}`,
             commune: props.commune || '',
@@ -160,24 +159,24 @@ export class DataGouvCadastreService {
           }
         })
 
-        console.log(`[DataGouvCadastreService] ✅ ${parcelles.length} parcelle(s) trouvée(s) pour ${codeInsee}`)
+        log.info({ count: parcelles.length, codeInsee }, 'Parcelles trouvées')
         if (parcelles.length > 0) {
-          console.log(`[DataGouvCadastreService] 📋 Exemple parcelle:`, {
+          log.debug({
             id: parcelles[0].id,
             section: parcelles[0].section,
             numero: parcelles[0].numero,
             hasSurface: !!parcelles[0].surface,
-          })
+          }, 'Exemple parcelle')
         }
         return parcelles
       }
 
-      console.warn(`[DataGouvCadastreService] ⚠️ Pas de features dans la réponse pour ${codeInsee}`)
+      log.warn({ codeInsee }, 'Pas de features dans la réponse')
       return []
     } catch (error) {
-      console.error('[DataGouvCadastreService] ❌ Erreur récupération parcelles:', error)
+      log.error({ err: error }, 'Erreur récupération parcelles')
       if (error instanceof Error) {
-        console.error('[DataGouvCadastreService] ❌ Détails erreur:', error.message, error.stack)
+        log.error({ message: error.message, stack: error.stack }, 'Détails erreur')
       }
       return []
     }
@@ -193,7 +192,7 @@ export class DataGouvCadastreService {
     numero: string
   ): Promise<CadastreDataGouvParcelle | null> {
     try {
-      console.log(`[DataGouvCadastreService] 🔍 Récupération parcelle ${section}-${numero} pour commune: ${codeInsee}`)
+      log.debug({ codeInsee, section, numero }, 'Récupération parcelle')
       
       const response = await fetch(
         `${this.cadastreApiBase}/communes/${codeInsee}/parcelles/${section}/${numero}`,
@@ -205,7 +204,7 @@ export class DataGouvCadastreService {
       )
 
       if (!response.ok) {
-        console.warn(`[DataGouvCadastreService] ⚠️ Parcelle non trouvée: ${codeInsee}/${section}/${numero}`)
+        log.warn({ codeInsee, section, numero }, 'Parcelle non trouvée')
         return null
       }
 
@@ -238,7 +237,7 @@ export class DataGouvCadastreService {
             }
           }
         } catch (error) {
-          console.warn('[DataGouvCadastreService] ⚠️ Erreur récupération bâtiments:', error)
+          log.warn({ err: error }, 'Erreur récupération bâtiments')
         }
 
         const parcelle: CadastreDataGouvParcelle = {
@@ -252,13 +251,13 @@ export class DataGouvCadastreService {
           batiments,
         }
 
-        console.log(`[DataGouvCadastreService] ✅ Parcelle trouvée: ${parcelle.id}`)
+        log.info({ parcelleId: parcelle.id }, 'Parcelle trouvée')
         return parcelle
       }
 
       return null
     } catch (error) {
-      console.error('[DataGouvCadastreService] ❌ Erreur récupération parcelle:', error)
+      log.error({ err: error }, 'Erreur récupération parcelle')
       return null
     }
   }
@@ -269,7 +268,7 @@ export class DataGouvCadastreService {
   async getParcellesByAddress(address: AddressData): Promise<CadastreDataGouvParcelle[]> {
     try {
       if (!address.postalCode) {
-        console.warn('[DataGouvCadastreService] ⚠️ Code postal manquant')
+        log.warn('Code postal manquant')
         return []
       }
 
@@ -290,17 +289,17 @@ export class DataGouvCadastreService {
           }
         }
       } catch (error) {
-        console.warn('[DataGouvCadastreService] ⚠️ Erreur récupération code INSEE:', error)
+        log.warn({ err: error }, 'Erreur récupération code INSEE')
       }
 
       if (!codeInsee) {
-        console.warn('[DataGouvCadastreService] ⚠️ Code INSEE non trouvé pour:', address.formatted)
+        log.warn({ address: address.formatted }, 'Code INSEE non trouvé')
         return []
       }
 
       return await this.getParcellesByCommune(codeInsee)
     } catch (error) {
-      console.error('[DataGouvCadastreService] ❌ Erreur récupération parcelles par adresse:', error)
+      log.error({ err: error }, 'Erreur récupération parcelles par adresse')
       return []
     }
   }
@@ -316,83 +315,80 @@ export class DataGouvCadastreService {
    */
   async getParcelleByCoordinates(coordinates: { lat: number; lng: number }): Promise<CadastreDataGouvParcelle | null> {
     try {
-      console.log(`[DataGouvCadastreService] 🔍 Recherche parcelle par coordonnées:`, {
-        lat: coordinates.lat,
-        lng: coordinates.lng,
-      })
+      log.debug({ lat: coordinates.lat, lng: coordinates.lng }, 'Recherche parcelle par coordonnées')
 
       // L'API cadastre.data.gouv.fr ne supporte pas directement la recherche par coordonnées
       // Il faut d'abord identifier la commune depuis les coordonnées, puis récupérer les parcelles
       // Pour l'instant, on utilise l'API inversée de geo.api.gouv.fr pour obtenir le code INSEE
       let codeInsee: string | null = null
-      
+
       try {
-        console.log(`[DataGouvCadastreService] 🔄 Reverse geocoding pour:`, { lat: coordinates.lat, lng: coordinates.lng })
+        log.debug({ lat: coordinates.lat, lng: coordinates.lng }, 'Reverse geocoding')
         const reverseGeoResponse = await fetch(
           `https://api-adresse.data.gouv.fr/reverse/?lat=${coordinates.lat}&lon=${coordinates.lng}`,
           {
             headers: { Accept: 'application/json' },
           }
         )
-        
-        console.log(`[DataGouvCadastreService] 📥 Reverse geocoding réponse: ${reverseGeoResponse.status} ${reverseGeoResponse.statusText}`)
-        
+
+        log.debug({ status: reverseGeoResponse.status, statusText: reverseGeoResponse.statusText }, 'Reverse geocoding réponse')
+
         if (reverseGeoResponse.ok) {
           const reverseData = await reverseGeoResponse.json()
-          console.log(`[DataGouvCadastreService] 📦 Reverse geocoding données:`, {
+          log.debug({
             hasFeatures: !!(reverseData.features),
             featuresLength: Array.isArray(reverseData.features) ? reverseData.features.length : 0,
-          })
-          
+          }, 'Reverse geocoding données')
+
           if (reverseData.features && reverseData.features.length > 0) {
             const feature = reverseData.features[0]
             const props = feature.properties || {}
             // Le code INSEE est dans citycode
             codeInsee = props.citycode || null
-            
-            console.log(`[DataGouvCadastreService] 📍 Reverse geocoding résultat:`, {
+
+            log.debug({
               hasCitycode: !!props.citycode,
               citycode: props.citycode,
               city: props.city,
               postcode: props.postcode,
-            })
-            
+            }, 'Reverse geocoding résultat')
+
             if (codeInsee) {
-              console.log(`[DataGouvCadastreService] ✅ Commune identifiée depuis coordonnées: ${codeInsee}`)
-              
+              log.info({ codeInsee }, 'Commune identifiée depuis coordonnées')
+
               // Maintenant récupérer toutes les parcelles de la commune
               const parcelles = await this.getParcellesByCommune(codeInsee)
-              
+
               // Trouver la parcelle la plus proche des coordonnées
               // Pour l'instant, on retourne la première (on pourrait améliorer avec un calcul de distance)
               if (parcelles.length > 0) {
-                console.log(`[DataGouvCadastreService] ✅ ${parcelles.length} parcelle(s) trouvée(s), retour de la première`)
+                log.info({ count: parcelles.length }, 'Parcelles trouvées, retour de la première')
                 return parcelles[0]
               } else {
-                console.warn(`[DataGouvCadastreService] ⚠️ Aucune parcelle trouvée pour la commune ${codeInsee}`)
+                log.warn({ codeInsee }, 'Aucune parcelle trouvée pour la commune')
               }
             } else {
-              console.warn(`[DataGouvCadastreService] ⚠️ Code INSEE non trouvé dans reverse geocoding`)
+              log.warn('Code INSEE non trouvé dans reverse geocoding')
             }
           } else {
-            console.warn(`[DataGouvCadastreService] ⚠️ Aucune feature dans reverse geocoding`)
+            log.warn('Aucune feature dans reverse geocoding')
           }
         } else {
           const errorText = await reverseGeoResponse.text().catch(() => '')
-          console.warn(`[DataGouvCadastreService] ⚠️ Reverse geocoding échoué: ${reverseGeoResponse.status}`, errorText.substring(0, 200))
+          log.warn({ status: reverseGeoResponse.status, error: errorText.substring(0, 200) }, 'Reverse geocoding échoué')
         }
       } catch (error) {
-        console.error('[DataGouvCadastreService] ❌ Erreur reverse geocoding:', error)
+        log.error({ err: error }, 'Erreur reverse geocoding')
         if (error instanceof Error) {
-          console.error('[DataGouvCadastreService] ❌ Détails erreur:', error.message)
+          log.error({ message: error.message }, 'Détails erreur')
         }
       }
 
       // Si on n'a pas pu identifier via reverse geocoding, retourner null
-      console.warn('[DataGouvCadastreService] ⚠️ Impossible d\'identifier la commune depuis les coordonnées')
+      log.warn('Impossible d\'identifier la commune depuis les coordonnées')
       return null
     } catch (error) {
-      console.error('[DataGouvCadastreService] ❌ Erreur récupération parcelle par coordonnées:', error)
+      log.error({ err: error }, 'Erreur récupération parcelle par coordonnées')
       return null
     }
   }
@@ -403,20 +399,20 @@ export class DataGouvCadastreService {
    */
   async getPCIDatasetInfo(): Promise<DataGouvCadastreDataset | null> {
     try {
-      console.log(`[DataGouvCadastreService] 🔍 Récupération dataset PCI: ${this.pciDatasetId}`)
+      log.debug({ datasetId: this.pciDatasetId }, "Récupération dataset PCI")
       
       const response = await this.client.get<any>(
         `/datasets/${this.pciDatasetId}/`
       )
-      
-      console.log('[DataGouvCadastreService] 📦 Réponse API data.gouv.fr PCI:', {
+
+      log.debug({
         hasResponse: !!response,
         hasResources: !!(response?.resources),
         resourcesCount: response?.resources?.length || 0,
       })
 
       if (!response) {
-        console.error('[DataGouvCadastreService] ❌ Réponse vide de l\'API PCI')
+        log.error('Réponse vide de l\'API PCI')
         return null
       }
 
@@ -439,13 +435,13 @@ export class DataGouvCadastreService {
         }),
       }
 
-      console.log(`[DataGouvCadastreService] ✅ Dataset PCI mappé: ${dataset.resources.length} ressource(s) trouvée(s)`)
+      log.info({ resourcesCount: dataset.resources.length }, "Dataset PCI mappé")
       
       return dataset
     } catch (error) {
-      console.error('[DataGouvCadastreService] ❌ Erreur récupération métadonnées dataset PCI:', error)
+      log.error({ err: error }, 'Erreur récupération métadonnées dataset PCI')
       if (error instanceof Error) {
-        console.error('[DataGouvCadastreService] ❌ Détails erreur:', error.message)
+        log.error({ message: error.message }, 'Détails erreur')
       }
       return null
     }
