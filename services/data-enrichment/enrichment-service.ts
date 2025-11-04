@@ -16,6 +16,9 @@ import type {
   WeatherData,
 } from './types'
 import type { ExtractedDevisData } from '@/services/llm/document-analyzer'
+import { loggers } from '@/lib/logger'
+
+const log = loggers.enrichment
 
 export class DataEnrichmentService {
   private companyService: CompanyEnrichmentService
@@ -60,7 +63,7 @@ export class DataEnrichmentService {
           }
         }
       } catch (error) {
-        console.error('[EnrichmentService] Erreur enrichissement entreprise:', error)
+        log.error({ err: error }, 'Erreur enrichissement entreprise')
         confidence -= 5
       }
     }
@@ -78,7 +81,7 @@ export class DataEnrichmentService {
           confidence -= 10 // Moins fiable sans SIRET exact
         }
       } catch (error) {
-        console.error('[EnrichmentService] Erreur recherche entreprise:', error)
+        log.error({ err: error }, 'Erreur recherche entreprise')
       }
     }
 
@@ -111,7 +114,7 @@ export class DataEnrichmentService {
         confidence += 5
       }
     } catch (error) {
-      console.error('[EnrichmentService] Erreur enrichissement prix:', error)
+      log.error({ err: error }, 'Erreur enrichissement prix')
       confidence -= 10
     }
 
@@ -124,7 +127,7 @@ export class DataEnrichmentService {
         confidence += 5
       }
     } catch (error) {
-      console.error('[EnrichmentService] Erreur données régionales:', error)
+      log.error({ err: error }, 'Erreur données régionales')
       confidence -= 5
     }
 
@@ -140,7 +143,7 @@ export class DataEnrichmentService {
         confidence += 5
       }
     } catch (error) {
-      console.error('[EnrichmentService] Erreur données conformité:', error)
+      log.error({ err: error }, 'Erreur données conformité')
       confidence -= 5
     }
 
@@ -153,7 +156,7 @@ export class DataEnrichmentService {
         confidence += 3
       }
     } catch (error) {
-      console.error('[EnrichmentService] Erreur données météo:', error)
+      log.error({ err: error }, 'Erreur données météo')
       confidence -= 3
     }
 

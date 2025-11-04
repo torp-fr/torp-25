@@ -2,7 +2,7 @@
  * Service pour récupérer les données de la Base Adresse Nationale (BAN)
  * Source : https://www.data.gouv.fr/fr/datasets/base-adresse-nationale/
  * Dataset ID: 5530fbacc751df5ff937dddb
- * 
+ *
  * La BAN contient :
  * - Toutes les adresses françaises géocodées
  * - Coordonnées GPS précises
@@ -11,6 +11,9 @@
  */
 
 import type { AddressData } from './types'
+import { loggers } from '@/lib/logger'
+
+const log = loggers.enrichment
 
 export interface BANAddressData {
   banId?: string // Identifiant BAN
@@ -54,7 +57,7 @@ export class BANService {
       
       const indexedData = await indexer.searchAddress(query)
       if (indexedData && indexedData.length > 0) {
-        console.log('[BANService] Données récupérées depuis l\'index local')
+        log.debug('Données récupérées depuis l\'index local')
         return this.mapAddressDataToBAN(indexedData[0])
       }
 
@@ -62,7 +65,7 @@ export class BANService {
       // L'API Adresse est déjà intégrée dans AddressService
       return null
     } catch (error) {
-      console.error('[BANService] Erreur récupération données BAN:', error)
+      log.error({ err: error }, 'Erreur récupération données BAN')
       return null
     }
   }
@@ -77,7 +80,7 @@ export class BANService {
       })
 
       if (!response.ok) {
-        console.warn('[BANService] Erreur récupération dataset:', response.statusText)
+        log.warn({ statusText: response.statusText }, 'Erreur récupération dataset')
         return []
       }
 
@@ -105,7 +108,7 @@ export class BANService {
 
       return resources
     } catch (error) {
-      console.error('[BANService] Erreur récupération ressources:', error)
+      log.error({ err: error }, 'Erreur récupération ressources')
       return []
     }
   }
@@ -118,7 +121,7 @@ export class BANService {
       const resources = await this.getAllResources()
       return resources.find((r) => r.department === department || r.department === 'ALL') || null
     } catch (error) {
-      console.error('[BANService] Erreur récupération ressource département:', error)
+      log.error({ err: error, department }, 'Erreur récupération ressource département')
       return null
     }
   }
@@ -148,7 +151,7 @@ export class BANService {
         jobId,
       }
     } catch (error) {
-      console.error('[BANService] Erreur démarrage indexation:', error)
+      log.error({ err: error, department }, 'Erreur démarrage indexation')
       return { success: false }
     }
   }

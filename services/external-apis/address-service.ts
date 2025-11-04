@@ -5,6 +5,9 @@
 
 import { ApiClient } from '../data-enrichment/api-client'
 import type { AddressData } from './types'
+import { loggers } from '@/lib/logger'
+
+const log = loggers.enrichment
 
 interface ApiAdresseResponse {
   features: Array<{
@@ -46,12 +49,12 @@ export class AddressService {
         const localResults = await indexer.searchAddress(query, 5)
         
         if (localResults.length > 0) {
-          console.log('[AddressService] Données récupérées depuis l\'index BAN local')
+          log.debug('Données récupérées depuis l\'index BAN local')
           return localResults
         }
       } catch (error) {
         // Si l'index BAN n'est pas disponible, continuer avec l'API
-        console.warn('[AddressService] Index BAN non disponible, utilisation API Adresse')
+        log.warn('Index BAN non disponible, utilisation API Adresse')
       }
 
       // 2. Fallback sur l'API Adresse
@@ -83,7 +86,7 @@ export class AddressService {
         }
       })
     } catch (error) {
-      console.error('[AddressService] Erreur recherche adresse:', error)
+      log.error({ err: error }, 'Erreur recherche adresse')
       return []
     }
   }
@@ -101,12 +104,12 @@ export class AddressService {
         const localResult = await indexer.reverseGeocode(lat, lng, 100)
         
         if (localResult) {
-          console.log('[AddressService] Géocodage inverse depuis l\'index BAN local')
+          log.debug('Géocodage inverse depuis l\'index BAN local')
           return localResult
         }
       } catch (error) {
         // Si l'index BAN n'est pas disponible, continuer avec l'API
-        console.warn('[AddressService] Index BAN non disponible pour géocodage inverse')
+        log.warn('Index BAN non disponible pour géocodage inverse')
       }
 
       // 2. Fallback sur l'API Adresse
@@ -138,7 +141,7 @@ export class AddressService {
         completeness: this.calculateCompleteness(props),
       }
     } catch (error) {
-      console.error('[AddressService] Erreur géocodage inverse:', error)
+      log.error({ err: error }, 'Erreur géocodage inverse')
       return null
     }
   }
