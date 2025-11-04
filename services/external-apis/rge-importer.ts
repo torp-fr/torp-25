@@ -5,6 +5,9 @@
 
 import { RGEIndexer } from './rge-indexer'
 import type { RGECertification } from './rge-service'
+import { loggers } from '@/lib/logger'
+
+const log = loggers.enrichment
 
 export interface ImportOptions {
   resourceUrl: string
@@ -40,8 +43,7 @@ export class RGEImporter {
       )
       await this.indexer.updateImportJob(jobId, { status: 'IN_PROGRESS' })
 
-      console.log(`[RGEImporter] 🚀 Début import RGE depuis ${resourceUrl}`)
-      console.log(`[RGEImporter] 📋 Format: ${resourceFormat || 'auto-detect'}`)
+      log.info({ resourceUrl, format: resourceFormat || 'auto-detect' }, 'Début import RGE')
 
       let indexed = 0
       let errors = 0
@@ -60,7 +62,7 @@ export class RGEImporter {
         }
 
         const format = resourceFormat || this.detectFormat(resourceUrl, response.headers.get('content-type'))
-        console.log(`[RGEImporter] 📦 Format détecté: ${format}`)
+        log.debug({ format }, 'Format détecté')
 
         // 3. Parser le fichier selon le format
         let certifications: RGECertification[] = []
@@ -76,7 +78,7 @@ export class RGEImporter {
         }
 
         totalRows = certifications.length
-        console.log(`[RGEImporter] 📊 ${totalRows} certifications à indexer`)
+        log.info({ totalRows }, 'Certifications à indexer')
 
         // 4. Indexer par batch
         const batches = []
@@ -108,9 +110,11 @@ export class RGEImporter {
             })
           }
 
-          console.log(
-            `[RGEImporter] 📈 Progression: ${progress.toFixed(1)}% (${indexed} indexées, ${errors} erreurs)`
-          )
+          log.debug({
+            progress: Math.round(progress * 10) / 10,
+            indexed,
+            errors,
+          }, 'Progression import')
         }
 
         await this.indexer.updateImportJob(jobId, {
@@ -120,9 +124,9 @@ export class RGEImporter {
           totalRows,
         })
 
-        console.log(`[RGEImporter] ✅ Import terminé: ${indexed} certifications indexées, ${errors} erreurs`)
+        log.info({ indexed, errors }, 'Import terminé')
       } catch (error) {
-        console.error(`[RGEImporter] ❌ Erreur import:`, error)
+        log.error({ err: error }, 'Erreur import')
         await this.indexer.updateImportJob(jobId, {
           status: 'FAILED',
           errorMessage: error instanceof Error ? error.message : 'Unknown error',
@@ -132,7 +136,7 @@ export class RGEImporter {
 
       return { success: true, indexed, errors }
     } catch (error) {
-      console.error('[RGEImporter] ❌ Erreur import:', error)
+      log.error({ err: error }, 'Erreur import globale')
       return { success: false, indexed: 0, errors: 1 }
     }
   }
@@ -169,7 +173,7 @@ export class RGEImporter {
     } else if (data.data && Array.isArray(data.data)) {
       items = data.data
     } else {
-      console.warn('[RGEImporter] ⚠️ Format JSON non reconnu')
+      log.warn('Format JSON non reconnu')
       return []
     }
 
@@ -192,7 +196,7 @@ export class RGEImporter {
     const lines = csvText.split('\n').filter((line) => line.trim())
 
     if (lines.length === 0) {
-      console.warn('[RGEImporter] ⚠️ Fichier CSV vide')
+      log.warn('Fichier CSV vide')
       return []
     }
 
@@ -206,7 +210,7 @@ export class RGEImporter {
     const sirenIndex = headers.findIndex((h) => h.includes('siren'))
 
     if (siretIndex === -1 && sirenIndex === -1) {
-      console.warn('[RGEImporter] ⚠️ Colonne SIRET/SIREN non trouvée dans le CSV')
+      log.warn('Colonne SIRET/SIREN non trouvée dans le CSV')
       return []
     }
 
@@ -318,7 +322,7 @@ export class RGEImporter {
         verifiedAt: new Date().toISOString(),
       }
     } catch (error) {
-      console.error('[RGEImporter] ❌ Erreur parsing ligne:', error)
+      log.error({ err: error }, 'Erreur parsing ligne')
       return null
     }
   }
