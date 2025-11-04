@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
+import { clientLoggers } from '@/lib/client-logger'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import {
@@ -28,6 +29,8 @@ import {
 import { AppHeader } from '@/components/app-header'
 import { DevisChat } from '@/components/chat/devis-chat'
 import { RecommendationCard } from '@/components/recommendations/recommendation-card'
+
+const log = clientLoggers.page
 
 // ... existing code ...
 
@@ -153,17 +156,15 @@ export default function AnalysisPage() {
       const hasSiret = loadedDevis?.extractedData?.company?.siret
       const hasEnrichedData = (loadedDevis as any)?.enrichedData?.company?.siret
 
-      console.log('[AnalysisPage] 📋 Devis chargé:', {
+      log.debug({
         hasSiret: !!hasSiret,
         hasEnrichedData: !!hasEnrichedData,
         siret: hasSiret,
-      })
+      }, 'Devis chargé')
 
       // Si SIRET existe mais pas de données enrichies, forcer l'enrichissement
       if (hasSiret && !hasEnrichedData) {
-        console.log(
-          '[AnalysisPage] 🔄 Enrichissement nécessaire, déclenchement...'
-        )
+        log.debug('Enrichissement nécessaire, déclenchement')
         setEnriching(true)
         try {
           const enrichResponse = await fetch(
@@ -171,33 +172,31 @@ export default function AnalysisPage() {
           )
           if (enrichResponse.ok) {
             const enrichData = await enrichResponse.json()
-            console.log('[AnalysisPage] ✅ Enrichissement réussi:', {
+            log.debug({
               hasCompany: !!enrichData.data,
               siret: enrichData.data?.siret,
               hasFinancialData: !!enrichData.data?.financialData,
               hasReputation: !!enrichData.data?.reputation,
-            })
+            }, 'Enrichissement réussi')
 
             // Recharger le devis avec les données enrichies
             const devisResponse2 = await fetch(`/api/devis/${devisId}`)
             if (devisResponse2.ok) {
               const devisData2 = await devisResponse2.json()
               setDevis(devisData2.data)
-              console.log(
-                '[AnalysisPage] ✅ Devis rechargé avec données enrichies'
-              )
+              log.debug('Devis rechargé avec données enrichies')
             }
           } else {
             const errorData = await enrichResponse.json().catch(() => ({}))
-            console.warn('[AnalysisPage] ⚠️ Enrichissement échoué:', errorData)
+            log.warn({ errorData }, 'Enrichissement échoué')
           }
         } catch (enrichErr) {
-          console.error('[AnalysisPage] ❌ Erreur enrichissement:', enrichErr)
+          log.error({ err: enrichErr }, 'Erreur enrichissement')
         } finally {
           setEnriching(false)
         }
       } else if (hasEnrichedData) {
-        console.log('[AnalysisPage] ℹ️ Données enrichies déjà disponibles')
+        log.debug('Données enrichies déjà disponibles')
       }
 
       // Fetch score
@@ -207,7 +206,7 @@ export default function AnalysisPage() {
         setScore(scoreData.data)
       }
     } catch (err) {
-      console.error('[AnalysisPage] ❌ Erreur chargement:', err)
+      log.error({ err }, 'Erreur chargement')
       setError(err instanceof Error ? err.message : 'Erreur inconnue')
     } finally {
       setLoading(false)
@@ -217,12 +216,12 @@ export default function AnalysisPage() {
   // Fonction pour charger les insights (appelée après que les données soient prêtes)
   const fetchInsights = useCallback(async () => {
     if (!devis) {
-      console.log('[AnalysisPage] ⏳ Pas de devis, attente...')
+      log.debug('Pas de devis, attente')
       return
     }
 
     try {
-      console.log('[AnalysisPage] 🔄 Chargement des insights...')
+      log.debug('Chargement des insights')
 
       // Recharger le devis pour être sûr d'avoir les dernières données
       const devisResponse = await fetch(`/api/devis/${devisId}`)
@@ -231,11 +230,11 @@ export default function AnalysisPage() {
         const currentDevis = devisData.data as Devis
         setDevis(currentDevis)
 
-        console.log('[AnalysisPage] 📋 Devis pour insights:', {
+        log.debug({
           hasEnrichedData: !!(currentDevis as any)?.enrichedData?.company,
           enrichedCompanySiret: (currentDevis as any)?.enrichedData?.company
             ?.siret,
-        })
+        }, 'Devis pour insights')
       }
 
       // Charger les insights (qui utiliseront les données enrichies si disponibles)
@@ -243,13 +242,13 @@ export default function AnalysisPage() {
       if (response.ok) {
         const data = await response.json()
         setInsights(data.data)
-        console.log('[AnalysisPage] ✅ Insights chargés avec succès')
+        log.debug('Insights chargés avec succès')
       } else {
         const errorData = await response.json().catch(() => ({}))
-        console.warn('[AnalysisPage] ⚠️ Erreur chargement insights:', errorData)
+        log.warn({ errorData }, 'Erreur chargement insights')
       }
     } catch (err) {
-      console.error('[AnalysisPage] ❌ Erreur chargement insights:', err)
+      log.error({ err }, 'Erreur chargement insights')
     }
   }, [devisId, devis])
 
@@ -1326,18 +1325,18 @@ export default function AnalysisPage() {
                               )
                               if (response.ok) {
                                 const data = await response.json()
-                                console.log(
-                                  'Enrichissement manuel réussi:',
-                                  data
+                                log.debug(
+                                  { data },
+                                  'Enrichissement manuel réussi'
                                 )
                                 // Recharger les données
                                 await fetchData()
                                 await fetchInsights()
                               }
                             } catch (err) {
-                              console.error(
-                                'Erreur enrichissement manuel:',
-                                err
+                              log.error(
+                                { err },
+                                'Erreur enrichissement manuel'
                               )
                             } finally {
                               setEnriching(false)

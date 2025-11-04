@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
+import { clientLoggers } from '@/lib/client-logger'
 import { Button } from '@/components/ui/button'
 import {
   Card,
@@ -52,6 +53,8 @@ import {
 } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { AppHeader } from '@/components/app-header'
+
+const log = clientLoggers.page
 
 export const dynamic = 'force-dynamic'
 
@@ -168,18 +171,18 @@ export default function BuildingDetailPage() {
   useEffect(() => {
     if (!profileId) return
 
-    console.log('[Building Detail] 🔄 Initialisation page, profileId:', profileId)
+    log.debug({ profileId }, 'Initialisation page')
     fetchProfile()
   }, [profileId])
 
   // Charger les caractéristiques et recommandations quand le profil est chargé
   useEffect(() => {
     if (profile && profile.id) {
-      console.log('[Building Detail] 📋 Profil chargé, récupération caractéristiques et recommandations...', {
+      log.debug({
         id: profile.id,
         enrichmentStatus: profile.enrichmentStatus,
         hasEnrichedData: !!profile.enrichedData,
-      })
+      }, 'Profil chargé, récupération caractéristiques et recommandations')
       fetchCharacteristics()
       fetchRecommendations()
     }
@@ -191,9 +194,9 @@ export default function BuildingDetailPage() {
       return
     }
 
-    console.log('[Building Detail] 🔄 Enrichissement en cours, démarrage polling automatique...')
+    log.debug('Enrichissement en cours, démarrage polling automatique')
     const interval = setInterval(async () => {
-      console.log('[Building Detail] 🔄 Polling automatique: vérification statut enrichissement...')
+      log.debug('Polling automatique: vérification statut enrichissement')
       await fetchProfile()
       
       // Re-vérifier le statut depuis l'API
@@ -205,7 +208,7 @@ export default function BuildingDetailPage() {
           
           // Si le statut a changé, arrêter le polling et recharger les données
           if (currentStatus !== 'in_progress') {
-            console.log('[Building Detail] ✅ Enrichissement terminé (statut:', currentStatus, '), arrêt polling')
+            log.debug({ currentStatus }, 'Enrichissement terminé, arrêt polling')
             clearInterval(interval)
             await fetchProfile()
             await fetchCharacteristics()
@@ -213,12 +216,12 @@ export default function BuildingDetailPage() {
           }
         }
       } catch (err) {
-        console.error('[Building Detail] ❌ Erreur vérification statut:', err)
+        log.error({ err }, 'Erreur vérification statut')
       }
     }, 3000) // Toutes les 3 secondes
 
     return () => {
-      console.log('[Building Detail] 🛑 Arrêt polling automatique')
+      log.debug('Arrêt polling automatique')
       clearInterval(interval)
     }
   }, [profile?.enrichmentStatus, profileId])
@@ -226,7 +229,7 @@ export default function BuildingDetailPage() {
   const fetchProfile = async () => {
     try {
       setLoading(true)
-      console.log('[Building Detail] 🔄 Chargement profil:', profileId)
+      log.debug({ profileId }, 'Chargement profil')
       
       const response = await fetch(`/api/building-profiles/${profileId}?userId=${DEMO_USER_ID}`)
 
@@ -241,19 +244,19 @@ export default function BuildingDetailPage() {
         throw new Error('Données du profil invalides')
       }
       
-      console.log('[Building Detail] ✅ Profil chargé:', {
+      log.debug({
         id: data.data.id,
         enrichmentStatus: data.data.enrichmentStatus,
         hasEnrichedData: !!data.data.enrichedData,
         hasCadastralData: !!data.data.cadastralData,
         hasDPEData: !!data.data.dpeData,
         enrichedDataKeys: data.data.enrichedData ? Object.keys(data.data.enrichedData) : [],
-      })
+      }, 'Profil chargé')
       
       setProfile(data.data)
       setError(null)
     } catch (err) {
-      console.error('[Building Detail] ❌ Erreur chargement profil:', err)
+      log.error({ err }, 'Erreur chargement profil')
       setError(err instanceof Error ? err.message : 'Erreur inconnue')
     } finally {
       setLoading(false)
@@ -273,7 +276,7 @@ export default function BuildingDetailPage() {
       setRecommendations(data.data.recommendations || [])
       setNotifications(data.data.notifications || [])
     } catch (err) {
-      console.error('Erreur chargement recommandations:', err)
+      log.error({ err }, 'Erreur chargement recommandations')
     } finally {
       setLoadingRecommendations(false)
     }
@@ -288,36 +291,36 @@ export default function BuildingDetailPage() {
   const fetchCharacteristics = async () => {
     try {
       setLoadingCharacteristics(true)
-      console.log('[Frontend] 🔄 Chargement caractéristiques pour:', profileId)
-      console.log('[Frontend] 📡 URL:', `/api/building-profiles/${profileId}/characteristics?userId=${DEMO_USER_ID}`)
-      
+      log.debug({ profileId }, 'Chargement caractéristiques')
+      log.debug({ url: `/api/building-profiles/${profileId}/characteristics?userId=${DEMO_USER_ID}` }, 'URL API')
+
       const response = await fetch(`/api/building-profiles/${profileId}/characteristics?userId=${DEMO_USER_ID}`)
-      
-      console.log('[Frontend] 📥 Réponse HTTP:', {
+
+      log.debug({
         status: response.status,
         statusText: response.statusText,
         ok: response.ok,
-      })
+      }, 'Réponse HTTP')
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}))
-        console.error('[Frontend] ❌ Erreur API:', errorData)
+        log.error({ errorData }, 'Erreur API')
         throw new Error(errorData.error || 'Erreur lors du chargement des caractéristiques')
       }
 
       const data = await response.json()
-      
-      console.log('[Frontend] 📦 Données brutes reçues:', {
+
+      log.debug({
         success: data.success,
         hasData: !!data.data,
         hasCharacteristics: !!data.data?.characteristics,
         characteristicsLength: data.data?.characteristics?.length || 0,
         hasGrouped: !!data.data?.grouped,
         groupedKeys: data.data?.grouped ? Object.keys(data.data.grouped) : [],
-      })
-      
+      }, 'Données brutes reçues')
+
       if (!data.success) {
-        console.warn('[Frontend] ⚠️ API retourne success=false:', data.error)
+        log.warn({ error: data.error }, 'API retourne success=false')
         // Générer des caractéristiques de base même en cas d'erreur
         const baseCharacteristics = [
           {
@@ -352,18 +355,18 @@ export default function BuildingDetailPage() {
       
       const characteristics = data.data?.characteristics || []
       const grouped = data.data?.grouped || {}
-      
-      console.log('[Frontend] ✅ Caractéristiques traitées:', {
+
+      log.debug({
         total: characteristics.length,
         grouped: Object.keys(grouped).length,
         known: data.data?.counts?.known || 0,
         unknown: data.data?.counts?.unknown || 0,
         groupedKeys: Object.keys(grouped),
-      })
-      
+      }, 'Caractéristiques traitées')
+
       // GARANTIE : Si aucune caractéristique, créer des caractéristiques de base
       if (characteristics.length === 0) {
-        console.warn('[Frontend] ⚠️ Aucune caractéristique, génération de base')
+        log.warn('Aucune caractéristique, génération de base')
         const baseCharacteristics = [
           {
             id: 'structure-property-type',
@@ -397,7 +400,7 @@ export default function BuildingDetailPage() {
         setGroupedCharacteristics(grouped)
       }
     } catch (err) {
-      console.error('[Frontend] ❌ Erreur chargement caractéristiques:', err)
+      log.error({ err }, 'Erreur chargement caractéristiques')
       // Générer des caractéristiques de base même en cas d'erreur
       const baseCharacteristics = [
         {
@@ -458,7 +461,7 @@ export default function BuildingDetailPage() {
       setEditingChar(null)
       setEditValue('')
     } catch (err) {
-      console.error('Erreur sauvegarde caractéristique:', err)
+      log.error({ err }, 'Erreur sauvegarde caractéristique')
       setError(err instanceof Error ? err.message : 'Erreur lors de la sauvegarde')
     }
   }
@@ -467,29 +470,29 @@ export default function BuildingDetailPage() {
     try {
       setRefreshing(true)
       setError(null)
-      
-      console.log('[Building Detail] 🚀 Lancement enrichissement manuel...')
-      
+
+      log.debug('Lancement enrichissement manuel')
+
       const response = await fetch(`/api/building-profiles/${profileId}/enrich?userId=${DEMO_USER_ID}`, {
         method: 'POST',
       })
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}))
-        console.error('[Building Detail] ❌ Erreur enrichissement:', errorData)
+        log.error({ errorData }, 'Erreur enrichissement')
         throw new Error(errorData.error || 'Erreur lors de l\'enrichissement')
       }
 
       const data = await response.json()
-      console.log('[Building Detail] ✅ Enrichissement lancé:', data.data)
+      log.debug({ data: data.data }, 'Enrichissement lancé')
 
       // Polling pour vérifier le statut toutes les 3 secondes
       let attempts = 0
       const maxAttempts = 40 // 2 minutes max
-      
+
       const checkStatus = async () => {
         attempts++
-        console.log(`[Building Detail] 🔄 Vérification statut enrichissement (tentative ${attempts}/${maxAttempts})...`)
+        log.debug({ attempts, maxAttempts }, 'Vérification statut enrichissement')
         
         await fetchProfile()
         await fetchCharacteristics()
@@ -499,11 +502,11 @@ export default function BuildingDetailPage() {
         if (currentProfileResponse.ok) {
           const currentProfileData = await currentProfileResponse.json()
           const currentStatus = currentProfileData.data?.enrichmentStatus
-          
-          console.log(`[Building Detail] 📊 Statut actuel: ${currentStatus}`)
-          
+
+          log.debug({ currentStatus }, 'Statut actuel')
+
           if (currentStatus === 'completed' || currentStatus === 'failed' || attempts >= maxAttempts) {
-            console.log('[Building Detail] ✅ Enrichissement terminé ou timeout')
+            log.debug({ currentStatus, attempts }, 'Enrichissement terminé ou timeout')
             setRefreshing(false)
             // Recharger une dernière fois pour avoir les données fraîches
             await fetchProfile()
@@ -523,15 +526,15 @@ export default function BuildingDetailPage() {
           // Continuer le polling
           setTimeout(checkStatus, 3000)
         } else {
-          console.error('[Building Detail] ❌ Erreur récupération statut')
+          log.error('Erreur récupération statut')
           setRefreshing(false)
         }
       }
-      
+
       // Démarrer le polling après un court délai
       setTimeout(checkStatus, 3000)
     } catch (err) {
-      console.error('[Building Detail] ❌ Erreur enrichissement:', err)
+      log.error({ err }, 'Erreur enrichissement')
       setError(err instanceof Error ? err.message : 'Erreur lors de l\'enrichissement')
       setRefreshing(false)
     }
@@ -975,12 +978,12 @@ export default function BuildingDetailPage() {
                               size="sm"
                               className="mt-4"
                               onClick={() => {
-                                console.log('[Frontend] 🔍 Debug:', {
+                                log.debug({
                                   characteristics,
                                   groupedCharacteristics,
                                   characteristicsLength: characteristics.length,
                                   groupedKeys: Object.keys(groupedCharacteristics),
-                                })
+                                }, 'Debug caractéristiques')
                                 fetchCharacteristics()
                               }}
                             >
