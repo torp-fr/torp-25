@@ -5,6 +5,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { InsightsGenerator } from '@/services/llm/insights-generator'
+import { loggers } from '@/lib/logger'
+
+const log = loggers.api
 
 export const dynamic = 'force-dynamic'
 
@@ -37,13 +40,13 @@ export async function GET(
     const extractedData = devis.extractedData as any
     const enrichedData = (devis as any).enrichedData || {}
 
-    console.log('[API Insights] 📦 Données disponibles:', {
+    log.debug({
       hasExtractedData: !!extractedData,
       hasEnrichedData: !!enrichedData,
       hasCompanyEnrichment: !!enrichedData?.company,
       companySiret:
         enrichedData?.company?.siret || extractedData?.company?.siret || 'N/A',
-    })
+    }, 'Données disponibles pour insights')
 
     // Récupérer les données d'entreprise enrichies (TOUTES les données)
     let companyData: any = null
@@ -71,14 +74,14 @@ export async function GET(
         humanResources: companyEnrichment?.humanResources,
       }
 
-      console.log('[API Insights] 📊 Données entreprise disponibles:', {
+      log.debug({
         hasSiret: !!companyData.siret,
         hasFinancialData: !!companyData.financialData,
         hasReputation: !!companyData.reputation,
         hasQualifications: !!companyData.qualifications?.length,
         hasPortfolio: !!companyData.portfolio,
         hasHumanResources: !!companyData.humanResources,
-      })
+      }, 'Données entreprise disponibles')
     }
 
     // Générer les insights avec LLM
@@ -101,7 +104,7 @@ export async function GET(
       data: insights,
     })
   } catch (error) {
-    console.error('[API Insights] Erreur:', error)
+    log.error({ err: error }, 'Erreur génération insights')
     return NextResponse.json(
       {
         error: 'Erreur lors de la génération des insights',

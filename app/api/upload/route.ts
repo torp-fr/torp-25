@@ -6,6 +6,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { documentUploadService, isS3Enabled } from '@/services/document/upload'
+import { loggers } from '@/lib/logger'
+
+const log = loggers.api
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
@@ -75,7 +78,7 @@ export async function POST(request: NextRequest) {
       },
     })
   } catch (error) {
-    console.error('Upload error:', error)
+    log.error({ err: error }, 'Erreur upload fichier')
     return NextResponse.json(
       {
         error: 'Failed to upload file',

@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { DPEService } from '@/services/external-apis/dpe-service'
 import { AddressService } from '@/services/external-apis/address-service'
+import { loggers } from '@/lib/logger'
+
+const log = loggers.api
 
 export const dynamic = 'force-dynamic'
 
@@ -63,7 +66,7 @@ export async function GET(request: NextRequest) {
       data: dpeData,
     })
   } catch (error) {
-    console.error('[API DPE GET] Erreur:', error)
+    log.error({ err: error }, 'Erreur récupération données DPE')
     return NextResponse.json(
       {
         error: 'Erreur lors de la récupération des données DPE',

@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { RGEService } from '@/services/external-apis/rge-service'
+import { loggers } from '@/lib/logger'
+
+const log = loggers.api
 
 export const dynamic = 'force-dynamic'
 
@@ -92,7 +95,7 @@ export async function GET(request: NextRequest) {
       data: certification,
     })
   } catch (error) {
-    console.error('[API RGE GET] Erreur:', error)
+    log.error({ err: error }, 'Erreur récupération certification RGE')
     return NextResponse.json(
       {
         error: 'Erreur lors de la récupération de la certification RGE',
@@ -128,7 +131,7 @@ export async function POST(request: NextRequest) {
       data: verification,
     })
   } catch (error) {
-    console.error('[API RGE POST] Erreur:', error)
+    log.error({ err: error }, 'Erreur vérification certification RGE')
     return NextResponse.json(
       {
         error: 'Erreur lors de la vérification de la certification RGE',

@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import { GeorisquesService } from '@/services/external-apis/georisques-service'
 import { AddressService } from '@/services/external-apis/address-service'
 import { z } from 'zod'
+import { loggers } from '@/lib/logger'
+
+const log = loggers.api
 
 export const dynamic = 'force-dynamic'
 
@@ -70,7 +73,7 @@ export async function POST(request: NextRequest) {
       data: riskData,
     })
   } catch (error) {
-    console.error('[API Géorisques] ❌ Erreur:', error)
+    log.error({ err: error }, 'Erreur récupération données Géorisques')
     return NextResponse.json(
       {
         error: 'Failed to fetch risk data',
@@ -153,7 +156,7 @@ export async function GET(request: NextRequest) {
       { status: 400 }
     )
   } catch (error) {
-    console.error('[API Géorisques] ❌ Erreur:', error)
+    log.error({ err: error }, 'Erreur récupération données Géorisques')
     return NextResponse.json(
       {
         error: 'Failed to fetch risk data',

@@ -5,6 +5,9 @@
 
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
+import { loggers } from '@/lib/logger'
+
+const log = loggers.api
 
 export const dynamic = 'force-dynamic'
 
@@ -42,7 +45,7 @@ export async function GET() {
       },
     })
   } catch (error) {
-    console.error('Health check failed:', error)
+    log.error({ err: error }, 'Échec health check')
     return NextResponse.json(
       {
         success: false,

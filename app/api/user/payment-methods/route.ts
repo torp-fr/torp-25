@@ -1,4 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { loggers } from '@/lib/logger'
+
+const log = loggers.api
 
 export const dynamic = 'force-dynamic'
 
@@ -17,7 +20,7 @@ export async function GET(_request: NextRequest) {
       data: [],
     })
   } catch (error) {
-    console.error('[API Payment Methods GET] Erreur:', error)
+    log.error({ err: error }, 'Erreur récupération méthodes de paiement')
     return NextResponse.json(
       {
         error: 'Erreur lors de la récupération des méthodes de paiement',
@@ -43,7 +46,7 @@ export async function PATCH(_request: NextRequest) {
       message: 'Méthode de paiement mise à jour',
     })
   } catch (error) {
-    console.error('[API Payment Methods PATCH] Erreur:', error)
+    log.error({ err: error }, 'Erreur mise à jour méthode de paiement')
     return NextResponse.json(
       {
         error: 'Erreur lors de la mise à jour',

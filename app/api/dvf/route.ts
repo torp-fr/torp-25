@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import { DVFService } from '@/services/external-apis/dvf-service'
 import { AddressService } from '@/services/external-apis/address-service'
 import { z } from 'zod'
+import { loggers } from '@/lib/logger'
+
+const log = loggers.api
 
 export const dynamic = 'force-dynamic'
 
@@ -90,7 +93,7 @@ export async function POST(request: NextRequest) {
       data: dvfData,
     })
   } catch (error) {
-    console.error('[API DVF] ❌ Erreur:', error)
+    log.error({ err: error }, 'Erreur récupération données DVF')
     return NextResponse.json(
       {
         error: 'Failed to fetch DVF data',
@@ -179,7 +182,7 @@ export async function GET(request: NextRequest) {
           }
         }
       } catch (error) {
-        console.error('[API DVF] Erreur récupération commune:', error)
+        log.error({ err: error }, 'Erreur récupération commune')
       }
     }
 
@@ -210,7 +213,7 @@ export async function GET(request: NextRequest) {
       { status: 404 }
     )
   } catch (error) {
-    console.error('[API DVF] ❌ Erreur:', error)
+    log.error({ err: error }, 'Erreur récupération données DVF')
     return NextResponse.json(
       {
         error: 'Failed to fetch DVF data',

@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { BuildingProfileService } from '@/services/building-profile-service'
+import { loggers } from '@/lib/logger'
+
+const log = loggers.api
 
 export const dynamic = 'force-dynamic'
 
@@ -37,7 +40,7 @@ export async function GET(
       data: profile,
     })
   } catch (error) {
-    console.error('[API Building Profile GET] Erreur:', error)
+    log.error({ err: error }, 'Erreur récupération profil')
     return NextResponse.json(
       {
         error: 'Erreur lors de la récupération du profil',
@@ -73,7 +76,7 @@ export async function PATCH(
       data: profile,
     })
   } catch (error) {
-    console.error('[API Building Profile PATCH] Erreur:', error)
+    log.error({ err: error }, 'Erreur mise à jour profil')
     return NextResponse.json(
       {
         error: 'Erreur lors de la mise à jour du profil',
@@ -108,7 +111,7 @@ export async function DELETE(
       message: 'Profil supprimé avec succès',
     })
   } catch (error) {
-    console.error('[API Building Profile DELETE] Erreur:', error)
+    log.error({ err: error }, 'Erreur suppression profil')
     return NextResponse.json(
       {
         error: 'Erreur lors de la suppression du profil',

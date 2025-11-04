@@ -4,6 +4,9 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { BenchmarkEngine } from '@/services/benchmark/benchmark-engine'
+import { loggers } from '@/lib/logger'
+
+const log = loggers.api
 
 export async function GET(request: NextRequest) {
   try {
@@ -19,26 +22,26 @@ export async function GET(request: NextRequest) {
         }
       : undefined
 
-    console.log('[API Benchmark] 🚀 Démarrage benchmark:', {
+    log.info({
       sampleSize,
       dateRange: dateRange ? `${dateRange.start.toISOString()} - ${dateRange.end.toISOString()}` : 'Tous',
-    })
+    }, 'Démarrage benchmark')
 
     const engine = new BenchmarkEngine()
     const result = await engine.runBenchmark(sampleSize, dateRange)
 
-    console.log('[API Benchmark] ✅ Benchmark terminé:', {
+    log.info({
       sampleSize: result.sampleSize,
       metrics: Object.keys(result.metrics),
       recommendations: result.recommendations.length,
-    })
+    }, 'Benchmark terminé')
 
     return NextResponse.json({
       success: true,
       data: result,
     })
   } catch (error) {
-    console.error('[API Benchmark] ❌ Erreur:', error)
+    log.error({ err: error }, 'Erreur benchmark')
     return NextResponse.json(
       {
         error: 'Erreur lors de l\'exécution du benchmark',

@@ -1,7 +1,7 @@
 /**
  * API Route pour rechercher des bâtiments RNB dans l'index local
  * POST /api/rnb/search
- * 
+ *
  * Body: {
  *   postalCode?: string
  *   address?: string
@@ -14,6 +14,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { RNBIndexer } from '@/services/external-apis/rnb-indexer'
 import { z } from 'zod'
+import { loggers } from '@/lib/logger'
+
+const log = loggers.api
 
 export const dynamic = 'force-dynamic'
 
@@ -70,7 +73,7 @@ export async function POST(request: NextRequest) {
       count: buildings.length,
     })
   } catch (error) {
-    console.error('[API RNB Search] Erreur:', error)
+    log.error({ err: error }, 'Erreur recherche RNB')
     return NextResponse.json(
       {
         error: 'Failed to search RNB data',

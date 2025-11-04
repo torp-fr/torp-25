@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
+import { loggers } from '@/lib/logger'
+
+const log = loggers.api
 
 export const dynamic = 'force-dynamic'
 
@@ -66,7 +69,7 @@ export async function GET(request: NextRequest) {
       preferences: profile?.preferences || null,
     })
   } catch (error) {
-    console.error('[API User Profile GET] Erreur:', error)
+    log.error({ err: error }, 'Erreur récupération profil utilisateur')
     return NextResponse.json(
       {
         error: 'Erreur lors de la récupération du profil',
@@ -160,7 +163,7 @@ export async function PATCH(request: NextRequest) {
       },
     })
   } catch (error) {
-    console.error('[API User Profile PATCH] Erreur:', error)
+    log.error({ err: error }, 'Erreur mise à jour profil utilisateur')
     return NextResponse.json(
       {
         error: 'Erreur lors de la mise à jour du profil',

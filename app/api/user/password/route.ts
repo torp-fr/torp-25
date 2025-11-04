@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import bcrypt from 'bcryptjs'
+import { loggers } from '@/lib/logger'
+
+const log = loggers.api
 
 export const dynamic = 'force-dynamic'
 
@@ -68,7 +71,7 @@ export async function POST(request: NextRequest) {
       message: 'Mot de passe modifié avec succès',
     })
   } catch (error) {
-    console.error('[API User Password] Erreur:', error)
+    log.error({ err: error }, 'Erreur modification mot de passe')
     return NextResponse.json(
       {
         error: 'Erreur lors de la modification du mot de passe',

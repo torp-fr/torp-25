@@ -7,6 +7,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { torpScoringEngine } from '@/services/scoring/torp-score'
 import { z } from 'zod'
+import { loggers } from '@/lib/logger'
+
+const log = loggers.api
 
 export const dynamic = 'force-dynamic'
 
@@ -75,7 +78,7 @@ export async function POST(request: NextRequest) {
       data: savedScore,
     })
   } catch (error) {
-    console.error('Score calculation error:', error)
+    log.error({ err: error }, 'Erreur calcul score')
     return NextResponse.json(
       { error: 'Failed to calculate score' },
       { status: 500 }
@@ -128,7 +131,7 @@ export async function GET(request: NextRequest) {
       data: score,
     })
   } catch (error) {
-    console.error('Score fetch error:', error)
+    log.error({ err: error }, 'Erreur récupération score')
     return NextResponse.json(
       { error: 'Failed to fetch score' },
       { status: 500 }
