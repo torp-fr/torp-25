@@ -6,7 +6,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { z } from 'zod'
+import { loggers } from '@/lib/logger'
 
+nconst log = loggers.api
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
@@ -74,7 +76,7 @@ export async function POST(request: NextRequest) {
           assistantResponse = `Concernant cette recommandation, voici des éléments de clarification et des conseils pour améliorer votre situation.`
         }
       } catch (error) {
-        console.error('[Chat] Erreur génération réponse:', error)
+        log.error('[Chat] Erreur génération réponse:', error)
         assistantResponse = 'Désolé, je rencontre une difficulté technique. Pouvez-vous reformuler votre question ?'
       }
 
@@ -100,7 +102,7 @@ export async function POST(request: NextRequest) {
       messageId: userMessage.id,
     })
   } catch (error) {
-    console.error('[API Chat] Erreur:', error)
+    log.error('[API Chat] Erreur:', error)
     return NextResponse.json(
       {
         error: 'Failed to send message',

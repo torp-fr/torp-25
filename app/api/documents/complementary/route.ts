@@ -6,7 +6,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { documentUploadService } from '@/services/document/upload'
+import { loggers } from '@/lib/logger'
 
+nconst log = loggers.api
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
@@ -76,7 +78,7 @@ export async function POST(request: NextRequest) {
       data: document,
     })
   } catch (error) {
-    console.error('[API Complementary Documents] Erreur:', error)
+    log.error('[API Complementary Documents] Erreur:', error)
     return NextResponse.json(
       {
         error: 'Failed to upload complementary document',

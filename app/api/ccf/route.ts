@@ -6,7 +6,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { z } from 'zod'
+import { loggers } from '@/lib/logger'
 
+const log = loggers.api
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
@@ -76,7 +78,7 @@ export async function POST(request: NextRequest) {
       data: ccf,
     })
   } catch (error) {
-    console.error('[API CCF] Erreur:', error)
+    log.error('[API CCF] Erreur:', error)
     return NextResponse.json(
       {
         error: 'Failed to save CCF',

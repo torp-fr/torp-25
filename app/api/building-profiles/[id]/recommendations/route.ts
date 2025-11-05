@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { BuildingRecommendationsService } from '@/services/building-recommendations-service'
+import { loggers } from '@/lib/logger'
 
+nconst log = loggers.api
 export const dynamic = 'force-dynamic'
 
 /**
@@ -72,7 +74,7 @@ export async function GET(
       },
     })
   } catch (error) {
-    console.error('[API Building Profiles Recommendations] Erreur:', error)
+    log.error('[API Building Profiles Recommendations] Erreur:', error)
     return NextResponse.json(
       {
         error: 'Erreur lors de la récupération des recommandations',

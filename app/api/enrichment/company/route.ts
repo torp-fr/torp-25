@@ -6,7 +6,9 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { CompanyEnrichmentService } from '@/services/data-enrichment/company-service'
+import { loggers } from '@/lib/logger'
 
+nconst log = loggers.api
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
 
@@ -51,7 +53,7 @@ export async function GET(request: NextRequest) {
       { status: 400 }
     )
   } catch (error) {
-    console.error('[API Company Enrichment] Erreur:', error)
+    log.error('[API Company Enrichment] Erreur:', error)
     return NextResponse.json(
       {
         error: 'Failed to enrich company data',

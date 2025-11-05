@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
+import { loggers } from '@/lib/logger'
 
+nconst log = loggers.api
 export async function GET(
   _request: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -22,7 +24,7 @@ export async function GET(
 
     return NextResponse.json({ success: true, data: devis })
   } catch (error) {
-    console.error('Devis fetch error:', error)
+    log.error('Devis fetch error:', error)
     return NextResponse.json(
       { error: 'Failed to fetch devis' },
       { status: 500 }
@@ -59,7 +61,7 @@ export async function DELETE(
       message: 'Devis deleted successfully',
     })
   } catch (error) {
-    console.error('[API Devis] Erreur suppression:', error)
+    log.error('[API Devis] Erreur suppression:', error)
     return NextResponse.json(
       {
         error: 'Failed to delete devis',

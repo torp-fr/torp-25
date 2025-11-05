@@ -5,7 +5,9 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { PriceEnrichmentService } from '@/services/data-enrichment/price-service'
+import { loggers } from '@/lib/logger'
 
+nconst log = loggers.api
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
 
@@ -36,7 +38,7 @@ export async function GET(request: NextRequest) {
       },
     })
   } catch (error) {
-    console.error('[API Prices Enrichment] Erreur:', error)
+    log.error('[API Prices Enrichment] Erreur:', error)
     return NextResponse.json(
       {
         error: 'Failed to fetch price references',

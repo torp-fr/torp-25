@@ -6,7 +6,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { createDevisSchema } from '@/lib/validations/devis'
+import { loggers } from '@/lib/logger'
 
+const log = loggers.api
 export const dynamic = 'force-dynamic'
 
 // Auth0 temporairement désactivé - utilise un userId demo
@@ -32,7 +34,7 @@ export async function GET(_request: NextRequest) {
       data: devisList,
     })
   } catch (error) {
-    console.error('Devis fetch error:', error)
+    log.error('Devis fetch error:', error)
     return NextResponse.json(
       { error: 'Failed to fetch devis' },
       { status: 500 }
@@ -84,7 +86,7 @@ export async function POST(request: NextRequest) {
       data: devis,
     })
   } catch (error) {
-    console.error('Devis creation error:', error)
+    log.error('Devis creation error:', error)
     return NextResponse.json(
       { error: 'Failed to create devis' },
       { status: 500 }

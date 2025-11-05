@@ -15,7 +15,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { AdvancedEnrichmentService } from '@/services/data-enrichment/advanced-enrichment-service'
 import { z } from 'zod'
+import { loggers } from '@/lib/logger'
 
+nconst log = loggers.api
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
 
@@ -71,7 +73,7 @@ export async function POST(request: NextRequest) {
       },
     })
   } catch (error) {
-    console.error('[API Advanced Enrichment] Erreur:', error)
+    log.error('[API Advanced Enrichment] Erreur:', error)
     return NextResponse.json(
       {
         error: 'Failed to enrich devis data',

@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { documentUploadService } from '@/services/document/upload'
+import { loggers } from '@/lib/logger'
 
+nconst log = loggers.api
 export const dynamic = 'force-dynamic'
 
 /**
@@ -50,7 +52,7 @@ export async function GET(
       data: documents,
     })
   } catch (error) {
-    console.error('[API Building Documents GET] Erreur:', error)
+    log.error('[API Building Documents GET] Erreur:', error)
     return NextResponse.json(
       {
         error: 'Erreur lors de la récupération des documents',
@@ -147,7 +149,7 @@ export async function POST(
       data: document,
     }, { status: 201 })
   } catch (error) {
-    console.error('[API Building Documents POST] Erreur:', error)
+    log.error('[API Building Documents POST] Erreur:', error)
     return NextResponse.json(
       {
         error: 'Erreur lors de l\'upload du document',

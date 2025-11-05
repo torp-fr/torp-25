@@ -6,7 +6,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { z } from 'zod'
+import { loggers } from '@/lib/logger'
 
+nconst log = loggers.api
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
@@ -63,7 +65,7 @@ export async function POST(request: NextRequest) {
       data: feedback,
     })
   } catch (error) {
-    console.error('[API Recommendation Feedback] Erreur:', error)
+    log.error('[API Recommendation Feedback] Erreur:', error)
     return NextResponse.json(
       {
         error: 'Failed to save feedback',

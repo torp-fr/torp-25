@@ -7,7 +7,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { torpScoringEngine } from '@/services/scoring/torp-score'
+import { loggers } from '@/lib/logger'
 
+nconst log = loggers.api
 export const dynamic = 'force-dynamic'
 
 export async function POST(request: NextRequest) {
@@ -246,7 +248,7 @@ export async function POST(request: NextRequest) {
       },
     })
   } catch (error) {
-    console.error('Seed error:', error)
+    log.error('Seed error:', error)
     return NextResponse.json(
       {
         success: false,
@@ -293,7 +295,7 @@ export async function GET(request: NextRequest) {
       },
     })
   } catch (error) {
-    console.error('Check error:', error)
+    log.error('Check error:', error)
     return NextResponse.json(
       { success: false, error: 'Failed to check test data' },
       { status: 500 }

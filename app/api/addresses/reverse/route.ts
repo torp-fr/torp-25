@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { BANIndexer } from '@/services/external-apis/ban-indexer'
+import { loggers } from '@/lib/logger'
 
+nconst log = loggers.api
 export const dynamic = 'force-dynamic'
 
 /**
@@ -43,7 +45,7 @@ export async function GET(request: NextRequest) {
       address,
     })
   } catch (error) {
-    console.error('[API Addresses Reverse] Erreur:', error)
+    log.error('[API Addresses Reverse] Erreur:', error)
     return NextResponse.json(
       {
         error: 'Erreur lors du géocodage inverse',

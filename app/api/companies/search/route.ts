@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { SireneService } from '@/services/external-apis/sirene-service'
+import { loggers } from '@/lib/logger'
 
+nconst log = loggers.api
 export const dynamic = 'force-dynamic'
 
 /**
@@ -35,7 +37,7 @@ export async function GET(request: NextRequest) {
       results,
     })
   } catch (error) {
-    console.error('[API Companies Search] Erreur:', error)
+    log.error('[API Companies Search] Erreur:', error)
     return NextResponse.json(
       {
         error: 'Erreur lors de la recherche d\'entreprises',

@@ -6,7 +6,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { ocrService } from '@/services/document/ocr'
+import { loggers } from '@/lib/logger'
 
+nconst log = loggers.api
 export const dynamic = 'force-dynamic'
 
 export async function POST(request: NextRequest) {
@@ -60,7 +62,7 @@ export async function POST(request: NextRequest) {
       },
     })
   } catch (error) {
-    console.error('OCR processing error:', error)
+    log.error('OCR processing error:', error)
 
     // Try to update document status to failed
     try {

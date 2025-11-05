@@ -4,7 +4,9 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { TrainingDataCollector } from '@/services/training/data-collector'
+import { loggers } from '@/lib/logger'
 
+nconst log = loggers.api
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json().catch(() => ({}))
@@ -12,7 +14,7 @@ export async function POST(request: NextRequest) {
     const startDate = body.startDate ? new Date(body.startDate) : undefined
     const endDate = body.endDate ? new Date(body.endDate) : undefined
     
-    console.log('[API Training] 🔍 Collecte données d\'entraînement...')
+    log.info('[API Training] 🔍 Collecte données d\'entraînement...')
 
     const collector = new TrainingDataCollector()
     const examples = await collector.collectTrainingData({
@@ -33,7 +35,7 @@ export async function POST(request: NextRequest) {
       },
     })
   } catch (error) {
-    console.error('[API Training] ❌ Erreur:', error)
+    log.error('[API Training] ❌ Erreur:', error)
     return NextResponse.json(
       {
         error: 'Erreur lors de la collecte',

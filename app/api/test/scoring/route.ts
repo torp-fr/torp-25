@@ -9,7 +9,9 @@ import { AdvancedEnrichmentService } from '@/services/data-enrichment/advanced-e
 import { AdvancedScoringEngine } from '@/services/scoring/advanced/advanced-scoring-engine'
 import { prisma } from '@/lib/db'
 import { z } from 'zod'
+import { loggers } from '@/lib/logger'
 
+nconst log = loggers.api
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
@@ -51,7 +53,7 @@ export async function POST(request: NextRequest) {
   const addLog = (message: string) => {
     const timestamp = new Date().toISOString()
     logs.push(`[${timestamp}] ${message}`)
-    console.log(`[Test Scoring] ${message}`)
+    log.info(`[Test Scoring] ${message}`)
   }
 
   try {

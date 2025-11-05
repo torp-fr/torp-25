@@ -5,10 +5,12 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { globalScraper } from '@/services/scraping/data-scraper'
+import { loggers } from '@/lib/logger'
 
+nconst log = loggers.api
 export async function POST(_request: NextRequest) {
   try {
-    console.log('[API Scraping] 🚀 Démarrage traitement queue...')
+    log.info('[API Scraping] 🚀 Démarrage traitement queue...')
     
     await globalScraper.processQueue()
     
@@ -20,7 +22,7 @@ export async function POST(_request: NextRequest) {
       message: 'Queue traitée avec succès',
     })
   } catch (error) {
-    console.error('[API Scraping] ❌ Erreur:', error)
+    log.error('[API Scraping] ❌ Erreur:', error)
     return NextResponse.json(
       {
         error: 'Erreur lors du traitement de la queue',

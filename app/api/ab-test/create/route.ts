@@ -4,7 +4,9 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { ABTestEngine } from '@/services/ab-testing/ab-test-engine'
+import { loggers } from '@/lib/logger'
 
+nconst log = loggers.api
 const abEngine = new ABTestEngine()
 
 export async function POST(request: NextRequest) {
@@ -47,7 +49,7 @@ export async function POST(request: NextRequest) {
       },
     })
   } catch (error) {
-    console.error('[API ABTest] ❌ Erreur:', error)
+    log.error('[API ABTest] ❌ Erreur:', error)
     return NextResponse.json(
       {
         error: 'Erreur lors de la création du test',

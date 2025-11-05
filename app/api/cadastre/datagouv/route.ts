@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { DataGouvCadastreService } from '@/services/external-apis/datagouv-cadastre-service'
+import { loggers } from '@/lib/logger'
 
+nconst log = loggers.api
 export const dynamic = 'force-dynamic'
 
 /**
@@ -94,7 +96,7 @@ export async function GET(request: NextRequest) {
       { status: 400 }
     )
   } catch (error) {
-    console.error('[API Cadastre DataGouv] ❌ Erreur:', error)
+    log.error('[API Cadastre DataGouv] ❌ Erreur:', error)
     return NextResponse.json(
       {
         error: 'Erreur lors de la récupération des données cadastrales',

@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { BANIndexer } from '@/services/external-apis/ban-indexer'
 import { AddressService } from '@/services/external-apis/address-service'
+import { loggers } from '@/lib/logger'
 
+nconst log = loggers.api
 export const dynamic = 'force-dynamic'
 
 /**
@@ -35,7 +37,7 @@ export async function GET(request: NextRequest) {
       
       // Si aucun résultat dans l'index local, utiliser l'API Adresse externe
       if (addresses.length === 0) {
-        console.log('[API Addresses Search] Index BAN vide, utilisation API Adresse externe')
+        log.info('[API Addresses Search] Index BAN vide, utilisation API Adresse externe')
         const addressService = new AddressService()
         addresses = await addressService.searchAddress(query)
         // Limiter les résultats
@@ -59,7 +61,7 @@ export async function GET(request: NextRequest) {
       data: addresses, // Format: AddressData[] avec formatted, city, postalCode, coordinates
     })
   } catch (error) {
-    console.error('[API Addresses Search] Erreur:', error)
+    log.error('[API Addresses Search] Erreur:', error)
     return NextResponse.json(
       {
         error: 'Erreur lors de la recherche d\'adresses',

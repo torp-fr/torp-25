@@ -6,7 +6,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { AddressService } from '@/services/external-apis/address-service'
 import { z } from 'zod'
+import { loggers } from '@/lib/logger'
 
+nconst log = loggers.api
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
@@ -41,7 +43,7 @@ export async function POST(request: NextRequest) {
       count: results.length,
     })
   } catch (error) {
-    console.error('[API Address] Erreur:', error)
+    log.error('[API Address] Erreur:', error)
     return NextResponse.json(
       {
         error: 'Failed to search address',

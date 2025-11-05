@@ -6,7 +6,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { BuildingService } from '@/services/external-apis/building-service'
 import { z } from 'zod'
+import { loggers } from '@/lib/logger'
 
+nconst log = loggers.api
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
@@ -48,7 +50,7 @@ export async function POST(request: NextRequest) {
       data,
     })
   } catch (error) {
-    console.error('[API Building] Erreur:', error)
+    log.error('[API Building] Erreur:', error)
     return NextResponse.json(
       {
         error: 'Failed to fetch building data',

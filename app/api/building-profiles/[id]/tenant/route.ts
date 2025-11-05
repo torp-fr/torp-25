@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { BuildingProfileService } from '@/services/building-profile-service'
+import { loggers } from '@/lib/logger'
 
+nconst log = loggers.api
 export const dynamic = 'force-dynamic'
 
 /**
@@ -35,7 +37,7 @@ export async function POST(
       data: tenantProfile,
     }, { status: 201 })
   } catch (error) {
-    console.error('[API Building Profiles Tenant POST] Erreur:', error)
+    log.error('[API Building Profiles Tenant POST] Erreur:', error)
     
     if (error instanceof Error) {
       // Erreur de validation
@@ -99,7 +101,7 @@ export async function GET(
       data: tenantProfiles,
     })
   } catch (error) {
-    console.error('[API Building Profiles Tenant GET] Erreur:', error)
+    log.error('[API Building Profiles Tenant GET] Erreur:', error)
     
     if (error instanceof Error) {
       if (error.message.includes('non trouvé') || error.message.includes('non autorisé')) {

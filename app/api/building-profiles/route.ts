@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { BuildingProfileService } from '@/services/building-profile-service'
+import { loggers } from '@/lib/logger'
 
+const log = loggers.api
 export const dynamic = 'force-dynamic'
 
 /**
@@ -33,7 +35,7 @@ export async function GET(request: NextRequest) {
       data: profiles,
     })
   } catch (error) {
-    console.error('[API Building Profiles GET] Erreur:', error)
+    log.error('[API Building Profiles GET] Erreur:', error)
     return NextResponse.json(
       {
         error: 'Erreur lors de la récupération des profils',
@@ -80,7 +82,7 @@ export async function POST(request: NextRequest) {
       data: profile,
     }, { status: 201 })
   } catch (error) {
-    console.error('[API Building Profiles POST] Erreur:', error)
+    log.error('[API Building Profiles POST] Erreur:', error)
     
     // Gérer les erreurs de validation spécifiques
     if (error instanceof Error) {

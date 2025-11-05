@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { SireneService } from '@/services/external-apis/sirene-service'
+import { loggers } from '@/lib/logger'
 
+nconst log = loggers.api
 export const dynamic = 'force-dynamic'
 
 /**
@@ -32,7 +34,7 @@ export async function POST(request: NextRequest) {
       verification,
     })
   } catch (error) {
-    console.error('[API Companies Verify] Erreur:', error)
+    log.error('[API Companies Verify] Erreur:', error)
     return NextResponse.json(
       {
         error: 'Erreur lors de la vérification de l\'entreprise',
