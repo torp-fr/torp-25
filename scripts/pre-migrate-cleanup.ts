@@ -1,3 +1,6 @@
+import { loggers } from '@/lib/logger'
+const log = loggers.enrichment
+
 /**
  * Script de pré-migration pour nettoyer les migrations échouées
  * S'exécute automatiquement avant `prisma migrate deploy`
@@ -9,7 +12,7 @@ const prisma = new PrismaClient()
 
 async function cleanupFailedMigrations() {
   try {
-    console.log('🧹 Nettoyage des migrations échouées...')
+    log.info('🧹 Nettoyage des migrations échouées...')
 
     // Supprimer les enregistrements de migrations RNB échouées
     const result = await prisma.$executeRaw`
@@ -18,13 +21,13 @@ async function cleanupFailedMigrations() {
       AND finished_at IS NULL
     `
 
-    console.log(`✅ ${result} migration(s) échouée(s) nettoyée(s)`)
+    log.info(`✅ ${result} migration(s) échouée(s) nettoyée(s)`)
   } catch (error: any) {
     // Ignorer les erreurs (table peut ne pas exister ou migrations déjà nettoyées)
     if (error?.code === 'P2021' || error?.code === 'P1001') {
-      console.log('ℹ️  Table _prisma_migrations non accessible ou migrations déjà nettoyées')
+      log.info('ℹ️  Table _prisma_migrations non accessible ou migrations déjà nettoyées')
     } else {
-      console.warn('⚠️  Erreur lors du nettoyage (non bloquant):', error?.message)
+      log.warn('⚠️  Erreur lors du nettoyage (non bloquant):', error?.message)
     }
   } finally {
     await prisma.$disconnect()

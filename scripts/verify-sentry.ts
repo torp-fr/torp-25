@@ -1,11 +1,14 @@
 #!/usr/bin/env tsx
+import { loggers } from '@/lib/logger'
+const log = loggers.enrichment
+
 
 /**
  * Script pour vérifier la configuration Sentry
  */
 
 function checkSentryConfig() {
-  console.log('🔍 Vérification de la configuration Sentry...\n')
+  log.info('🔍 Vérification de la configuration Sentry...\n')
 
   const requiredVars = [
     'NEXT_PUBLIC_SENTRY_DSN',
@@ -18,28 +21,28 @@ function checkSentryConfig() {
   let allGood = true
 
   // Vérifier les variables requises
-  console.log('📋 Variables requises:')
+  log.info('📋 Variables requises:')
   requiredVars.forEach((varName) => {
     const value = process.env[varName]
     if (value) {
-      console.log(`  ✅ ${varName}: ${value.substring(0, 20)}...`)
+      log.info(`  ✅ ${varName}: ${value.substring(0, 20)}...`)
     } else {
-      console.log(`  ❌ ${varName}: Non définie`)
+      log.info(`  ❌ ${varName}: Non définie`)
       allGood = false
     }
   })
 
-  console.log('\n📋 Variables optionnelles:')
+  log.info('\n📋 Variables optionnelles:')
   optionalVars.forEach((varName) => {
     const value = process.env[varName]
     if (value) {
-      console.log(`  ✅ ${varName}: Définie`)
+      log.info(`  ✅ ${varName}: Définie`)
     } else {
-      console.log(`  ⚠️  ${varName}: Non définie (source maps upload limité)`)
+      log.info(`  ⚠️  ${varName}: Non définie (source maps upload limité)`)
     }
   })
 
-  console.log('\n📁 Fichiers de configuration:')
+  log.info('\n📁 Fichiers de configuration:')
   const configFiles = [
     'sentry.client.config.ts',
     'sentry.server.config.ts',
@@ -53,25 +56,25 @@ function checkSentryConfig() {
   configFiles.forEach((file) => {
     const filePath = path.join(process.cwd(), file)
     if (fs.existsSync(filePath)) {
-      console.log(`  ✅ ${file}`)
+      log.info(`  ✅ ${file}`)
     } else {
-      console.log(`  ❌ ${file}: Manquant`)
+      log.info(`  ❌ ${file}: Manquant`)
       allGood = false
     }
   })
 
-  console.log('\n📊 Résultat:')
+  log.info('\n📊 Résultat:')
   if (allGood) {
-    console.log('  ✅ Configuration Sentry complète!')
-    console.log('\n💡 Prochaines étapes:')
-    console.log('  1. Visitez /test-sentry pour tester')
-    console.log('  2. Vérifiez le dashboard Sentry pour les erreurs')
+    log.info('  ✅ Configuration Sentry complète!')
+    log.info('\n💡 Prochaines étapes:')
+    log.info('  1. Visitez /test-sentry pour tester')
+    log.info('  2. Vérifiez le dashboard Sentry pour les erreurs')
   } else {
-    console.log('  ❌ Configuration incomplète')
-    console.log('\n💡 Actions nécessaires:')
-    console.log('  1. Créez un projet sur https://sentry.io')
-    console.log("  2. Ajoutez les variables d'environnement dans .env.local")
-    console.log('  3. Relancez ce script pour vérifier')
+    log.info('  ❌ Configuration incomplète')
+    log.info('\n💡 Actions nécessaires:')
+    log.info('  1. Créez un projet sur https://sentry.io')
+    log.info("  2. Ajoutez les variables d'environnement dans .env.local")
+    log.info('  3. Relancez ce script pour vérifier')
   }
 
   return allGood

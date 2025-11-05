@@ -1,4 +1,7 @@
 #!/usr/bin/env tsx
+import { loggers } from '@/lib/logger'
+const log = loggers.enrichment
+
 
 /**
  * Script pour configurer le release tracking Sentry
@@ -52,17 +55,17 @@ function generateRelease(): string {
 }
 
 function setupSentryRelease() {
-  console.log('🔧 Configuration du Release Tracking Sentry\n')
+  log.info('🔧 Configuration du Release Tracking Sentry\n')
 
   const release = generateRelease()
   const branch = getGitBranch() || 'unknown'
   const commit = getGitCommit() || 'unknown'
 
-  console.log('📋 Informations Release:')
-  console.log(`  Release: ${release}`)
-  console.log(`  Branch: ${branch}`)
-  console.log(`  Commit: ${commit}`)
-  console.log('')
+  log.info('📋 Informations Release:')
+  log.info(`  Release: ${release}`)
+  log.info(`  Branch: ${branch}`)
+  log.info(`  Commit: ${commit}`)
+  log.info('')
 
   // Créer un fichier .sentry-release.json
   const releaseInfo = {
@@ -76,22 +79,22 @@ function setupSentryRelease() {
   const releasePath = path.join(process.cwd(), '.sentry-release.json')
   fs.writeFileSync(releasePath, JSON.stringify(releaseInfo, null, 2))
 
-  console.log('✅ Fichier .sentry-release.json créé')
-  console.log(`  Chemin: ${releasePath}\n`)
+  log.info('✅ Fichier .sentry-release.json créé')
+  log.info(`  Chemin: ${releasePath}\n`)
 
   // Exporter pour utilisation dans les configs Sentry
   process.env.SENTRY_RELEASE = release
   process.env.SENTRY_BRANCH = branch
   process.env.SENTRY_COMMIT = commit
 
-  console.log("💡 Variables d'environnement:")
-  console.log(`  SENTRY_RELEASE=${release}`)
-  console.log(`  SENTRY_BRANCH=${branch}`)
-  console.log(`  SENTRY_COMMIT=${commit}\n`)
+  log.info("💡 Variables d'environnement:")
+  log.info(`  SENTRY_RELEASE=${release}`)
+  log.info(`  SENTRY_BRANCH=${branch}`)
+  log.info(`  SENTRY_COMMIT=${commit}\n`)
 
-  console.log('📝 Note: Ajoutez ces variables dans Vercel:')
-  console.log(`  SENTRY_RELEASE=${release}`)
-  console.log('')
+  log.info('📝 Note: Ajoutez ces variables dans Vercel:')
+  log.info(`  SENTRY_RELEASE=${release}`)
+  log.info('')
 
   return releaseInfo
 }
@@ -99,10 +102,10 @@ function setupSentryRelease() {
 if (require.main === module) {
   try {
     const releaseInfo = setupSentryRelease()
-    console.log('✅ Configuration terminée!')
+    log.info('✅ Configuration terminée!')
     process.exit(0)
   } catch (error) {
-    console.error('❌ Erreur:', error)
+    log.error('❌ Erreur:', error)
     process.exit(1)
   }
 }

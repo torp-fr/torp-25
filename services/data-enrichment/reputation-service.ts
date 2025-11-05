@@ -97,7 +97,7 @@ export class ReputationEnrichmentService {
       // TODO: Utiliser _companyName et _location pour rechercher les avis
       return null
     } catch (error) {
-      console.error('[ReputationService] Erreur scraping Google:', error)
+      log.error({ err: error }, 'Erreur scraping Google')
       return null
     }
   }

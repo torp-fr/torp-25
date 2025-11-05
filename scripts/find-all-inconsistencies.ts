@@ -1,3 +1,6 @@
+import { loggers } from '@/lib/logger'
+const log = loggers.enrichment
+
 /**
  * Script pour trouver TOUTES les incohérences entre paramètres et leur utilisation
  */
@@ -102,7 +105,7 @@ function findInconsistencies(filePath: string): Inconsistency[] {
 }
 
 function main() {
-  console.log('🔍 Détection de TOUTES les incohérences paramètres/utilisation...\n')
+  log.info('🔍 Détection de TOUTES les incohérences paramètres/utilisation...\n')
   
   const axesFiles = readdirSync(axesDir).filter(f => f.endsWith('.ts'))
   const allInconsistencies: Inconsistency[] = []
@@ -116,12 +119,12 @@ function main() {
   }
   
   if (allInconsistencies.length === 0) {
-    console.log('✅ Aucune incohérence détectée!')
+    log.info('✅ Aucune incohérence détectée!')
   } else {
-    console.log(`❌ ${allInconsistencies.length} incohérence(s) détectée(s):\n`)
+    log.info(`❌ ${allInconsistencies.length} incohérence(s) détectée(s):\n`)
     allInconsistencies.forEach((inc, i) => {
-      console.log(`${i + 1}. ${inc.file.replace(process.cwd() + '/', '')}:${inc.line}`)
-      console.log(`   Paramètre '${inc.param}' déclaré mais utilisé comme '${inc.usedAs}'\n`)
+      log.info(`${i + 1}. ${inc.file.replace(process.cwd() + '/', '')}:${inc.line}`)
+      log.info(`   Paramètre '${inc.param}' déclaré mais utilisé comme '${inc.usedAs}'\n`)
     })
   }
 }

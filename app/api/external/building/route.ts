@@ -8,7 +8,7 @@ import { BuildingService } from '@/services/external-apis/building-service'
 import { z } from 'zod'
 import { loggers } from '@/lib/logger'
 
-nconst log = loggers.api
+const log = loggers.api
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 

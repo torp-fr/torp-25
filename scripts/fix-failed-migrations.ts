@@ -1,3 +1,6 @@
+import { loggers } from '@/lib/logger'
+const log = loggers.enrichment
+
 /**
  * Script de correction automatique des migrations échouées
  * Nettoie les migrations RNB échouées et prépare pour la nouvelle migration
@@ -9,7 +12,7 @@ const prisma = new PrismaClient()
 
 async function fixFailedMigrations() {
   try {
-    console.log('🔧 Correction des migrations échouées...\n')
+    log.info('🔧 Correction des migrations échouées...\n')
 
     // 1. Identifier les migrations échouées
     const failedMigrations = await prisma.$queryRaw<Array<{
@@ -27,18 +30,18 @@ async function fixFailedMigrations() {
     `
 
     if (failedMigrations.length === 0) {
-      console.log('✅ Aucune migration échouée à nettoyer\n')
+      log.info('✅ Aucune migration échouée à nettoyer\n')
       return
     }
 
-    console.log(`⚠️  ${failedMigrations.length} migration(s) échouée(s) trouvée(s):\n`)
+    log.info(`⚠️  ${failedMigrations.length} migration(s) échouée(s) trouvée(s):\n`)
     failedMigrations.forEach((m) => {
-      console.log(`  - ${m.migration_name} (démarrée: ${m.started_at})`)
+      log.info(`  - ${m.migration_name} (démarrée: ${m.started_at})`)
     })
-    console.log('')
+    log.info('')
 
     // 2. Nettoyer les migrations échouées
-    console.log('🧹 Nettoyage en cours...\n')
+    log.info('🧹 Nettoyage en cours...\n')
     
     let totalCleaned = 0
     for (const migration of failedMigrations) {
@@ -49,12 +52,12 @@ async function fixFailedMigrations() {
       `
       
       if (result > 0) {
-        console.log(`  ✅ ${migration.migration_name} - nettoyée`)
+        log.info(`  ✅ ${migration.migration_name} - nettoyée`)
         totalCleaned++
       }
     }
 
-    console.log(`\n✅ ${totalCleaned} migration(s) nettoyée(s)\n`)
+    log.info(`\n✅ ${totalCleaned} migration(s) nettoyée(s)\n`)
 
     // 3. Vérifier l'état final
     const remainingFailed = await prisma.$queryRaw<Array<{ migration_name: string }>>`
@@ -69,20 +72,20 @@ async function fixFailedMigrations() {
     `
 
     if (remainingFailed.length === 0) {
-      console.log('✅ Nettoyage terminé avec succès !\n')
-      console.log('💡 Vous pouvez maintenant:')
-      console.log('   1. Relancer le déploiement sur Vercel')
-      console.log('   2. Ou exécuter: npm run db:migrate:deploy\n')
+      log.info('✅ Nettoyage terminé avec succès !\n')
+      log.info('💡 Vous pouvez maintenant:')
+      log.info('   1. Relancer le déploiement sur Vercel')
+      log.info('   2. Ou exécuter: npm run db:migrate:deploy\n')
     } else {
-      console.log(`⚠️  ${remainingFailed.length} migration(s) encore en échec (peut nécessiter une intervention manuelle)\n`)
+      log.info(`⚠️  ${remainingFailed.length} migration(s) encore en échec (peut nécessiter une intervention manuelle)\n`)
     }
 
   } catch (error: any) {
-    console.error('❌ Erreur lors de la correction:', error.message)
+    log.error('❌ Erreur lors de la correction:', error.message)
     
     if (error.code === 'P1001' || error.code === 'P2021') {
-      console.error('\n💡 Problème de connexion à la base de données.')
-      console.error('   Vérifiez que DATABASE_URL est correctement configuré.\n')
+      log.error('\n💡 Problème de connexion à la base de données.')
+      log.error('   Vérifiez que DATABASE_URL est correctement configuré.\n')
     }
     
     throw error
@@ -97,7 +100,7 @@ fixFailedMigrations()
     process.exit(0)
   })
   .catch((error) => {
-    console.error('❌ Erreur fatale:', error)
+    log.error('❌ Erreur fatale:', error)
     process.exit(1)
   })
 

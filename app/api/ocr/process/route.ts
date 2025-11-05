@@ -8,7 +8,7 @@ import { prisma } from '@/lib/db'
 import { ocrService } from '@/services/document/ocr'
 import { loggers } from '@/lib/logger'
 
-nconst log = loggers.api
+const log = loggers.api
 export const dynamic = 'force-dynamic'
 
 export async function POST(request: NextRequest) {

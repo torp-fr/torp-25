@@ -93,7 +93,7 @@ export class RNBIndexer {
 
       return null
     } catch (error) {
-      console.error('[RNBIndexer] Erreur recherche bâtiment:', error)
+      log.error({ err: error }, 'Erreur recherche bâtiment')
       return null
     }
   }
@@ -127,7 +127,7 @@ export class RNBIndexer {
 
       return buildings.map((b: any) => this.mapToRNBBuildingData(b))
     } catch (error) {
-      console.error('[RNBIndexer] Erreur recherche bâtiments:', error)
+      log.error({ err: error }, 'Erreur recherche bâtiments')
       return []
     }
   }
@@ -175,7 +175,7 @@ export class RNBIndexer {
 
       return building.id
     } catch (error) {
-      console.error('[RNBIndexer] Erreur indexation bâtiment:', error)
+      log.error({ err: error }, 'Erreur indexation bâtiment')
       return null
     }
   }

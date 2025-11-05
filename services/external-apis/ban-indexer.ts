@@ -49,7 +49,7 @@ export class BANIndexer {
 
       return addresses.map((addr: any) => this.mapToAddressData(addr))
     } catch (error) {
-      console.error('[BANIndexer] Erreur recherche adresse:', error)
+      log.error({ err: error }, 'Erreur recherche adresse')
       return []
     }
   }
@@ -94,7 +94,7 @@ export class BANIndexer {
 
       return addresses.map((addr: any) => this.mapToAddressData(addr))
     } catch (error) {
-      console.error('[BANIndexer] Erreur recherche adresses:', error)
+      log.error({ err: error }, 'Erreur recherche adresses')
       return []
     }
   }
@@ -125,7 +125,7 @@ export class BANIndexer {
 
       return null
     } catch (error) {
-      console.error('[BANIndexer] Erreur géocodage inverse:', error)
+      log.error({ err: error }, 'Erreur géocodage inverse')
       return null
     }
   }
@@ -179,7 +179,7 @@ export class BANIndexer {
 
       return address.id
     } catch (error) {
-      console.error('[BANIndexer] Erreur indexation adresse:', error)
+      log.error({ err: error }, 'Erreur indexation adresse')
       return null
     }
   }
@@ -212,7 +212,7 @@ export class BANIndexer {
             success++
           } catch (error) {
             failed++
-            console.error('[BANIndexer] Erreur indexation batch:', error)
+            log.error({ err: error }, 'Erreur indexation batch')
           }
         })
       )

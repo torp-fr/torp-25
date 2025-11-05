@@ -1,3 +1,6 @@
+import { loggers } from '@/lib/logger'
+const log = loggers.enrichment
+
 /**
  * Script automatisé de nettoyage complet pour Railway
  * Exécute toutes les corrections nécessaires automatiquement
@@ -9,14 +12,14 @@ const prisma = new PrismaClient()
 
 async function autoCleanup() {
   try {
-    console.log('🚀 Démarrage du nettoyage automatique Railway...\n')
+    log.info('🚀 Démarrage du nettoyage automatique Railway...\n')
 
     // 1. Test de connexion
     await prisma.$connect()
-    console.log('✅ Connexion à Railway établie\n')
+    log.info('✅ Connexion à Railway établie\n')
 
     // 2. Supprimer les migrations échouées
-    console.log('🧹 Étape 1: Nettoyage des migrations échouées...')
+    log.info('🧹 Étape 1: Nettoyage des migrations échouées...')
     
     const deletedMigrations = await prisma.$executeRaw`
       DELETE FROM "_prisma_migrations" 
@@ -33,10 +36,10 @@ async function autoCleanup() {
       AND finished_at IS NULL
     `
     
-    console.log(`   ✓ ${deletedMigrations} migration(s) supprimée(s)\n`)
+    log.info(`   ✓ ${deletedMigrations} migration(s) supprimée(s)\n`)
 
     // 3. Vérifier et supprimer les tables
-    console.log('🧹 Étape 2: Nettoyage des tables...')
+    log.info('🧹 Étape 2: Nettoyage des tables...')
     
     const tables = await prisma.$queryRaw<Array<{ table_name: string }>>`
       SELECT table_name 
@@ -49,18 +52,18 @@ async function autoCleanup() {
       for (const table of tables) {
         try {
           await prisma.$executeRawUnsafe(`DROP TABLE IF EXISTS "${table.table_name}" CASCADE`)
-          console.log(`   ✓ Table ${table.table_name} supprimée`)
+          log.info(`   ✓ Table ${table.table_name} supprimée`)
         } catch (error: any) {
-          console.log(`   ⚠️  Erreur lors de la suppression de ${table.table_name}: ${error.message}`)
+          log.info(`   ⚠️  Erreur lors de la suppression de ${table.table_name}: ${error.message}`)
         }
       }
     } else {
-      console.log('   ✓ Aucune table à supprimer')
+      log.info('   ✓ Aucune table à supprimer')
     }
-    console.log('')
+    log.info('')
 
     // 4. Vérifier et supprimer l'enum
-    console.log('🧹 Étape 3: Nettoyage de l\'enum...')
+    log.info('🧹 Étape 3: Nettoyage de l\'enum...')
     
     const enumExists = await prisma.$queryRaw<Array<{ exists: boolean }>>`
       SELECT EXISTS (
@@ -71,17 +74,17 @@ async function autoCleanup() {
     if (enumExists[0]?.exists) {
       try {
         await prisma.$executeRawUnsafe(`DROP TYPE IF EXISTS "rnb_import_status" CASCADE`)
-        console.log('   ✓ Enum rnb_import_status supprimé')
+        log.info('   ✓ Enum rnb_import_status supprimé')
       } catch (error: any) {
-        console.log(`   ⚠️  Erreur lors de la suppression de l'enum: ${error.message}`)
+        log.info(`   ⚠️  Erreur lors de la suppression de l'enum: ${error.message}`)
       }
     } else {
-      console.log('   ✓ Aucun enum à supprimer')
+      log.info('   ✓ Aucun enum à supprimer')
     }
-    console.log('')
+    log.info('')
 
     // 5. Vérification finale
-    console.log('🔍 Vérification finale...\n')
+    log.info('🔍 Vérification finale...\n')
     
     const remainingFailed = await prisma.$queryRaw<Array<{ count: bigint }>>`
       SELECT COUNT(*)::bigint as count
@@ -107,34 +110,34 @@ async function autoCleanup() {
     const tablesCount = Number(remainingTables[0]?.count || 0)
     const enumCount = Number(remainingEnum[0]?.count || 0)
     
-    console.log('📊 Résultat:')
-    console.log(`   - Migrations échouées restantes: ${failedCount}`)
-    console.log(`   - Tables restantes: ${tablesCount}`)
-    console.log(`   - Enum restant: ${enumCount}`)
-    console.log('')
+    log.info('📊 Résultat:')
+    log.info(`   - Migrations échouées restantes: ${failedCount}`)
+    log.info(`   - Tables restantes: ${tablesCount}`)
+    log.info(`   - Enum restant: ${enumCount}`)
+    log.info('')
     
     if (failedCount === 0 && tablesCount === 0 && enumCount === 0) {
-      console.log('✅ SUCCÈS ! La base Railway est maintenant propre et prête.')
-      console.log('💡 Vous pouvez maintenant relancer le déploiement sur Vercel.\n')
-      console.log('   La migration 20250129_add_rnb_models devrait s\'appliquer correctement.\n')
+      log.info('✅ SUCCÈS ! La base Railway est maintenant propre et prête.')
+      log.info('💡 Vous pouvez maintenant relancer le déploiement sur Vercel.\n')
+      log.info('   La migration 20250129_add_rnb_models devrait s\'appliquer correctement.\n')
     } else {
-      console.log('⚠️  Certains objets restent encore.')
-      console.log('   Vous pouvez essayer d\'exécuter le script SQL directement dans Railway.\n')
+      log.info('⚠️  Certains objets restent encore.')
+      log.info('   Vous pouvez essayer d\'exécuter le script SQL directement dans Railway.\n')
     }
 
   } catch (error: any) {
-    console.error('❌ Erreur lors du nettoyage:', error.message)
+    log.error('❌ Erreur lors du nettoyage:', error.message)
     
     if (error.code === 'P1001' || error.code === 'P2021') {
-      console.error('\n💡 Problème de connexion à Railway.')
-      console.error('   Vérifiez que DATABASE_URL est correctement configuré.')
-      console.error('   Vous pouvez le récupérer depuis Railway Dashboard.\n')
-      console.error('   Pour exécuter ce script localement:')
-      console.error('   1. Copier DATABASE_URL depuis Railway')
-      console.error('   2. Créer un fichier .env.local avec: DATABASE_URL="votre-url"')
-      console.error('   3. Relancer: npm run db:cleanup\n')
+      log.error('\n💡 Problème de connexion à Railway.')
+      log.error('   Vérifiez que DATABASE_URL est correctement configuré.')
+      log.error('   Vous pouvez le récupérer depuis Railway Dashboard.\n')
+      log.error('   Pour exécuter ce script localement:')
+      log.error('   1. Copier DATABASE_URL depuis Railway')
+      log.error('   2. Créer un fichier .env.local avec: DATABASE_URL="votre-url"')
+      log.error('   3. Relancer: npm run db:cleanup\n')
     } else {
-      console.error('\n💡 Erreur technique. Essayez d\'exécuter le script SQL directement dans Railway.\n')
+      log.error('\n💡 Erreur technique. Essayez d\'exécuter le script SQL directement dans Railway.\n')
     }
     
     process.exit(1)
@@ -149,7 +152,7 @@ autoCleanup()
     process.exit(0)
   })
   .catch((error) => {
-    console.error('❌ Erreur fatale:', error)
+    log.error('❌ Erreur fatale:', error)
     process.exit(1)
   })
 

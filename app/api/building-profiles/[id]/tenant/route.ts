@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { BuildingProfileService } from '@/services/building-profile-service'
 import { loggers } from '@/lib/logger'
 
-nconst log = loggers.api
+const log = loggers.api
 export const dynamic = 'force-dynamic'
 
 /**

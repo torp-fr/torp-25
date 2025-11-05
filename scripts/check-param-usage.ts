@@ -1,3 +1,6 @@
+import { loggers } from '@/lib/logger'
+const log = loggers.enrichment
+
 /**
  * Script pour détecter les incohérences entre paramètres préfixés avec _ et leur utilisation
  */
@@ -61,7 +64,7 @@ function checkFile(filePath: string): string[] {
 }
 
 function main() {
-  console.log('🔍 Détection des incohérences paramètres/utilisation...\n')
+  log.info('🔍 Détection des incohérences paramètres/utilisation...\n')
   
   const axesFiles = readdirSync(axesDir).filter(f => f.endsWith('.ts'))
   const allErrors: string[] = []
@@ -75,11 +78,11 @@ function main() {
   }
   
   if (allErrors.length === 0) {
-    console.log('✅ Aucune incohérence détectée!')
+    log.info('✅ Aucune incohérence détectée!')
   } else {
-    console.log(`❌ ${allErrors.length} incohérence(s) détectée(s):\n`)
+    log.info(`❌ ${allErrors.length} incohérence(s) détectée(s):\n`)
     allErrors.forEach((err, i) => {
-      console.log(`${i + 1}. ${err}`)
+      log.info(`${i + 1}. ${err}`)
     })
   }
 }

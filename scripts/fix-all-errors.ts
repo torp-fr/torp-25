@@ -1,3 +1,6 @@
+import { loggers } from '@/lib/logger'
+const log = loggers.enrichment
+
 /**
  * Script de correction automatique de TOUTES les erreurs TypeScript
  * Usage: npx tsx scripts/fix-all-errors.ts
@@ -121,10 +124,10 @@ function applyFix(fix: Fix): void {
 }
 
 function main() {
-  console.log('🔍 Détection et correction automatique de TOUTES les erreurs...\n')
+  log.info('🔍 Détection et correction automatique de TOUTES les erreurs...\n')
   
   // 1. Récupérer toutes les erreurs TypeScript
-  console.log('📋 Analyse des erreurs TypeScript...')
+  log.info('📋 Analyse des erreurs TypeScript...')
   const errorLines = getAllTypeScriptErrors()
   const fixes: Fix[] = []
   
@@ -146,47 +149,47 @@ function main() {
         fixes.push(fix)
       }
     } catch (error) {
-      console.error(`Erreur lors du traitement de ${parsed.file}:${parsed.lineNum}:`, error)
+      log.error(`Erreur lors du traitement de ${parsed.file}:${parsed.lineNum}:`, error)
     }
   }
   
   if (fixes.length === 0) {
-    console.log('✅ Aucune correction automatique nécessaire')
-    console.log('\n📋 Vérification manuelle des erreurs restantes...')
+    log.info('✅ Aucune correction automatique nécessaire')
+    log.info('\n📋 Vérification manuelle des erreurs restantes...')
     for (const errorLine of errorLines.slice(0, 10)) {
-      console.log(`   ${errorLine}`)
+      log.info(`   ${errorLine}`)
     }
     process.exit(0)
   }
   
-  console.log(`\n🔧 ${fixes.length} correction(s) à appliquer:\n`)
+  log.info(`\n🔧 ${fixes.length} correction(s) à appliquer:\n`)
   
   // Afficher les corrections
   for (const fix of fixes) {
-    console.log(`${fix.file}:${fix.line}`)
-    console.log(`  Type: ${fix.type}`)
-    console.log(`  Avant: ${fix.original.trim()}`)
+    log.info(`${fix.file}:${fix.line}`)
+    log.info(`  Type: ${fix.type}`)
+    log.info(`  Avant: ${fix.original.trim()}`)
     if (fix.fixed) {
-      console.log(`  Après: ${fix.fixed.trim()}`)
+      log.info(`  Après: ${fix.fixed.trim()}`)
     } else {
-      console.log(`  Action: Suppression de la ligne`)
+      log.info(`  Action: Suppression de la ligne`)
     }
-    console.log()
+    log.info()
   }
   
   // Appliquer les corrections
-  console.log('🔨 Application des corrections...')
+  log.info('🔨 Application des corrections...')
   for (const fix of fixes) {
     try {
       applyFix(fix)
-      console.log(`  ✓ ${fix.file}:${fix.line}`)
+      log.info(`  ✓ ${fix.file}:${fix.line}`)
     } catch (error) {
-      console.error(`  ✗ Erreur lors de la correction de ${fix.file}:${fix.line}:`, error)
+      log.error(`  ✗ Erreur lors de la correction de ${fix.file}:${fix.line}:`, error)
     }
   }
   
-  console.log('\n✅ Corrections appliquées!')
-  console.log('\n📋 Vérification finale...')
+  log.info('\n✅ Corrections appliquées!')
+  log.info('\n📋 Vérification finale...')
   
   // Vérifier s'il reste des erreurs
   const remainingErrors = getAllTypeScriptErrors()
@@ -196,9 +199,9 @@ function main() {
   ).length
   
   if (remainingCount === 0) {
-    console.log('✅ Plus aucune erreur de paramètres/variables non utilisés!')
+    log.info('✅ Plus aucune erreur de paramètres/variables non utilisés!')
   } else {
-    console.log(`⚠️  ${remainingCount} erreur(s) restante(s) nécessitent une correction manuelle`)
+    log.info(`⚠️  ${remainingCount} erreur(s) restante(s) nécessitent une correction manuelle`)
   }
 }
 

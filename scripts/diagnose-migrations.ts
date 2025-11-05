@@ -1,3 +1,6 @@
+import { loggers } from '@/lib/logger'
+const log = loggers.enrichment
+
 /**
  * Script de diagnostic et nettoyage des migrations Prisma
  * Analyse l'état des migrations et nettoie les migrations échouées
@@ -18,10 +21,10 @@ interface MigrationStatus {
 
 async function diagnoseMigrations() {
   try {
-    console.log('🔍 Diagnostic des migrations Prisma...\n')
+    log.info('🔍 Diagnostic des migrations Prisma...\n')
 
     // 1. Vérifier les migrations RNB
-    console.log('📋 Migrations RNB trouvées:')
+    log.info('📋 Migrations RNB trouvées:')
     const rnbMigrations = await prisma.$queryRaw<MigrationStatus[]>`
       SELECT 
         migration_name,
@@ -36,18 +39,18 @@ async function diagnoseMigrations() {
     `
 
     if (rnbMigrations.length === 0) {
-      console.log('  ℹ️  Aucune migration RNB trouvée\n')
+      log.info('  ℹ️  Aucune migration RNB trouvée\n')
     } else {
       rnbMigrations.forEach((m) => {
         const status = m.finished_at 
           ? '✅ TERMINÉE' 
           : '❌ ÉCHOUÉE / EN COURS'
-        console.log(`  ${status} - ${m.migration_name}`)
-        console.log(`    Début: ${m.started_at}`)
+        log.info(`  ${status} - ${m.migration_name}`)
+        log.info(`    Début: ${m.started_at}`)
         if (m.finished_at) {
-          console.log(`    Fin: ${m.finished_at}`)
+          log.info(`    Fin: ${m.finished_at}`)
         }
-        console.log('')
+        log.info('')
       })
     }
 
@@ -55,14 +58,14 @@ async function diagnoseMigrations() {
     const failedMigrations = rnbMigrations.filter((m) => !m.finished_at)
     
     if (failedMigrations.length > 0) {
-      console.log(`⚠️  ${failedMigrations.length} migration(s) échouée(s) détectée(s):\n`)
+      log.info(`⚠️  ${failedMigrations.length} migration(s) échouée(s) détectée(s):\n`)
       failedMigrations.forEach((m) => {
-        console.log(`  - ${m.migration_name}`)
+        log.info(`  - ${m.migration_name}`)
       })
-      console.log('')
+      log.info('')
 
       // 3. Proposer le nettoyage
-      console.log('🧹 Nettoyage proposé...')
+      log.info('🧹 Nettoyage proposé...')
       const migrationsToClean = [
         '20250127_add_rnb_models',
         '20250128_add_rnb_models',
@@ -77,18 +80,18 @@ async function diagnoseMigrations() {
           AND finished_at IS NULL
         `
         if (result > 0) {
-          console.log(`  ✅ ${migrationName} - nettoyée`)
+          log.info(`  ✅ ${migrationName} - nettoyée`)
           cleaned++
         }
       }
 
-      console.log(`\n✅ ${cleaned} migration(s) nettoyée(s)\n`)
+      log.info(`\n✅ ${cleaned} migration(s) nettoyée(s)\n`)
     } else {
-      console.log('✅ Aucune migration échouée détectée\n')
+      log.info('✅ Aucune migration échouée détectée\n')
     }
 
     // 4. Vérifier l'état des tables RNB
-    console.log('📊 État des tables RNB:')
+    log.info('📊 État des tables RNB:')
     
     const tablesExist = await prisma.$queryRaw<Array<{ table_name: string }>>`
       SELECT table_name 
@@ -101,48 +104,48 @@ async function diagnoseMigrations() {
     const expectedTables = ['rnb_buildings', 'rnb_import_jobs']
     expectedTables.forEach((tableName) => {
       const exists = tablesExist.some((t) => t.table_name === tableName)
-      console.log(`  ${exists ? '✅' : '❌'} ${tableName}`)
+      log.info(`  ${exists ? '✅' : '❌'} ${tableName}`)
     })
 
     // 5. Vérifier l'enum
-    console.log('\n📋 État de l\'enum:')
+    log.info('\n📋 État de l\'enum:')
     const enumExists = await prisma.$queryRaw<Array<{ typname: string }>>`
       SELECT typname 
       FROM pg_type 
       WHERE typname = 'rnb_import_status'
     `
     
-    console.log(`  ${enumExists.length > 0 ? '✅' : '❌'} rnb_import_status`)
+    log.info(`  ${enumExists.length > 0 ? '✅' : '❌'} rnb_import_status`)
 
     // 6. Résumé et recommandations
-    console.log('\n📝 Résumé:')
+    log.info('\n📝 Résumé:')
     
     const tablesMissing = expectedTables.filter(
       (t) => !tablesExist.some((e) => e.table_name === t)
     )
     
     if (failedMigrations.length === 0 && tablesMissing.length === 0 && enumExists.length > 0) {
-      console.log('  ✅ Tout est en ordre ! Les migrations peuvent être appliquées.\n')
-      console.log('  💡 Vous pouvez maintenant relancer le déploiement sur Vercel.\n')
+      log.info('  ✅ Tout est en ordre ! Les migrations peuvent être appliquées.\n')
+      log.info('  💡 Vous pouvez maintenant relancer le déploiement sur Vercel.\n')
     } else {
       if (tablesMissing.length > 0) {
-        console.log(`  ⚠️  Tables manquantes: ${tablesMissing.join(', ')}`)
-        console.log('     → La migration 20250129_add_rnb_models doit être appliquée\n')
+        log.info(`  ⚠️  Tables manquantes: ${tablesMissing.join(', ')}`)
+        log.info('     → La migration 20250129_add_rnb_models doit être appliquée\n')
       }
       if (enumExists.length === 0) {
-        console.log('  ⚠️  L\'enum rnb_import_status n\'existe pas')
-        console.log('     → La migration 20250129_add_rnb_models doit être appliquée\n')
+        log.info('  ⚠️  L\'enum rnb_import_status n\'existe pas')
+        log.info('     → La migration 20250129_add_rnb_models doit être appliquée\n')
       }
     }
 
   } catch (error: any) {
-    console.error('❌ Erreur lors du diagnostic:', error.message)
+    log.error('❌ Erreur lors du diagnostic:', error.message)
     
     if (error.code === 'P1001' || error.code === 'P2021') {
-      console.error('\n💡 Vérifiez que:')
-      console.error('   - DATABASE_URL est correctement configuré')
-      console.error('   - La base de données est accessible')
-      console.error('   - Les permissions sont correctes\n')
+      log.error('\n💡 Vérifiez que:')
+      log.error('   - DATABASE_URL est correctement configuré')
+      log.error('   - La base de données est accessible')
+      log.error('   - Les permissions sont correctes\n')
     }
     
     throw error
@@ -154,11 +157,11 @@ async function diagnoseMigrations() {
 // Exécuter le diagnostic
 diagnoseMigrations()
   .then(() => {
-    console.log('✅ Diagnostic terminé')
+    log.info('✅ Diagnostic terminé')
     process.exit(0)
   })
   .catch((error) => {
-    console.error('❌ Erreur fatale:', error)
+    log.error('❌ Erreur fatale:', error)
     process.exit(1)
   })
 

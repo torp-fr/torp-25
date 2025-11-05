@@ -215,7 +215,7 @@ export class ABTestEngine {
       
       // TODO: Créer une table ABTestResult dans Prisma si nécessaire
     } catch (error) {
-      console.error('[ABTestEngine] Erreur logging:', error)
+      log.error({ err: error }, 'Erreur logging')
     }
   }
 

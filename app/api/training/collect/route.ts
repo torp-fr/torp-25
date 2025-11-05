@@ -6,7 +6,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { TrainingDataCollector } from '@/services/training/data-collector'
 import { loggers } from '@/lib/logger'
 
-nconst log = loggers.api
+const log = loggers.api
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json().catch(() => ({}))

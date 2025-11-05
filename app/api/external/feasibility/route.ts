@@ -9,7 +9,7 @@ import { FeasibilityService } from '@/services/external-apis/feasibility-service
 import { BuildingService } from '@/services/external-apis/building-service'
 import { loggers } from '@/lib/logger'
 
-nconst log = loggers.api
+const log = loggers.api
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 

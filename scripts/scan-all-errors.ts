@@ -1,3 +1,6 @@
+import { loggers } from '@/lib/logger'
+const log = loggers.enrichment
+
 /**
  * Script pour scanner TOUS les fichiers TypeScript et détecter TOUTES les erreurs
  * Simule le processus de build Next.js
@@ -165,7 +168,7 @@ function findUnusedParameters(content: string, filePath: string): ErrorInfo[] {
 }
 
 function main() {
-  console.log('🔍 Scanner TOUS les fichiers TypeScript du projet...\n')
+  log.info('🔍 Scanner TOUS les fichiers TypeScript du projet...\n')
   
   const projectRoot = process.cwd()
   const excludeDirs = [
@@ -178,7 +181,7 @@ function main() {
   ]
   
   const allFiles = getAllTsFiles(projectRoot, excludeDirs)
-  console.log(`📁 ${allFiles.length} fichier(s) TypeScript trouvé(s)\n`)
+  log.info(`📁 ${allFiles.length} fichier(s) TypeScript trouvé(s)\n`)
   
   const allErrors: ErrorInfo[] = []
   
@@ -196,23 +199,23 @@ function main() {
       
       if (fileErrors.length > 0) {
         allErrors.push(...fileErrors)
-        console.log(`❌ ${file.replace(projectRoot + '/', '')}:`)
+        log.info(`❌ ${file.replace(projectRoot + '/', '')}:`)
         for (const error of fileErrors) {
-          console.log(`   Ligne ${error.line}:${error.column} - ${error.variable} (${error.type})`)
+          log.info(`   Ligne ${error.line}:${error.column} - ${error.variable} (${error.type})`)
         }
-        console.log()
+        log.info()
       }
     } catch (error) {
-      console.error(`⚠️  Erreur lors de la lecture de ${file}:`, error)
+      log.error(`⚠️  Erreur lors de la lecture de ${file}:`, error)
     }
   }
   
   if (allErrors.length === 0) {
-    console.log('✅ Aucune erreur détectée!')
+    log.info('✅ Aucune erreur détectée!')
     process.exit(0)
   }
   
-  console.log(`\n❌ Total: ${allErrors.length} erreur(s) détectée(s)\n`)
+  log.info(`\n❌ Total: ${allErrors.length} erreur(s) détectée(s)\n`)
   
   // Grouper par fichier
   const errorsByFile = new Map<string, ErrorInfo[]>()
@@ -223,9 +226,9 @@ function main() {
     errorsByFile.get(error.file)!.push(error)
   }
   
-  console.log('📋 Résumé par fichier:')
+  log.info('📋 Résumé par fichier:')
   for (const [file, errors] of errorsByFile.entries()) {
-    console.log(`   ${file.replace(projectRoot + '/', '')}: ${errors.length} erreur(s)`)
+    log.info(`   ${file.replace(projectRoot + '/', '')}: ${errors.length} erreur(s)`)
   }
   
   process.exit(1)

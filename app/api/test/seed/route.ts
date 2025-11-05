@@ -9,7 +9,7 @@ import { prisma } from '@/lib/db'
 import { torpScoringEngine } from '@/services/scoring/torp-score'
 import { loggers } from '@/lib/logger'
 
-nconst log = loggers.api
+const log = loggers.api
 export const dynamic = 'force-dynamic'
 
 export async function POST(request: NextRequest) {

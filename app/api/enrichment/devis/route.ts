@@ -8,7 +8,7 @@ import { DataEnrichmentService } from '@/services/data-enrichment/enrichment-ser
 import { z } from 'zod'
 import { loggers } from '@/lib/logger'
 
-nconst log = loggers.api
+const log = loggers.api
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
 

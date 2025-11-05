@@ -8,7 +8,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { CompanyEnrichmentService } from '@/services/data-enrichment/company-service'
 import { loggers } from '@/lib/logger'
 
-nconst log = loggers.api
+const log = loggers.api
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
 

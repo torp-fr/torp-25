@@ -1,4 +1,7 @@
 #!/usr/bin/env tsx
+import { loggers } from '@/lib/logger'
+const log = loggers.enrichment
+
 
 /**
  * Script complet pour tester l'intégration Sentry
@@ -17,11 +20,11 @@ interface TestResult {
 async function runSentryTests(): Promise<TestResult[]> {
   const results: TestResult[] = []
 
-  console.log("🧪 Tests d'Intégration Sentry\n")
-  console.log('='.repeat(50))
+  log.info("🧪 Tests d'Intégration Sentry\n")
+  log.info('='.repeat(50))
 
   // Test 1: Configuration DSN
-  console.log('\n1️⃣ Test Configuration DSN')
+  log.info('\n1️⃣ Test Configuration DSN')
   try {
     const dsn =
       process.env.NEXT_PUBLIC_SENTRY_DSN ||
@@ -34,7 +37,7 @@ async function runSentryTests(): Promise<TestResult[]> {
         message: 'DSN configuré correctement',
         details: { dsn: dsn.substring(0, 50) + '...' },
       })
-      console.log('  ✅ DSN configuré')
+      log.info('  ✅ DSN configuré')
     } else {
       throw new Error('DSN invalide ou manquant')
     }
@@ -44,11 +47,11 @@ async function runSentryTests(): Promise<TestResult[]> {
       success: false,
       message: error instanceof Error ? error.message : 'Erreur inconnue',
     })
-    console.log('  ❌ DSN non configuré')
+    log.info('  ❌ DSN non configuré')
   }
 
   // Test 2: Initialisation Sentry
-  console.log('\n2️⃣ Test Initialisation SDK')
+  log.info('\n2️⃣ Test Initialisation SDK')
   try {
     if (typeof Sentry !== 'undefined') {
       results.push({
@@ -56,7 +59,7 @@ async function runSentryTests(): Promise<TestResult[]> {
         success: true,
         message: 'SDK Sentry importé correctement',
       })
-      console.log('  ✅ SDK Sentry disponible')
+      log.info('  ✅ SDK Sentry disponible')
     } else {
       throw new Error('Sentry SDK non disponible')
     }
@@ -66,11 +69,11 @@ async function runSentryTests(): Promise<TestResult[]> {
       success: false,
       message: error instanceof Error ? error.message : 'Erreur inconnue',
     })
-    console.log('  ❌ SDK Sentry non disponible')
+    log.info('  ❌ SDK Sentry non disponible')
   }
 
   // Test 3: Variables d'environnement
-  console.log('\n3️⃣ Test Variables Environnement')
+  log.info('\n3️⃣ Test Variables Environnement')
   const envVars = {
     NEXT_PUBLIC_SENTRY_DSN: process.env.NEXT_PUBLIC_SENTRY_DSN ? '✅' : '❌',
     SENTRY_ORG: process.env.SENTRY_ORG || 'o4510290746146816',
@@ -84,10 +87,10 @@ async function runSentryTests(): Promise<TestResult[]> {
     message: 'Variables vérifiées',
     details: envVars,
   })
-  console.log('  📋 Variables:', envVars)
+  log.info('  📋 Variables:', envVars)
 
   // Test 4: Envoi de message
-  console.log('\n4️⃣ Test Envoi de Message')
+  log.info('\n4️⃣ Test Envoi de Message')
   try {
     Sentry.captureMessage('Test Sentry Integration - Script Test', {
       level: 'info',
@@ -102,18 +105,18 @@ async function runSentryTests(): Promise<TestResult[]> {
       success: true,
       message: 'Message envoyé à Sentry',
     })
-    console.log('  ✅ Message capturé')
+    log.info('  ✅ Message capturé')
   } catch (error) {
     results.push({
       name: 'Message Capture',
       success: false,
       message: error instanceof Error ? error.message : 'Erreur inconnue',
     })
-    console.log('  ❌ Erreur lors de la capture')
+    log.info('  ❌ Erreur lors de la capture')
   }
 
   // Test 5: Exception avec contexte
-  console.log('\n5️⃣ Test Exception avec Contexte')
+  log.info('\n5️⃣ Test Exception avec Contexte')
   try {
     Sentry.setContext('test-integration', {
       script: 'test-sentry-integration',
@@ -138,18 +141,18 @@ async function runSentryTests(): Promise<TestResult[]> {
       success: true,
       message: 'Exception capturée avec contexte',
     })
-    console.log('  ✅ Exception capturée avec contexte')
+    log.info('  ✅ Exception capturée avec contexte')
   } catch (error) {
     results.push({
       name: 'Exception Capture',
       success: false,
       message: error instanceof Error ? error.message : 'Erreur inconnue',
     })
-    console.log('  ❌ Erreur lors de la capture')
+    log.info('  ❌ Erreur lors de la capture')
   }
 
   // Test 6: User Context
-  console.log('\n6️⃣ Test User Context')
+  log.info('\n6️⃣ Test User Context')
   try {
     Sentry.setUser({
       id: 'test-script-user',
@@ -161,18 +164,18 @@ async function runSentryTests(): Promise<TestResult[]> {
       success: true,
       message: 'User context défini',
     })
-    console.log('  ✅ User context défini')
+    log.info('  ✅ User context défini')
   } catch (error) {
     results.push({
       name: 'User Context',
       success: false,
       message: error instanceof Error ? error.message : 'Erreur inconnue',
     })
-    console.log('  ❌ Erreur lors de la définition')
+    log.info('  ❌ Erreur lors de la définition')
   }
 
   // Test 7: Release Tracking (si configuré)
-  console.log('\n7️⃣ Test Release Tracking')
+  log.info('\n7️⃣ Test Release Tracking')
   try {
     const release =
       process.env.SENTRY_RELEASE ||
@@ -186,51 +189,51 @@ async function runSentryTests(): Promise<TestResult[]> {
       message: `Release tracking configuré: ${release}`,
       details: { release },
     })
-    console.log(`  ✅ Release: ${release}`)
+    log.info(`  ✅ Release: ${release}`)
   } catch (error) {
     results.push({
       name: 'Release Tracking',
       success: false,
       message: error instanceof Error ? error.message : 'Release non configuré',
     })
-    console.log('  ⚠️  Release non configuré')
+    log.info('  ⚠️  Release non configuré')
   }
 
   return results
 }
 
 async function generateReport(results: TestResult[]) {
-  console.log('\n' + '='.repeat(50))
-  console.log('\n📊 Rapport des Tests\n')
+  log.info('\n' + '='.repeat(50))
+  log.info('\n📊 Rapport des Tests\n')
 
   const successCount = results.filter((r) => r.success).length
   const totalCount = results.length
 
-  console.log(`✅ Réussis: ${successCount}/${totalCount}`)
-  console.log(`❌ Échoués: ${totalCount - successCount}/${totalCount}`)
+  log.info(`✅ Réussis: ${successCount}/${totalCount}`)
+  log.info(`❌ Échoués: ${totalCount - successCount}/${totalCount}`)
 
-  console.log('\n📋 Détails:\n')
+  log.info('\n📋 Détails:\n')
   results.forEach((result, index) => {
     const icon = result.success ? '✅' : '❌'
-    console.log(`${index + 1}. ${icon} ${result.name}`)
-    console.log(`   ${result.message}`)
+    log.info(`${index + 1}. ${icon} ${result.name}`)
+    log.info(`   ${result.message}`)
     if (result.details) {
-      console.log(`   Détails:`, result.details)
+      log.info(`   Détails:`, result.details)
     }
-    console.log('')
+    log.info('')
   })
 
-  console.log('='.repeat(50))
-  console.log('\n💡 Prochaines étapes:')
-  console.log('1. Vérifiez le dashboard Sentry:')
-  console.log(
+  log.info('='.repeat(50))
+  log.info('\n💡 Prochaines étapes:')
+  log.info('1. Vérifiez le dashboard Sentry:')
+  log.info(
     '   https://sentry.io/organizations/o4510290746146816/projects/torp-platform/issues/'
   )
-  console.log('2. Attendez 10-30 secondes')
-  console.log('3. Vérifiez que les nouvelles issues apparaissent')
-  console.log("4. Activez l'intégration GitHub via le dashboard Sentry")
-  console.log('   Voir: docs/ACTIVATE_GITHUB_INTEGRATION.md')
-  console.log('')
+  log.info('2. Attendez 10-30 secondes')
+  log.info('3. Vérifiez que les nouvelles issues apparaissent')
+  log.info("4. Activez l'intégration GitHub via le dashboard Sentry")
+  log.info('   Voir: docs/ACTIVATE_GITHUB_INTEGRATION.md')
+  log.info('')
 }
 
 if (require.main === module) {
@@ -240,7 +243,7 @@ if (require.main === module) {
       process.exit(0)
     })
     .catch((error) => {
-      console.error('Erreur lors des tests:', error)
+      log.error('Erreur lors des tests:', error)
       process.exit(1)
     })
 }

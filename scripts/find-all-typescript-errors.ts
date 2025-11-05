@@ -1,3 +1,6 @@
+import { loggers } from '@/lib/logger'
+const log = loggers.enrichment
+
 /**
  * Script pour détecter TOUTES les erreurs TypeScript en utilisant le compilateur
  */
@@ -7,7 +10,7 @@ import { readFileSync } from 'fs'
 import { join } from 'path'
 
 try {
-  console.log('🔍 Exécution de tsc --noEmit pour détecter TOUTES les erreurs...\n')
+  log.info('🔍 Exécution de tsc --noEmit pour détecter TOUTES les erreurs...\n')
   
   // Utiliser npx pour exécuter tsc depuis node_modules
   const output = execSync('npx tsc --noEmit --pretty false 2>&1', {
@@ -17,12 +20,12 @@ try {
   })
   
   if (output.trim() === '') {
-    console.log('✅ Aucune erreur TypeScript détectée!')
+    log.info('✅ Aucune erreur TypeScript détectée!')
     process.exit(0)
   }
   
-  console.log('❌ Erreurs TypeScript détectées:\n')
-  console.log(output)
+  log.info('❌ Erreurs TypeScript détectées:\n')
+  log.info(output)
   
   // Extraire les erreurs "never read"
   const lines = output.split('\n')
@@ -32,9 +35,9 @@ try {
   )
   
   if (neverReadErrors.length > 0) {
-    console.log('\n📋 Erreurs "never read" détectées:\n')
+    log.info('\n📋 Erreurs "never read" détectées:\n')
     neverReadErrors.forEach((error, index) => {
-      console.log(`${index + 1}. ${error.trim()}`)
+      log.info(`${index + 1}. ${error.trim()}`)
     })
   }
   
@@ -42,13 +45,13 @@ try {
 } catch (error: any) {
   if (error.status === 0 || error.stdout) {
     // Pas d'erreur
-    console.log('✅ Aucune erreur TypeScript détectée!')
+    log.info('✅ Aucune erreur TypeScript détectée!')
     process.exit(0)
   } else {
     // Il y a des erreurs dans stderr
     const errors = error.stderr?.toString() || error.stdout?.toString() || error.message
-    console.log('❌ Erreurs TypeScript détectées:\n')
-    console.log(errors)
+    log.info('❌ Erreurs TypeScript détectées:\n')
+    log.info(errors)
     
     // Extraire les erreurs "never read"
     const lines = errors.split('\n')
@@ -58,9 +61,9 @@ try {
     )
     
     if (neverReadErrors.length > 0) {
-      console.log('\n📋 Erreurs "never read" détectées:\n')
+      log.info('\n📋 Erreurs "never read" détectées:\n')
       neverReadErrors.forEach((error, index) => {
-        console.log(`${index + 1}. ${error.trim()}`)
+        log.info(`${index + 1}. ${error.trim()}`)
       })
     }
     

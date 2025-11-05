@@ -215,7 +215,7 @@ export class APICartoCadastreService {
 
       return result.features.length > 0 ? result.features[0] : null
     } catch (error) {
-      console.error('[APICartoCadastreService] Erreur récupération parcelle:', error)
+      log.error({ err: error }, 'Erreur récupération parcelle')
       return null
     }
   }
@@ -256,7 +256,7 @@ export class APICartoCadastreService {
 
       return allParcelles.slice(0, limit)
     } catch (error) {
-      console.error('[APICartoCadastreService] Erreur récupération toutes parcelles:', error)
+      log.error({ err: error }, 'Erreur récupération toutes parcelles')
       return []
     }
   }
@@ -278,7 +278,7 @@ export class APICartoCadastreService {
 
       return result.features
     } catch (error) {
-      console.error('[APICartoCadastreService] Erreur récupération parcelles par géométrie:', error)
+      log.error({ err: error }, 'Erreur récupération parcelles par géométrie')
       return []
     }
   }
@@ -318,7 +318,7 @@ export class APICartoCadastreService {
 
       return null
     } catch (error) {
-      console.error('[APICartoCadastreService] Erreur récupération centroïde:', error)
+      log.error({ err: error }, 'Erreur récupération centroïde')
       return null
     }
   }

@@ -1,3 +1,6 @@
+import { loggers } from '@/lib/logger'
+const log = loggers.enrichment
+
 /**
  * SCRIPT DÉFINITIF : Détection et correction de TOUTES les erreurs TypeScript
  * 
@@ -162,16 +165,16 @@ function fixErrors(errors: Error[]): void {
 }
 
 function main() {
-  console.log('🔍 Détection COMPLÈTE de TOUTES les erreurs...\n')
+  log.info('🔍 Détection COMPLÈTE de TOUTES les erreurs...\n')
   
   const errors = getAllErrors()
   
   if (errors.length === 0) {
-    console.log('✅ Aucune erreur détectée!')
+    log.info('✅ Aucune erreur détectée!')
     return
   }
   
-  console.log(`❌ ${errors.length} erreur(s) détectée(s):\n`)
+  log.info(`❌ ${errors.length} erreur(s) détectée(s):\n`)
   
   const byType = {
     param: errors.filter(e => e.type === 'param'),
@@ -180,26 +183,26 @@ function main() {
   }
   
   if (byType.param.length > 0) {
-    console.log(`📋 Paramètres non utilisés (${byType.param.length}):`)
+    log.info(`📋 Paramètres non utilisés (${byType.param.length}):`)
     for (const error of byType.param) {
-      console.log(`   ${error.file.replace(process.cwd() + '/', '')}:${error.line} - ${error.name}`)
+      log.info(`   ${error.file.replace(process.cwd() + '/', '')}:${error.line} - ${error.name}`)
     }
-    console.log()
+    log.info()
   }
   
   if (byType.variable.length > 0) {
-    console.log(`📋 Variables non utilisées (${byType.variable.length}):`)
+    log.info(`📋 Variables non utilisées (${byType.variable.length}):`)
     for (const error of byType.variable) {
-      console.log(`   ${error.file.replace(process.cwd() + '/', '')}:${error.line} - ${error.name}`)
+      log.info(`   ${error.file.replace(process.cwd() + '/', '')}:${error.line} - ${error.name}`)
     }
-    console.log()
+    log.info()
   }
   
-  console.log('🔧 Application des corrections...\n')
+  log.info('🔧 Application des corrections...\n')
   fixErrors(errors)
   
-  console.log(`✅ ${errors.length} correction(s) appliquée(s)`)
-  console.log('\n⚠️  Vérifiez que les corrections sont correctes avant de commit!')
+  log.info(`✅ ${errors.length} correction(s) appliquée(s)`)
+  log.info('\n⚠️  Vérifiez que les corrections sont correctes avant de commit!')
 }
 
 main()

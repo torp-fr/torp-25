@@ -1,4 +1,7 @@
 #!/usr/bin/env tsx
+import { loggers } from '@/lib/logger'
+const log = loggers.enrichment
+
 /**
  * Script de planification du scraping
  * À exécuter toutes les heures via cron job
@@ -8,7 +11,7 @@ import { globalScraper } from '../services/scraping/data-scraper'
 import { prisma } from '../lib/db'
 
 async function main() {
-  console.log('🕐 Scraping Scheduler - Démarrage...\n')
+  log.info('🕐 Scraping Scheduler - Démarrage...\n')
 
   try {
     // 1. Récupérer les nouveaux devis sans scraping
@@ -22,7 +25,7 @@ async function main() {
       orderBy: { createdAt: 'desc' },
     })
 
-    console.log(`📋 ${recentDevis.length} devis récents trouvés\n`)
+    log.info(`📋 ${recentDevis.length} devis récents trouvés\n`)
 
     // 2. Programmer le scraping pour chaque devis
     for (const devis of recentDevis) {
@@ -30,22 +33,22 @@ async function main() {
     }
 
     // 3. Traiter la queue
-    console.log('\n🚀 Traitement de la queue...\n')
+    log.info('\n🚀 Traitement de la queue...\n')
     await globalScraper.processQueue()
 
     // 4. Afficher les statistiques
     const stats = globalScraper.getQueueStats()
-    console.log('\n📊 Statistiques:')
-    console.log(`  Total: ${stats.total}`)
-    console.log(`  En attente: ${stats.pending}`)
-    console.log(`  En cours: ${stats.inProgress}`)
-    console.log(`  Complétées: ${stats.completed}`)
-    console.log(`  Échouées: ${stats.failed}\n`)
+    log.info('\n📊 Statistiques:')
+    log.info(`  Total: ${stats.total}`)
+    log.info(`  En attente: ${stats.pending}`)
+    log.info(`  En cours: ${stats.inProgress}`)
+    log.info(`  Complétées: ${stats.completed}`)
+    log.info(`  Échouées: ${stats.failed}\n`)
 
-    console.log('✅ Scraping scheduler terminé\n')
+    log.info('✅ Scraping scheduler terminé\n')
 
   } catch (error) {
-    console.error('❌ Erreur:', error)
+    log.error('❌ Erreur:', error)
     process.exit(1)
   } finally {
     await prisma.$disconnect()

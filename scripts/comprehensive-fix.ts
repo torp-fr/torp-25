@@ -1,3 +1,6 @@
+import { loggers } from '@/lib/logger'
+const log = loggers.enrichment
+
 /**
  * REFONTE COMPLÈTE : Correction automatique de TOUTES les erreurs
  * 
@@ -125,8 +128,8 @@ function fixFile(filePath: string, functions: FunctionInfo[]): boolean {
 }
 
 function main() {
-  console.log('🔧 REFONTE COMPLÈTE : Correction automatique de TOUTES les erreurs\n')
-  console.log('📋 Étape 1: Analyse de tous les fichiers d\'axes...\n')
+  log.info('🔧 REFONTE COMPLÈTE : Correction automatique de TOUTES les erreurs\n')
+  log.info('📋 Étape 1: Analyse de tous les fichiers d\'axes...\n')
   
   const axesFiles = readdirSync(axesDir).filter(f => f.endsWith('.ts'))
   const allFunctions: FunctionInfo[] = []
@@ -140,17 +143,17 @@ function main() {
     const unusedParams = functions.flatMap(f => f.params.filter(p => !p.used))
     
     if (unusedParams.length > 0) {
-      console.log(`📄 ${file}`)
+      log.info(`📄 ${file}`)
       for (const func of functions) {
         const unused = func.params.filter(p => !p.used)
         if (unused.length > 0) {
-          console.log(`   ${func.name}(): ${unused.length} paramètre(s) non utilisé(s)`)
+          log.info(`   ${func.name}(): ${unused.length} paramètre(s) non utilisé(s)`)
           for (const param of unused) {
-            console.log(`      - ${param.name} (ligne ${param.line})`)
+            log.info(`      - ${param.name} (ligne ${param.line})`)
           }
         }
       }
-      console.log()
+      log.info()
       
       filesToFix.push({ file: filePath, functions })
     }
@@ -161,32 +164,32 @@ function main() {
   const totalUnused = allFunctions.flatMap(f => f.params.filter(p => !p.used)).length
   
   if (totalUnused === 0) {
-    console.log('✅ Aucun paramètre non utilisé détecté!')
+    log.info('✅ Aucun paramètre non utilisé détecté!')
     process.exit(0)
   }
   
-  console.log(`\n🔧 Étape 2: Correction de ${totalUnused} paramètre(s) non utilisé(s)...\n`)
+  log.info(`\n🔧 Étape 2: Correction de ${totalUnused} paramètre(s) non utilisé(s)...\n`)
   
   // Corriger tous les fichiers
   let fixedCount = 0
   for (const { file, functions } of filesToFix) {
     if (fixFile(file, functions)) {
       fixedCount++
-      console.log(`  ✓ ${file.replace(process.cwd() + '/', '')}`)
+      log.info(`  ✓ ${file.replace(process.cwd() + '/', '')}`)
     }
   }
   
-  console.log(`\n✅ ${fixedCount} fichier(s) corrigé(s)`)
-  console.log('\n📋 Étape 3: Vérification finale...\n')
+  log.info(`\n✅ ${fixedCount} fichier(s) corrigé(s)`)
+  log.info('\n📋 Étape 3: Vérification finale...\n')
   
   // Vérifier avec TypeScript
   try {
     const { execSync } = require('child_process')
     execSync('npx tsc --noEmit', { stdio: 'inherit' })
-    console.log('\n✅ Toutes les erreurs ont été corrigées!')
+    log.info('\n✅ Toutes les erreurs ont été corrigées!')
   } catch (error) {
-    console.log('\n⚠️  Il reste des erreurs à corriger manuellement')
-    console.log('   Exécutez: npx tsc --noEmit pour voir les détails')
+    log.info('\n⚠️  Il reste des erreurs à corriger manuellement')
+    log.info('   Exécutez: npx tsc --noEmit pour voir les détails')
   }
 }
 

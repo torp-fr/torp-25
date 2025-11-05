@@ -7,7 +7,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { globalScraper } from '@/services/scraping/data-scraper'
 import { loggers } from '@/lib/logger'
 
-nconst log = loggers.api
+const log = loggers.api
 export async function POST(_request: NextRequest) {
   try {
     log.info('[API Scraping] 🚀 Démarrage traitement queue...')

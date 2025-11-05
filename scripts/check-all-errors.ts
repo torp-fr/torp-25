@@ -1,3 +1,6 @@
+import { loggers } from '@/lib/logger'
+const log = loggers.enrichment
+
 /**
  * Script de détection systématique de toutes les erreurs TypeScript
  * Usage: npx tsx scripts/check-all-errors.ts
@@ -135,14 +138,14 @@ function findUnusedParamsInFile(filePath: string): ErrorReport[] {
 }
 
 function main() {
-  console.log('🔍 Détection systématique de toutes les erreurs...\n')
+  log.info('🔍 Détection systématique de toutes les erreurs...\n')
   
   // 1. Vérifier les erreurs TypeScript
-  console.log('📋 Vérification des erreurs TypeScript...')
+  log.info('📋 Vérification des erreurs TypeScript...')
   const tsErrors = checkTypeScriptErrors()
   
   // 2. Vérifier les paramètres non utilisés dans les fichiers d'axes
-  console.log('📋 Vérification des paramètres non utilisés...')
+  log.info('📋 Vérification des paramètres non utilisés...')
   const axesFiles = readdirSync(axesDir).filter(f => f.endsWith('.ts'))
   const unusedParamErrors: ErrorReport[] = []
   
@@ -163,34 +166,34 @@ function main() {
   }
   
   // Afficher le rapport
-  console.log('\n📊 RAPPORT D\'ERREURS\n')
-  console.log(`Total: ${allErrors.length} erreurs détectées\n`)
+  log.info('\n📊 RAPPORT D\'ERREURS\n')
+  log.info(`Total: ${allErrors.length} erreurs détectées\n`)
   
   if (byCategory['type-error'].length > 0) {
-    console.log(`❌ Erreurs de type (${byCategory['type-error'].length}):`)
+    log.info(`❌ Erreurs de type (${byCategory['type-error'].length}):`)
     for (const error of byCategory['type-error']) {
-      console.log(`   ${error.file}:${error.line} - ${error.message}`)
+      log.info(`   ${error.file}:${error.line} - ${error.message}`)
     }
-    console.log()
+    log.info()
   }
   
   if (byCategory['unused-param'].length > 0) {
-    console.log(`⚠️  Paramètres non utilisés (${byCategory['unused-param'].length}):`)
+    log.info(`⚠️  Paramètres non utilisés (${byCategory['unused-param'].length}):`)
     for (const error of byCategory['unused-param']) {
-      console.log(`   ${error.file}:${error.line} - ${error.message}`)
+      log.info(`   ${error.file}:${error.line} - ${error.message}`)
     }
-    console.log()
+    log.info()
   }
   
   if (allErrors.length === 0) {
-    console.log('✅ Aucune erreur détectée!')
+    log.info('✅ Aucune erreur détectée!')
     process.exit(0)
   } else {
-    console.log(`\n💡 Actions recommandées:`)
-    console.log(`   1. Préfixer les paramètres non utilisés avec '_'`)
-    console.log(`   2. Supprimer les variables non utilisées`)
-    console.log(`   3. Corriger les erreurs de type`)
-    console.log(`   4. Vérifier la cohérence des interfaces`)
+    log.info(`\n💡 Actions recommandées:`)
+    log.info(`   1. Préfixer les paramètres non utilisés avec '_'`)
+    log.info(`   2. Supprimer les variables non utilisées`)
+    log.info(`   3. Corriger les erreurs de type`)
+    log.info(`   4. Vérifier la cohérence des interfaces`)
     process.exit(1)
   }
 }

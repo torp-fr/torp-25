@@ -8,7 +8,7 @@ import { prisma } from '@/lib/db'
 import { documentUploadService } from '@/services/document/upload'
 import { loggers } from '@/lib/logger'
 
-nconst log = loggers.api
+const log = loggers.api
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 

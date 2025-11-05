@@ -224,7 +224,7 @@ RÈGLES IMPORTANTES pour companyVerification:
 
       return jsonResponse
     } catch (error) {
-      console.error('[InsightsGenerator] Erreur:', error)
+      log.error({ err: error }, 'Erreur')
       // Retourner des insights par défaut en cas d'erreur
       return this.getDefaultInsights(analysisData)
     }

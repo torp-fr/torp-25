@@ -1,3 +1,6 @@
+import { loggers } from '@/lib/logger'
+const log = loggers.enrichment
+
 /**
  * Script de test pour vérifier la structure de l'API RGE data.gouv.fr
  */
@@ -6,7 +9,7 @@ async function testRGEApi() {
   const datasetId = '62bd63b70ff1edf452b83a6b'
   const apiUrl = `https://www.data.gouv.fr/api/1/datasets/${datasetId}/`
 
-  console.log(`🔍 Test API RGE: ${apiUrl}\n`)
+  log.info(`🔍 Test API RGE: ${apiUrl}\n`)
 
   try {
     const response = await fetch(apiUrl, {
@@ -16,33 +19,33 @@ async function testRGEApi() {
     })
 
     if (!response.ok) {
-      console.error(`❌ Erreur HTTP: ${response.status} ${response.statusText}`)
+      log.error(`❌ Erreur HTTP: ${response.status} ${response.statusText}`)
       const text = await response.text()
-      console.error('Réponse:', text.substring(0, 500))
+      log.error('Réponse:', text.substring(0, 500))
       return
     }
 
     const data = await response.json()
 
-    console.log('✅ Réponse API reçue')
-    console.log('\n📋 Clés principales:', Object.keys(data))
-    console.log('\n📦 Dataset ID:', data.id)
-    console.log('📦 Dataset Title:', data.title || data.name)
-    console.log('\n🔗 Resources:')
+    log.info('✅ Réponse API reçue')
+    log.info('\n📋 Clés principales:', Object.keys(data))
+    log.info('\n📦 Dataset ID:', data.id)
+    log.info('📦 Dataset Title:', data.title || data.name)
+    log.info('\n🔗 Resources:')
     
     if (data.resources && Array.isArray(data.resources)) {
-      console.log(`   Nombre de ressources: ${data.resources.length}\n`)
+      log.info(`   Nombre de ressources: ${data.resources.length}\n`)
       
       data.resources.slice(0, 5).forEach((r: any, i: number) => {
-        console.log(`   Ressource ${i + 1}:`)
-        console.log(`     - Clés:`, Object.keys(r))
-        console.log(`     - ID:`, r.id || r.uuid || 'N/A')
-        console.log(`     - Title:`, r.title || r.name || 'N/A')
-        console.log(`     - URL:`, r.url || r.file || 'N/A')
-        console.log(`     - Format:`, r.format || r.mime_type || 'N/A')
-        console.log(`     - Size:`, r.filesize || r.size || 'N/A')
-        console.log(`     - Modified:`, r.last_modified || r.modified || r.created_at || 'N/A')
-        console.log('')
+        log.info(`   Ressource ${i + 1}:`)
+        log.info(`     - Clés:`, Object.keys(r))
+        log.info(`     - ID:`, r.id || r.uuid || 'N/A')
+        log.info(`     - Title:`, r.title || r.name || 'N/A')
+        log.info(`     - URL:`, r.url || r.file || 'N/A')
+        log.info(`     - Format:`, r.format || r.mime_type || 'N/A')
+        log.info(`     - Size:`, r.filesize || r.size || 'N/A')
+        log.info(`     - Modified:`, r.last_modified || r.modified || r.created_at || 'N/A')
+        log.info('')
       })
 
       // Ressources CSV/JSON
@@ -52,29 +55,29 @@ async function testRGEApi() {
                r.url?.includes('.csv') || r.url?.includes('.json')
       })
       
-      console.log(`\n📊 Ressources CSV/JSON trouvées: ${csvJsonResources.length}`)
+      log.info(`\n📊 Ressources CSV/JSON trouvées: ${csvJsonResources.length}`)
       if (csvJsonResources.length > 0) {
         csvJsonResources.forEach((r: any) => {
-          console.log(`   - ${r.title || r.name}: ${r.url || r.file}`)
+          log.info(`   - ${r.title || r.name}: ${r.url || r.file}`)
         })
       }
     } else {
-      console.log('   ⚠️ Pas de ressources ou format inattendu')
-      console.log('   Type:', typeof data.resources)
+      log.info('   ⚠️ Pas de ressources ou format inattendu')
+      log.info('   Type:', typeof data.resources)
       if (data.resources) {
-        console.log('   Valeur:', JSON.stringify(data.resources).substring(0, 200))
+        log.info('   Valeur:', JSON.stringify(data.resources).substring(0, 200))
       }
     }
 
     // Sauvegarder la réponse complète pour analyse
-    console.log('\n💾 Structure complète (premiers 1000 chars):')
-    console.log(JSON.stringify(data, null, 2).substring(0, 1000))
+    log.info('\n💾 Structure complète (premiers 1000 chars):')
+    log.info(JSON.stringify(data, null, 2).substring(0, 1000))
 
   } catch (error) {
-    console.error('❌ Erreur:', error)
+    log.error('❌ Erreur:', error)
     if (error instanceof Error) {
-      console.error('Message:', error.message)
-      console.error('Stack:', error.stack)
+      log.error('Message:', error.message)
+      log.error('Stack:', error.stack)
     }
   }
 }

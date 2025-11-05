@@ -1,3 +1,6 @@
+import { loggers } from '@/lib/logger'
+const log = loggers.enrichment
+
 /**
  * Script de détection systématique de TOUS les paramètres non utilisés
  * À exécuter avant chaque push pour éviter les erreurs Vercel
@@ -135,7 +138,7 @@ function detectUnusedParameters(filePath: string): Error[] {
 }
 
 function main() {
-  console.log('🔍 Détection systématique de paramètres/variables non utilisés...\n')
+  log.info('🔍 Détection systématique de paramètres/variables non utilisés...\n')
   
   const axesDir = join(process.cwd(), 'services/scoring/advanced/axes')
   const axesFiles = readdirSync(axesDir).filter(f => f.endsWith('.ts'))
@@ -151,10 +154,10 @@ function main() {
   }
   
   if (allErrors.length === 0) {
-    console.log('✅ Aucune erreur détectée! Vous pouvez pusher en toute sécurité.')
+    log.info('✅ Aucune erreur détectée! Vous pouvez pusher en toute sécurité.')
     process.exit(0)
   } else {
-    console.log(`❌ ${allErrors.length} erreur(s) détectée(s):\n`)
+    log.info(`❌ ${allErrors.length} erreur(s) détectée(s):\n`)
     
     const byFile = new Map<string, Error[]>()
     for (const error of allErrors) {
@@ -165,15 +168,15 @@ function main() {
     }
     
     for (const [file, errors] of byFile.entries()) {
-      console.log(`📄 ${file.replace(process.cwd() + '/', '')}:`)
+      log.info(`📄 ${file.replace(process.cwd() + '/', '')}:`)
       for (const error of errors) {
-        console.log(`   Ligne ${error.line}: ${error.type === 'parameter' ? 'Paramètre' : 'Variable'} '${error.param}' déclaré mais jamais utilisé`)
+        log.info(`   Ligne ${error.line}: ${error.type === 'parameter' ? 'Paramètre' : 'Variable'} '${error.param}' déclaré mais jamais utilisé`)
       }
-      console.log()
+      log.info()
     }
     
-    console.log('❌ Ne poussez PAS ! Corrigez ces erreurs d\'abord.')
-    console.log('\n💡 Astuce: Préfixez les paramètres non utilisés avec _ (ex: _devis, _context)')
+    log.info('❌ Ne poussez PAS ! Corrigez ces erreurs d\'abord.')
+    log.info('\n💡 Astuce: Préfixez les paramètres non utilisés avec _ (ex: _devis, _context)')
     process.exit(1)
   }
 }

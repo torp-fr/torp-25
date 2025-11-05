@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { SireneService } from '@/services/external-apis/sirene-service'
 import { loggers } from '@/lib/logger'
 
-nconst log = loggers.api
+const log = loggers.api
 export const dynamic = 'force-dynamic'
 
 /**

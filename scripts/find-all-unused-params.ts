@@ -1,3 +1,6 @@
+import { loggers } from '@/lib/logger'
+const log = loggers.enrichment
+
 /**
  * Script pour trouver TOUS les paramètres non utilisés dans les axes de scoring
  * Avant de pousser, exécuter ce script pour corriger toutes les erreurs d'un coup
@@ -98,7 +101,7 @@ function findUnusedParams(filePath: string): UnusedParam[] {
 }
 
 function main() {
-  console.log('🔍 Recherche de TOUS les paramètres non utilisés...\n')
+  log.info('🔍 Recherche de TOUS les paramètres non utilisés...\n')
   
   const axesFiles = readdirSync(axesDir).filter(f => f.endsWith('.ts'))
   const allUnused: UnusedParam[] = []
@@ -112,10 +115,10 @@ function main() {
   }
   
   if (allUnused.length === 0) {
-    console.log('✅ Aucun paramètre non utilisé détecté!')
+    log.info('✅ Aucun paramètre non utilisé détecté!')
     process.exit(0)
   } else {
-    console.log(`❌ ${allUnused.length} paramètre(s) non utilisé(s) détecté(s):\n`)
+    log.info(`❌ ${allUnused.length} paramètre(s) non utilisé(s) détecté(s):\n`)
     
     const byFile = new Map<string, UnusedParam[]>()
     for (const item of allUnused) {
@@ -126,14 +129,14 @@ function main() {
     }
     
     for (const [file, items] of byFile.entries()) {
-      console.log(`📄 ${file.replace(process.cwd() + '/', '')}:`)
+      log.info(`📄 ${file.replace(process.cwd() + '/', '')}:`)
       for (const item of items) {
-        console.log(`   Ligne ${item.line}: '${item.param}' dans ${item.function}()`)
+        log.info(`   Ligne ${item.line}: '${item.param}' dans ${item.function}()`)
       }
-      console.log()
+      log.info()
     }
     
-    console.log('❌ Corrigez ces erreurs avant de pousser.')
+    log.info('❌ Corrigez ces erreurs avant de pousser.')
     process.exit(1)
   }
 }

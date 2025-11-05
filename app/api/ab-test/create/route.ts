@@ -6,7 +6,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { ABTestEngine } from '@/services/ab-testing/ab-test-engine'
 import { loggers } from '@/lib/logger'
 
-nconst log = loggers.api
+const log = loggers.api
 const abEngine = new ABTestEngine()
 
 export async function POST(request: NextRequest) {

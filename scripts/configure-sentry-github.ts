@@ -1,4 +1,7 @@
 #!/usr/bin/env tsx
+import { loggers } from '@/lib/logger'
+const log = loggers.enrichment
+
 
 /**
  * Script pour configurer l'intégration GitHub Sentry via API
@@ -100,17 +103,17 @@ function makeApiRequest(
 }
 
 async function checkAuthToken(): Promise<ApiResponse> {
-  console.log('🔐 Vérification du token Sentry...')
+  log.info('🔐 Vérification du token Sentry...')
   return makeApiRequest('GET', `/organizations/${SENTRY_ORG}/`)
 }
 
 async function listIntegrations(): Promise<ApiResponse> {
-  console.log('📋 Liste des intégrations disponibles...')
+  log.info('📋 Liste des intégrations disponibles...')
   return makeApiRequest('GET', `/organizations/${SENTRY_ORG}/integrations/`)
 }
 
 async function configureGitHubIntegration(): Promise<ApiResponse> {
-  console.log("🔗 Configuration de l'intégration GitHub...")
+  log.info("🔗 Configuration de l'intégration GitHub...")
 
   // Note: L'intégration GitHub nécessite une autorisation OAuth
   // qui ne peut être faite que via le dashboard. Ce script vérifie
@@ -125,7 +128,7 @@ async function configureGitHubIntegration(): Promise<ApiResponse> {
 }
 
 async function configureProjectGitHub(): Promise<ApiResponse> {
-  console.log('📦 Configuration GitHub pour le projet...')
+  log.info('📦 Configuration GitHub pour le projet...')
 
   // Configuration du repository GitHub pour le projet
   const body = {
@@ -145,7 +148,7 @@ async function configureProjectGitHub(): Promise<ApiResponse> {
 }
 
 async function enableSuspectCommits(): Promise<ApiResponse> {
-  console.log('🔍 Activation des Suspect Commits...')
+  log.info('🔍 Activation des Suspect Commits...')
 
   // Configuration via les paramètres du projet
   const body = {
@@ -160,7 +163,7 @@ async function enableSuspectCommits(): Promise<ApiResponse> {
 }
 
 async function configureReleaseTracking(): Promise<ApiResponse> {
-  console.log('📌 Configuration du Release Tracking...')
+  log.info('📌 Configuration du Release Tracking...')
 
   const body = {
     versioningScheme: 'semver',
@@ -174,128 +177,128 @@ async function configureReleaseTracking(): Promise<ApiResponse> {
 }
 
 async function main() {
-  console.log('🚀 Configuration Sentry ↔ GitHub\n')
-  console.log('='.repeat(50))
-  console.log(`Organisation: ${SENTRY_ORG}`)
-  console.log(`Projet: ${SENTRY_PROJECT}`)
-  console.log(`Repository: ${GITHUB_OWNER}/${GITHUB_REPO}`)
-  console.log('='.repeat(50))
-  console.log('')
+  log.info('🚀 Configuration Sentry ↔ GitHub\n')
+  log.info('='.repeat(50))
+  log.info(`Organisation: ${SENTRY_ORG}`)
+  log.info(`Projet: ${SENTRY_PROJECT}`)
+  log.info(`Repository: ${GITHUB_OWNER}/${GITHUB_REPO}`)
+  log.info('='.repeat(50))
+  log.info('')
 
   if (!SENTRY_AUTH_TOKEN) {
-    console.log('❌ SENTRY_AUTH_TOKEN non configuré')
-    console.log('')
-    console.log('💡 Pour obtenir un token:')
-    console.log(
+    log.info('❌ SENTRY_AUTH_TOKEN non configuré')
+    log.info('')
+    log.info('💡 Pour obtenir un token:')
+    log.info(
       '1. Allez sur https://sentry.io/settings/account/api/auth-tokens/'
     )
-    console.log('2. Créez un nouveau token avec les permissions:')
-    console.log('   - org:read (lecture organisation)')
-    console.log('   - org:write (écriture organisation)')
-    console.log('   - project:read (lecture projet)')
-    console.log('   - project:write (écriture projet)')
-    console.log("3. Ajoutez-le comme variable d'environnement:")
-    console.log('   export SENTRY_AUTH_TOKEN=your_token_here')
-    console.log('')
+    log.info('2. Créez un nouveau token avec les permissions:')
+    log.info('   - org:read (lecture organisation)')
+    log.info('   - org:write (écriture organisation)')
+    log.info('   - project:read (lecture projet)')
+    log.info('   - project:write (écriture projet)')
+    log.info("3. Ajoutez-le comme variable d'environnement:")
+    log.info('   export SENTRY_AUTH_TOKEN=your_token_here')
+    log.info('')
     process.exit(1)
   }
 
   // Vérifier le token
   const authCheck = await checkAuthToken()
   if (!authCheck.success) {
-    console.log('❌ Token invalide ou insuffisant')
-    console.log(`   ${authCheck.message}`)
+    log.info('❌ Token invalide ou insuffisant')
+    log.info(`   ${authCheck.message}`)
     if (authCheck.error) {
-      console.log(`   Erreur: ${authCheck.error}`)
+      log.info(`   Erreur: ${authCheck.error}`)
     }
     process.exit(1)
   }
-  console.log('✅ Token valide')
-  console.log('')
+  log.info('✅ Token valide')
+  log.info('')
 
   // Lister les intégrations
   const integrations = await listIntegrations()
   if (integrations.success && integrations.data) {
-    console.log('📋 Intégrations disponibles:')
+    log.info('📋 Intégrations disponibles:')
     const githubIntegrations = integrations.data.filter(
       (i: any) => i.provider?.key === 'github'
     )
     if (githubIntegrations.length > 0) {
-      console.log(`   ✅ GitHub: ${githubIntegrations.length} installation(s)`)
+      log.info(`   ✅ GitHub: ${githubIntegrations.length} installation(s)`)
       githubIntegrations.forEach((i: any) => {
-        console.log(`      - ${i.name} (${i.status})`)
+        log.info(`      - ${i.name} (${i.status})`)
       })
     } else {
-      console.log('   ⚠️  Aucune intégration GitHub trouvée')
-      console.log('')
-      console.log('💡 Pour installer GitHub:')
-      console.log(
+      log.info('   ⚠️  Aucune intégration GitHub trouvée')
+      log.info('')
+      log.info('💡 Pour installer GitHub:')
+      log.info(
         '1. Allez sur https://sentry.io/settings/o4510290746146816/integrations/github/'
       )
-      console.log('2. Cliquez sur "Install" ou "Add Installation"')
-      console.log('3. Autorisez Sentry à accéder à GitHub')
-      console.log('4. Sélectionnez le repository: torp-fr/torp-25')
-      console.log('')
+      log.info('2. Cliquez sur "Install" ou "Add Installation"')
+      log.info('3. Autorisez Sentry à accéder à GitHub')
+      log.info('4. Sélectionnez le repository: torp-fr/torp-25')
+      log.info('')
     }
-    console.log('')
+    log.info('')
   }
 
   // Configuration du repository pour le projet
   const repoConfig = await configureProjectGitHub()
   if (repoConfig.success) {
-    console.log('✅ Repository GitHub configuré pour le projet')
+    log.info('✅ Repository GitHub configuré pour le projet')
   } else {
-    console.log('⚠️  Configuration repository:')
-    console.log(`   ${repoConfig.message}`)
+    log.info('⚠️  Configuration repository:')
+    log.info(`   ${repoConfig.message}`)
     if (repoConfig.error) {
-      console.log(`   Erreur: ${repoConfig.error}`)
+      log.info(`   Erreur: ${repoConfig.error}`)
     }
   }
-  console.log('')
+  log.info('')
 
   // Configuration suspect commits
   const suspectCommits = await enableSuspectCommits()
   if (suspectCommits.success) {
-    console.log('✅ Suspect Commits activé')
+    log.info('✅ Suspect Commits activé')
   } else {
-    console.log('⚠️  Configuration Suspect Commits:')
-    console.log(`   ${suspectCommits.message}`)
+    log.info('⚠️  Configuration Suspect Commits:')
+    log.info(`   ${suspectCommits.message}`)
   }
-  console.log('')
+  log.info('')
 
   // Configuration release tracking
   const releaseTracking = await configureReleaseTracking()
   if (releaseTracking.success) {
-    console.log('✅ Release Tracking configuré')
+    log.info('✅ Release Tracking configuré')
   } else {
-    console.log('⚠️  Configuration Release Tracking:')
-    console.log(`   ${releaseTracking.message}`)
+    log.info('⚠️  Configuration Release Tracking:')
+    log.info(`   ${releaseTracking.message}`)
   }
-  console.log('')
+  log.info('')
 
-  console.log('='.repeat(50))
-  console.log('')
-  console.log('📝 Résumé:')
-  console.log('')
-  console.log("⚠️  IMPORTANT: L'intégration GitHub complète nécessite")
-  console.log('   une autorisation OAuth via le dashboard Sentry.')
-  console.log('')
-  console.log('🔗 Étapes manuelles requises:')
-  console.log(
+  log.info('='.repeat(50))
+  log.info('')
+  log.info('📝 Résumé:')
+  log.info('')
+  log.info("⚠️  IMPORTANT: L'intégration GitHub complète nécessite")
+  log.info('   une autorisation OAuth via le dashboard Sentry.')
+  log.info('')
+  log.info('🔗 Étapes manuelles requises:')
+  log.info(
     '1. https://sentry.io/settings/o4510290746146816/integrations/github/'
   )
-  console.log("2. Installer l'intégration GitHub")
-  console.log("3. Autoriser l'accès au repository torp-fr/torp-25")
-  console.log('')
-  console.log(
+  log.info("2. Installer l'intégration GitHub")
+  log.info("3. Autoriser l'accès au repository torp-fr/torp-25")
+  log.info('')
+  log.info(
     '✅ Une fois installé, les configurations ci-dessus seront actives.'
   )
-  console.log('')
+  log.info('')
 }
 
 if (require.main === module) {
   main().catch((error) => {
-    console.error('Erreur:', error)
+    log.error('Erreur:', error)
     process.exit(1)
   })
 }

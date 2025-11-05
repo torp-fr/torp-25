@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { DataGouvCadastreService } from '@/services/external-apis/datagouv-cadastre-service'
 import { loggers } from '@/lib/logger'
 
-nconst log = loggers.api
+const log = loggers.api
 export const dynamic = 'force-dynamic'
 
 /**

@@ -1,3 +1,6 @@
+import { loggers } from '@/lib/logger'
+const log = loggers.enrichment
+
 /**
  * Script de détection et correction de TOUTES les variables non utilisées
  * dans tous les fichiers d'axes
@@ -87,7 +90,7 @@ function fixFile(filePath: string, issues: Issue[]): boolean {
 }
 
 function main() {
-  console.log('🔍 Détection de TOUTES les variables non utilisées...\n')
+  log.info('🔍 Détection de TOUTES les variables non utilisées...\n')
   
   const axesFiles = readdirSync(axesDir).filter(f => f.endsWith('.ts'))
   const allIssues: Issue[] = []
@@ -98,11 +101,11 @@ function main() {
     const issues = findUnusedVariables(filePath)
     
     if (issues.length > 0) {
-      console.log(`📄 ${file}: ${issues.length} variable(s) non utilisée(s)`)
+      log.info(`📄 ${file}: ${issues.length} variable(s) non utilisée(s)`)
       for (const issue of issues) {
-        console.log(`   - ${issue.variable} (ligne ${issue.line}, type: ${issue.type})`)
+        log.info(`   - ${issue.variable} (ligne ${issue.line}, type: ${issue.type})`)
       }
-      console.log()
+      log.info()
       
       filesToFix.push({ file: filePath, issues })
       allIssues.push(...issues)
@@ -110,21 +113,21 @@ function main() {
   }
   
   if (allIssues.length === 0) {
-    console.log('✅ Aucune variable non utilisée détectée!')
+    log.info('✅ Aucune variable non utilisée détectée!')
     process.exit(0)
   }
   
-  console.log(`\n🔧 Correction de ${allIssues.length} variable(s)...\n`)
+  log.info(`\n🔧 Correction de ${allIssues.length} variable(s)...\n`)
   
   let fixedCount = 0
   for (const { file, issues } of filesToFix) {
     if (fixFile(file, issues)) {
       fixedCount++
-      console.log(`  ✓ ${file.replace(process.cwd() + '/', '')}`)
+      log.info(`  ✓ ${file.replace(process.cwd() + '/', '')}`)
     }
   }
   
-  console.log(`\n✅ ${fixedCount} fichier(s) corrigé(s)`)
+  log.info(`\n✅ ${fixedCount} fichier(s) corrigé(s)`)
 }
 
 main()

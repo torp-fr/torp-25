@@ -1,3 +1,6 @@
+import { loggers } from '@/lib/logger'
+const log = loggers.enrichment
+
 /**
  * Script de test complet pour valider le système de scoring TORP
  * Teste l'intégration complète : LLM + Enrichissement + Scoring
@@ -31,7 +34,7 @@ class ScoringSystemTester {
         duration,
         data: result,
       })
-      console.log(`✅ ${stepName} (${duration}ms)`)
+      log.info(`✅ ${stepName} (${duration}ms)`)
       return result
     } catch (error) {
       const duration = Date.now() - start
@@ -42,7 +45,7 @@ class ScoringSystemTester {
         duration,
         error: errorMessage,
       })
-      console.error(`❌ ${stepName} (${duration}ms): ${errorMessage}`)
+      log.error(`❌ ${stepName} (${duration}ms): ${errorMessage}`)
       throw error
     }
   }
@@ -51,7 +54,7 @@ class ScoringSystemTester {
    * Test 1: Analyse LLM d'un fichier de devis
    */
   async testLLMAnalysis(filePath: string) {
-    console.log('\n📄 Test 1: Analyse LLM...')
+    log.info('\n📄 Test 1: Analyse LLM...')
     
     if (!fs.existsSync(filePath)) {
       throw new Error(`Fichier non trouvé: ${filePath}`)
@@ -67,11 +70,11 @@ class ScoringSystemTester {
       throw new Error('Aucune donnée extraite')
     }
 
-    console.log(`   - Données extraites: ${Object.keys(analysis.extractedData).length} champs`)
-    console.log(`   - Score LLM initial: ${analysis.score}/100`)
-    console.log(`   - Entreprise: ${analysis.extractedData.company?.name || 'N/A'}`)
-    console.log(`   - SIRET: ${analysis.extractedData.company?.siret || 'N/A'}`)
-    console.log(`   - Montant total: ${analysis.extractedData.totals?.total || 'N/A'}€`)
+    log.info(`   - Données extraites: ${Object.keys(analysis.extractedData).length} champs`)
+    log.info(`   - Score LLM initial: ${analysis.score}/100`)
+    log.info(`   - Entreprise: ${analysis.extractedData.company?.name || 'N/A'}`)
+    log.info(`   - SIRET: ${analysis.extractedData.company?.siret || 'N/A'}`)
+    log.info(`   - Montant total: ${analysis.extractedData.totals?.total || 'N/A'}€`)
 
     return analysis
   }
@@ -80,7 +83,7 @@ class ScoringSystemTester {
    * Test 2: Enrichissement avancé des données
    */
   async testDataEnrichment(extractedData: any) {
-    console.log('\n🔍 Test 2: Enrichissement des données...')
+    log.info('\n🔍 Test 2: Enrichissement des données...')
 
     const enrichmentService = new AdvancedEnrichmentService()
     
@@ -109,8 +112,8 @@ class ScoringSystemTester {
     if (enrichment.weatherData) sources.push('Météo')
     if (enrichment.dtus?.length) sources.push('DTU')
 
-    console.log(`   - Sources utilisées: ${sources.join(', ') || 'Aucune'}`)
-    console.log(`   - Données enrichies: ${Object.keys(enrichment).length} catégories`)
+    log.info(`   - Sources utilisées: ${sources.join(', ') || 'Aucune'}`)
+    log.info(`   - Données enrichies: ${Object.keys(enrichment).length} catégories`)
 
     return enrichment
   }
@@ -119,7 +122,7 @@ class ScoringSystemTester {
    * Test 3: Calcul du score avancé
    */
   async testAdvancedScoring(devisMock: any, enrichmentData: any, context: any) {
-    console.log('\n🎯 Test 3: Calcul du score avancé...')
+    log.info('\n🎯 Test 3: Calcul du score avancé...')
 
     const scoringEngine = new AdvancedScoringEngine()
     
@@ -131,18 +134,18 @@ class ScoringSystemTester {
       )
     })
 
-    console.log(`   - Score total: ${score.totalScore}/1200`)
-    console.log(`   - Grade: ${score.grade}`)
-    console.log(`   - Confiance: ${score.confidenceLevel}%`)
-    console.log(`   - Axes évalués: ${score.breakdown.axes.length}`)
-    console.log(`   - Alertes: ${score.alerts.length}`)
-    console.log(`   - Recommandations: ${score.recommendations.length}`)
+    log.info(`   - Score total: ${score.totalScore}/1200`)
+    log.info(`   - Grade: ${score.grade}`)
+    log.info(`   - Confiance: ${score.confidenceLevel}%`)
+    log.info(`   - Axes évalués: ${score.breakdown.axes.length}`)
+    log.info(`   - Alertes: ${score.alerts.length}`)
+    log.info(`   - Recommandations: ${score.recommendations.length}`)
 
     // Afficher le détail par axe
-    console.log('\n   📊 Détail par axe:')
+    log.info('\n   📊 Détail par axe:')
     score.breakdown.axes.forEach((axis: any) => {
       const percentage = ((axis.score / axis.maxPoints) * 100).toFixed(1)
-      console.log(`      - ${axis.name}: ${axis.score}/${axis.maxPoints} (${percentage}%)`)
+      log.info(`      - ${axis.name}: ${axis.score}/${axis.maxPoints} (${percentage}%)`)
     })
 
     return score
@@ -152,13 +155,13 @@ class ScoringSystemTester {
    * Test complet du workflow
    */
   async runFullTest(filePath?: string) {
-    console.log('🚀 Test complet du système TORP Scoring\n')
-    console.log('='.repeat(60))
+    log.info('🚀 Test complet du système TORP Scoring\n')
+    log.info('='.repeat(60))
 
     try {
       // Si pas de fichier fourni, créer un devis mock pour test
       if (!filePath) {
-        console.log('ℹ️  Aucun fichier fourni, utilisation d\'un devis mock pour test...\n')
+        log.info('ℹ️  Aucun fichier fourni, utilisation d\'un devis mock pour test...\n')
         return await this.testWithMockData()
       }
 
@@ -196,7 +199,7 @@ class ScoringSystemTester {
         score,
       }
     } catch (error) {
-      console.error('\n❌ Erreur lors du test:', error)
+      log.error('\n❌ Erreur lors du test:', error)
       this.printSummary()
       throw error
     }
@@ -255,8 +258,8 @@ class ScoringSystemTester {
   }
 
   private printSummary() {
-    console.log('\n' + '='.repeat(60))
-    console.log('📋 Résumé des tests\n')
+    log.info('\n' + '='.repeat(60))
+    log.info('📋 Résumé des tests\n')
 
     const totalDuration = this.results.reduce((sum, r) => sum + r.duration, 0)
     const successCount = this.results.filter(r => r.success).length
@@ -265,10 +268,10 @@ class ScoringSystemTester {
     this.results.forEach(r => {
       const icon = r.success ? '✅' : '❌'
       const status = r.success ? 'OK' : `ERREUR: ${r.error}`
-      console.log(`${icon} ${r.step}: ${status} (${r.duration}ms)`)
+      log.info(`${icon} ${r.step}: ${status} (${r.duration}ms)`)
     })
 
-    console.log(`\n📊 Total: ${successCount} succès, ${failCount} échecs, ${totalDuration}ms`)
+    log.info(`\n📊 Total: ${successCount} succès, ${failCount} échecs, ${totalDuration}ms`)
   }
 
   // Helpers
@@ -312,10 +315,10 @@ async function main() {
 
   try {
     await tester.runFullTest(filePath)
-    console.log('\n✨ Tous les tests sont passés avec succès!')
+    log.info('\n✨ Tous les tests sont passés avec succès!')
     process.exit(0)
   } catch (error) {
-    console.error('\n💥 Échec des tests')
+    log.error('\n💥 Échec des tests')
     process.exit(1)
   }
 }
