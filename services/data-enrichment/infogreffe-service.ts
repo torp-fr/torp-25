@@ -1,20 +1,25 @@
 /**
  * Service d'enrichissement via Infogreffe
  * Données financières, bilans, procédures collectives
+ *
+ * Utilise deux sources:
+ * 1. API Infogreffe premium (payante) si clé configurée
+ * 2. API OpenData Infogreffe (GRATUITE) en fallback
  */
 
 import { ApiClient } from './api-client'
 import type { EnrichedCompanyData } from '../scoring/advanced/types'
 import { loggers } from '@/lib/logger'
+import { InfogreffeOpenDataService } from './infogreffe-opendata-service'
 
 const log = loggers.enrichment
 
 export class InfogreffeEnrichmentService {
   private apiClient?: ApiClient
+  private openDataService: InfogreffeOpenDataService
 
   constructor() {
-    // Infogreffe API (peut nécessiter une clé API selon l'offre)
-    // Note: Infogreffe propose une API payante, mais certaines données sont accessibles via scraping légal
+    // API Infogreffe Premium (payante, optionnelle)
     const infogreffeApiKey = process.env.INFOGREFFE_API_KEY
     if (infogreffeApiKey) {
       this.apiClient = new ApiClient({
@@ -23,6 +28,75 @@ export class InfogreffeEnrichmentService {
         timeout: 10000,
         retries: 2,
       })
+      log.info('API Infogreffe Premium configurée')
+    } else {
+      log.info('API Infogreffe Premium non configurée - utilisation OpenData gratuite')
+    }
+
+    // API OpenData Infogreffe (GRATUITE, toujours disponible)
+    this.openDataService = new InfogreffeOpenDataService()
+  }
+
+  /**
+   * Enrichit les données complètes de l'entreprise
+   * Utilise API Premium si disponible, sinon OpenData gratuite
+   */
+  async enrichCompany(siren: string): Promise<Partial<EnrichedCompanyData> | null> {
+    try {
+      log.debug({ siren, hasPremiumAPI: !!this.apiClient }, 'Enrichissement Infogreffe')
+
+      // Si API Premium configurée, l'utiliser en priorité
+      if (this.apiClient) {
+        try {
+          const premiumData = await this.enrichWithPremiumAPI(siren)
+          if (premiumData) {
+            log.info({ siren }, 'Données Infogreffe Premium récupérées')
+            return premiumData
+          }
+        } catch (error) {
+          log.warn({ err: error, siren }, 'Échec API Premium, fallback vers OpenData')
+        }
+      }
+
+      // Fallback vers API OpenData gratuite
+      const openDataResult = await this.openDataService.enrichCompany(siren)
+      if (openDataResult) {
+        log.info({ siren }, 'Données Infogreffe OpenData récupérées')
+        return openDataResult
+      }
+
+      return null
+    } catch (error) {
+      log.error({ err: error, siren }, 'Erreur enrichissement Infogreffe')
+      return null
+    }
+  }
+
+  /**
+   * Enrichissement via API Premium (privée)
+   */
+  private async enrichWithPremiumAPI(siren: string): Promise<Partial<EnrichedCompanyData> | null> {
+    if (!this.apiClient) return null
+
+    try {
+      const results: Partial<EnrichedCompanyData> = {}
+
+      // Récupérer données financières
+      const financialData = await this.enrichFinancialData(siren)
+      if (financialData) {
+        results.financialData = financialData
+      }
+
+      // Vérifier procédures collectives
+      const legalStatus = await this.checkCollectiveProcedures(siren)
+      if (legalStatus) {
+        results.legalStatusDetails = legalStatus
+      }
+
+      return Object.keys(results).length > 0 ? results : null
+    } catch (error) {
+      log.error({ err: error, siren }, 'Erreur API Premium')
+      return null
     }
   }
 

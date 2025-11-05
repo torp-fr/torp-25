@@ -81,27 +81,37 @@ export class AdvancedEnrichmentService {
           confidence += 10
         }
 
-        // Source 2: Infogreffe (si disponible) - Parallélisé
+        // Source 2: Infogreffe (Premium ou OpenData gratuit)
         if (enrichedCompany?.siren) {
           try {
-            // Récupérer données financières et juridiques en parallèle
-            const [financialData, legalStatus] = await Promise.allSettled([
-              this.infogreffeService.enrichFinancialData(enrichedCompany.siren),
-              this.infogreffeService.checkCollectiveProcedures(
-                enrichedCompany.siren
-              ),
-            ])
+            const infogreffeData = await this.infogreffeService.enrichCompany(
+              enrichedCompany.siren
+            )
 
-            if (financialData.status === 'fulfilled' && financialData.value) {
-              enrichedCompany.financialData = financialData.value
-              sources.push('Infogreffe (données financières)')
-              confidence += 5
-            }
+            if (infogreffeData) {
+              // Fusionner données financières
+              if (infogreffeData.financialData) {
+                enrichedCompany.financialData = infogreffeData.financialData
+                sources.push('Infogreffe (données financières)')
+                confidence += 5
+              }
 
-            if (legalStatus.status === 'fulfilled' && legalStatus.value) {
-              enrichedCompany.legalStatusDetails = legalStatus.value
-              sources.push('Infogreffe/BODACC (procédures)')
-              confidence += 5
+              // Fusionner statut juridique
+              if (infogreffeData.legalStatusDetails) {
+                enrichedCompany.legalStatusDetails = infogreffeData.legalStatusDetails
+                sources.push('Infogreffe OpenData (procédures)')
+                confidence += 5
+              }
+
+              // Fusionner autres données si présentes
+              if (infogreffeData.name || infogreffeData.address || infogreffeData.activities) {
+                enrichedCompany = {
+                  ...enrichedCompany,
+                  ...infogreffeData,
+                } as EnrichedCompanyData
+                sources.push('Infogreffe OpenData (RCS)')
+                confidence += 3
+              }
             }
           } catch (error) {
             log.warn({ err: error }, 'Erreur Infogreffe')
