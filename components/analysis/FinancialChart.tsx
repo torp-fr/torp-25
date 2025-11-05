@@ -29,10 +29,9 @@ interface FinancialData {
 
 interface FinancialChartProps {
   data: FinancialData
-  companyName?: string
 }
 
-export function FinancialChart({ data, companyName }: FinancialChartProps) {
+export function FinancialChart({ data }: FinancialChartProps) {
   if (!data.ca || data.ca.length === 0) {
     return null
   }

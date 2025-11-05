@@ -9,13 +9,10 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import {
   BarChart,
   Bar,
-  LineChart,
-  Line,
   XAxis,
   YAxis,
   CartesianGrid,
   Tooltip,
-  Legend,
   ResponsiveContainer,
   ScatterChart,
   Scatter,
@@ -46,11 +43,10 @@ interface DVFData {
 
 interface DVFPriceChartProps {
   data: DVFData
-  address?: string
   surface?: number
 }
 
-export function DVFPriceChart({ data, address, surface }: DVFPriceChartProps) {
+export function DVFPriceChart({ data, surface }: DVFPriceChartProps) {
   if (!data.estimation && !data.statistics && !data.comparables) {
     return null
   }

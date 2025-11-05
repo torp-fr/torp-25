@@ -42,12 +42,10 @@ interface CompanyHealthData {
 
 interface CompanyHealthGaugeProps {
   data: CompanyHealthData
-  companyName?: string
 }
 
 export function CompanyHealthGauge({
   data,
-  companyName,
 }: CompanyHealthGaugeProps) {
   // Calculer le score de santé (0-100)
   const calculateHealthScore = (): number => {
