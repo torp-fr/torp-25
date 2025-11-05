@@ -29,6 +29,9 @@ import {
 import { AppHeader } from '@/components/app-header'
 import { DevisChat } from '@/components/chat/devis-chat'
 import { RecommendationCard } from '@/components/recommendations/recommendation-card'
+import { FinancialChart } from '@/components/analysis/FinancialChart'
+import { ScoreBreakdown } from '@/components/analysis/ScoreBreakdown'
+import { CompanyHealthGauge } from '@/components/analysis/CompanyHealthGauge'
 
 const log = clientLoggers.page
 
@@ -385,6 +388,17 @@ export default function AnalysisPage() {
           </div>
         </div>
 
+        {/* Score Breakdown Visualization */}
+        {score && score.breakdown && (
+          <div className="mb-6">
+            <ScoreBreakdown
+              breakdown={score.breakdown}
+              totalScore={Math.round(Number(score.scoreValue))}
+              grade={score.scoreGrade}
+            />
+          </div>
+        )}
+
         {/* Executive Summary - New LLM Section */}
         {insights && insights.executiveSummary && (
           <Card className="mb-6 border-2 border-primary/20 bg-gradient-to-r from-blue-50 to-indigo-50">
@@ -516,69 +530,18 @@ export default function AnalysisPage() {
                 </div>
               </div>
 
-              {/* Financial Data */}
+              {/* Financial Charts & Health Gauge */}
               {enrichedCompanyData.financialData && (
-                <div className="space-y-3 rounded-lg border bg-green-50 p-4">
-                  <p className="text-sm font-semibold text-green-800">
-                    Données Financières (Infogreffe)
-                  </p>
-                  {enrichedCompanyData.financialData.ca &&
-                    enrichedCompanyData.financialData.ca.length > 0 && (
-                      <div>
-                        <p className="mb-1 text-xs text-muted-foreground">
-                          Chiffre d&apos;affaires
-                        </p>
-                        <div className="space-y-1">
-                          {enrichedCompanyData.financialData.ca
-                            .slice(0, 3)
-                            .map((ca: number, i: number) => (
-                              <p key={i} className="text-sm font-medium">
-                                {new Date().getFullYear() - i}:{' '}
-                                {formatCurrency(ca)}
-                              </p>
-                            ))}
-                        </div>
-                      </div>
-                    )}
-                  {enrichedCompanyData.financialData.result &&
-                    enrichedCompanyData.financialData.result.length > 0 && (
-                      <div>
-                        <p className="mb-1 text-xs text-muted-foreground">
-                          Résultat net
-                        </p>
-                        <div className="space-y-1">
-                          {enrichedCompanyData.financialData.result
-                            .slice(0, 3)
-                            .map((result: number, i: number) => (
-                              <p
-                                key={i}
-                                className={`text-sm font-medium ${result < 0 ? 'text-red-600' : 'text-green-600'}`}
-                              >
-                                {new Date().getFullYear() - i}:{' '}
-                                {formatCurrency(result)}
-                              </p>
-                            ))}
-                        </div>
-                      </div>
-                    )}
-                  {enrichedCompanyData.financialData.debt && (
-                    <div>
-                      <p className="mb-1 text-xs text-muted-foreground">
-                        Dettes
-                      </p>
-                      <p className="text-sm font-medium">
-                        {formatCurrency(enrichedCompanyData.financialData.debt)}
-                      </p>
-                    </div>
-                  )}
-                  {enrichedCompanyData.financialData.lastUpdate && (
-                    <p className="mt-2 text-xs text-muted-foreground">
-                      Dernière mise à jour:{' '}
-                      {new Date(
-                        enrichedCompanyData.financialData.lastUpdate
-                      ).toLocaleDateString('fr-FR')}
-                    </p>
-                  )}
+                <div className="space-y-4">
+                  <FinancialChart data={enrichedCompanyData.financialData} />
+                  <CompanyHealthGauge
+                    data={{
+                      financialData: enrichedCompanyData.financialData,
+                      legalStatusDetails: enrichedCompanyData.legalStatusDetails,
+                      certifications: enrichedCompanyData.certifications,
+                      reputation: enrichedCompanyData.reputation,
+                    }}
+                  />
                 </div>
               )}
 

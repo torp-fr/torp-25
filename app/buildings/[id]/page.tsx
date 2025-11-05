@@ -53,6 +53,8 @@ import {
 } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { AppHeader } from '@/components/app-header'
+import { DVFPriceChart } from '@/components/buildings/DVFPriceChart'
+import { RiskVisualization } from '@/components/buildings/RiskVisualization'
 
 const log = clientLoggers.page
 
@@ -809,6 +811,45 @@ export default function BuildingDetailPage() {
                       </div>
                     ))}
                   </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Valorisation Immobilière (DVF) */}
+            {profile.enrichedData?.dvf && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Euro className="h-5 w-5" />
+                    Valorisation Immobilière
+                  </CardTitle>
+                  <CardDescription>
+                    Estimation basée sur les transactions DVF (Demandes de Valeurs Foncières)
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <DVFPriceChart
+                    data={profile.enrichedData.dvf}
+                    surface={profile.enrichedData.dvf.surface}
+                  />
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Risques Naturels (Géorisques) */}
+            {profile.enrichedData?.georisques && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Shield className="h-5 w-5" />
+                    Analyse des Risques
+                  </CardTitle>
+                  <CardDescription>
+                    Risques naturels et technologiques identifiés sur la zone
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <RiskVisualization data={profile.enrichedData.georisques} />
                 </CardContent>
               </Card>
             )}
