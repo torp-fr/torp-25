@@ -126,22 +126,27 @@ export default function NewBuildingPage() {
 
       // 2. Lancer l'enrichissement immédiatement (en arrière-plan, non bloquant)
       // L'enrichissement se fera en arrière-plan pendant que l'utilisateur est redirigé
-      fetch(`/api/building-profiles/${profileId}/enrich?userId=${DEMO_USER_ID}`, {
+      const enrichPromise = fetch(`/api/building-profiles/${profileId}/enrich?userId=${DEMO_USER_ID}`, {
         method: 'POST',
       })
         .then(async (enrichResponse) => {
           if (!enrichResponse.ok) {
             const errorData = await enrichResponse.json().catch(() => ({}))
-            log.error({ errorData }, 'Erreur enrichissement')
-            return
+            log.error({ errorData, profileId }, 'Erreur enrichissement - échec de la requête')
+            return { success: false, error: errorData }
           }
           const enrichData = await enrichResponse.json()
-          log.debug({ enrichData }, 'Enrichissement lancé')
+          log.debug({ enrichData, profileId }, 'Enrichissement lancé avec succès')
+          return { success: true, data: enrichData }
         })
         .catch((enrichErr) => {
-          log.error({ err: enrichErr }, 'Erreur enrichissement')
+          log.error({ err: enrichErr, profileId }, 'Erreur enrichissement - exception')
           // Ne pas bloquer, l'enrichissement peut être relancé depuis la page de détail
+          return { success: false, error: enrichErr }
         })
+
+      // Attendre un court instant pour que l'enrichissement démarre
+      await enrichPromise
 
       // 3. Rediriger vers la page de détail
       log.debug({ redirectTo: `/buildings/${profileId}` }, 'Redirection')

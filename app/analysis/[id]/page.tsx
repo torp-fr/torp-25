@@ -351,7 +351,33 @@ export default function AnalysisPage() {
     )
   }
 
+  // Vérification de sécurité : s'assurer que extractedData existe
+  if (!devis.extractedData || typeof devis.extractedData !== 'object') {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <Card className="max-w-md">
+          <CardHeader>
+            <CardTitle className="text-red-600">Erreur de données</CardTitle>
+            <CardDescription>
+              Les données du devis sont incomplètes ou mal formatées.
+              Veuillez réessayer l&apos;analyse.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Link href="/upload">
+              <Button>Nouvelle Analyse</Button>
+            </Link>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
+
   const enrichedCompanyData = (devis as any).enrichedData?.company || {}
+
+  // Sécurisation des accès aux données avec fallbacks
+  const companyName = devis.extractedData?.company?.name || 'Entreprise non spécifiée'
+  const projectTitle = devis.extractedData?.project?.title || 'Projet non spécifié'
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
@@ -364,8 +390,8 @@ export default function AnalysisPage() {
             <div>
               <h1 className="mb-2 text-4xl font-bold">Analyse TORP</h1>
               <p className="text-lg text-muted-foreground">
-                {devis.extractedData.company.name} •{' '}
-                {devis.extractedData.project.title}
+                {companyName} •{' '}
+                {projectTitle}
               </p>
             </div>
             {score && (
@@ -1702,9 +1728,9 @@ export default function AnalysisPage() {
                 <div>
                   <p className="text-muted-foreground">Entreprise</p>
                   <p className="font-medium">
-                    {devis.extractedData.company.name}
+                    {companyName}
                   </p>
-                  {devis.extractedData.company.siret && (
+                  {devis.extractedData?.company?.siret && (
                     <p className="text-xs text-muted-foreground">
                       SIRET: {devis.extractedData.company.siret}
                     </p>
