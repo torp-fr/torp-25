@@ -113,7 +113,7 @@ export class PappersEnrichmentService {
           : undefined,
       }
     } catch (error) {
-      console.error(`[PappersService] Erreur enrichissement SIRET ${siret}:`, error)
+      log.error({ err: error, siret }, 'Erreur enrichissement Pappers')
       return null
     }
   }
@@ -133,7 +133,7 @@ export class PappersEnrichmentService {
       // Pour l'instant, retourner null et utiliser un service dédié
       return null
     } catch (error) {
-      console.error(`[PappersService] Erreur réputation SIRET ${siret}:`, error)
+      log.error({ err: error, siret }, 'Erreur réputation Pappers')
       return null
     }
   }

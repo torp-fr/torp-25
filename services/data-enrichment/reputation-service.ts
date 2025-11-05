@@ -75,7 +75,7 @@ export class ReputationEnrichmentService {
 
       return fallbackReputation
     } catch (error) {
-      console.error(`[ReputationService] Erreur réputation "${companyName}":`, error)
+      log.error({ err: error, companyName }, 'Erreur réputation')
       return null
     }
   }

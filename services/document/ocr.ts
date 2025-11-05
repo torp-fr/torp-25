@@ -29,7 +29,7 @@ export class OCRService {
         confidence: result.data.confidence,
       }
     } catch (error) {
-      console.error('OCR extraction failed:', error)
+      log.error({ err: error }, 'OCR extraction failed')
       throw new Error('Failed to extract text from image')
     }
   }
@@ -72,7 +72,7 @@ export class OCRService {
         confidence,
       }
     } catch (error) {
-      console.error('PDF extraction failed:', error)
+      log.error({ err: error }, 'PDF extraction failed')
       throw new Error('Failed to extract text from PDF')
     }
   }

@@ -48,7 +48,7 @@ async function testProductionSentry() {
 }
 
 if (require.main === module) {
-  testProductionSentry().catch(console.error)
+  testProductionSentry().catch((err) => log.error({ err }, 'Test Sentry production failed'))
 }
 
 export { testProductionSentry }

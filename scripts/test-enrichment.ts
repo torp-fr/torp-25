@@ -246,5 +246,5 @@ async function runAllTests() {
 }
 
 // Exécuter les tests
-runAllTests().catch(console.error)
+runAllTests().catch((err) => log.error({ err }, 'Tests enrichment failed'))
 

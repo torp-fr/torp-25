@@ -87,7 +87,7 @@ export class PriceEnrichmentService {
         references.push(...this.getFallbackPrices(category, region, item))
       }
     } catch (error) {
-      console.error(`[PriceService] Erreur lors de la récupération des prix:`, error)
+      log.error({ err: error }, 'Erreur récupération prix')
       // Fallback sur des prix de référence basiques
       references.push(...this.getFallbackPrices(category, region, item))
     }
@@ -179,7 +179,7 @@ export class PriceEnrichmentService {
       // Pour l'instant, on retourne des données estimées
       return this.getFallbackRegionalData(region)
     } catch (error) {
-      console.error(`[PriceService] Erreur lors de la récupération des données régionales:`, error)
+      log.error({ err: error }, 'Erreur récupération données régionales')
       return this.getFallbackRegionalData(region)
     }
   }

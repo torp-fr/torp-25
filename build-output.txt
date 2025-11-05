@@ -1,0 +1,112 @@
+
+> torp-platform@1.0.0 build
+> next build
+
+Attention: Next.js now collects completely anonymous telemetry regarding usage.
+This information is used to shape Next.js' roadmap and prioritize features.
+You can learn more, including how to opt-out if you'd not like to participate in this anonymous program, by visiting the following URL:
+https://nextjs.org/telemetry
+
+   ▲ Next.js 16.0.1 (Turbopack)
+   - Experiments (use with caution):
+     · clientTraceMetadata
+     · serverActions
+
+   Creating an optimized production build ...
+ ✓ Compiled successfully in 7.1s
+   Running next.config.js provided runAfterProductionCompile ...
+ ✓ Completed runAfterProductionCompile in 575ms
+   Running TypeScript ...
+   Collecting page data ...
+Error: @prisma/client did not initialize yet. Please run "prisma generate" and try to import it again.
+    at module evaluation (.next/server/chunks/[root-of-the-server]__97e94276._.js:2:6659)
+    at instantiateModule (.next/server/chunks/[turbopack]_runtime.js:715:9)
+    at getOrInstantiateModuleFromParent (.next/server/chunks/[turbopack]_runtime.js:738:12)
+    at Context.esmImport [as i] (.next/server/chunks/[turbopack]_runtime.js:228:20)
+    at module evaluation (.next/server/chunks/[root-of-the-server]__97e94276._.js:2:7722)
+    at instantiateModule (.next/server/chunks/[turbopack]_runtime.js:715:9)
+    at getOrInstantiateModuleFromParent (.next/server/chunks/[turbopack]_runtime.js:738:12)
+    at Context.esmImport [as i] (.next/server/chunks/[turbopack]_runtime.js:228:20)
+    at module evaluation (.next/server/chunks/[root-of-the-server]__97e94276._.js:2:12924)
+Error: @prisma/client did not initialize yet. Please run "prisma generate" and try to import it again.
+    at module evaluation (.next/server/chunks/[root-of-the-server]__cba14b99._.js:2:6659)
+    at instantiateModule (.next/server/chunks/[turbopack]_runtime.js:715:9)
+    at getOrInstantiateModuleFromParent (.next/server/chunks/[turbopack]_runtime.js:738:12)
+    at Context.esmImport [as i] (.next/server/chunks/[turbopack]_runtime.js:228:20)
+    at module evaluation (.next/server/chunks/[root-of-the-server]__cba14b99._.js:2:10390)
+    at instantiateModule (.next/server/chunks/[turbopack]_runtime.js:715:9)
+    at getOrInstantiateModuleFromParent (.next/server/chunks/[turbopack]_runtime.js:738:12)
+    at Context.esmImport [as i] (.next/server/chunks/[turbopack]_runtime.js:228:20)
+    at module evaluation (.next/server/chunks/[root-of-the-server]__cba14b99._.js:2:14184)
+Error: @prisma/client did not initialize yet. Please run "prisma generate" and try to import it again.
+    at module evaluation (.next/server/chunks/[root-of-the-server]__bc149628._.js:2:6659)
+    at instantiateModule (.next/server/chunks/[turbopack]_runtime.js:715:9)
+    at getOrInstantiateModuleFromParent (.next/server/chunks/[turbopack]_runtime.js:738:12)
+    at Context.esmImport [as i] (.next/server/chunks/[turbopack]_runtime.js:228:20)
+    at module evaluation (.next/server/chunks/[root-of-the-server]__bc149628._.js:2:6747)
+    at instantiateModule (.next/server/chunks/[turbopack]_runtime.js:715:9)
+    at getOrInstantiateModuleFromParent (.next/server/chunks/[turbopack]_runtime.js:738:12)
+    at Context.esmImport [as i] (.next/server/chunks/[turbopack]_runtime.js:228:20)
+    at module evaluation (.next/server/chunks/[root-of-the-server]__bc149628._.js:2:10541)
+Error: @prisma/client did not initialize yet. Please run "prisma generate" and try to import it again.
+    at module evaluation (.next/server/chunks/[root-of-the-server]__30ad5ad6._.js:2:6659)
+    at instantiateModule (.next/server/chunks/[turbopack]_runtime.js:715:9)
+    at getOrInstantiateModuleFromParent (.next/server/chunks/[turbopack]_runtime.js:738:12)
+    at Context.esmImport [as i] (.next/server/chunks/[turbopack]_runtime.js:228:20)
+    at module evaluation (.next/server/chunks/[root-of-the-server]__30ad5ad6._.js:2:10448)
+    at instantiateModule (.next/server/chunks/[turbopack]_runtime.js:715:9)
+    at instantiateRuntimeModule (.next/server/chunks/[turbopack]_runtime.js:743:12)
+    at getOrInstantiateRuntimeModule (.next/server/chunks/[turbopack]_runtime.js:756:12)
+    at Object.m (.next/server/chunks/[turbopack]_runtime.js:765:18)
+Error: @prisma/client did not initialize yet. Please run "prisma generate" and try to import it again.
+    at module evaluation (.next/server/chunks/[root-of-the-server]__9f5b0cf3._.js:2:6659)
+    at instantiateModule (.next/server/chunks/[turbopack]_runtime.js:715:9)
+    at getOrInstantiateModuleFromParent (.next/server/chunks/[turbopack]_runtime.js:738:12)
+    at Context.esmImport [as i] (.next/server/chunks/[turbopack]_runtime.js:228:20)
+    at instantiateModule (.next/server/chunks/[turbopack]_runtime.js:715:9)
+    at instantiateRuntimeModule (.next/server/chunks/[turbopack]_runtime.js:743:12)
+    at getOrInstantiateRuntimeModule (.next/server/chunks/[turbopack]_runtime.js:756:12)
+    at Object.m (.next/server/chunks/[turbopack]_runtime.js:765:18)
+Error: @prisma/client did not initialize yet. Please run "prisma generate" and try to import it again.
+    at module evaluation (.next/server/chunks/[root-of-the-server]__bced3643._.js:2:6659)
+    at instantiateModule (.next/server/chunks/[turbopack]_runtime.js:715:9)
+    at getOrInstantiateModuleFromParent (.next/server/chunks/[turbopack]_runtime.js:738:12)
+    at Context.esmImport [as i] (.next/server/chunks/[turbopack]_runtime.js:228:20)
+    at module evaluation (.next/server/chunks/[root-of-the-server]__bced3643._.js:2:9232)
+    at instantiateModule (.next/server/chunks/[turbopack]_runtime.js:715:9)
+    at instantiateRuntimeModule (.next/server/chunks/[turbopack]_runtime.js:743:12)
+    at getOrInstantiateRuntimeModule (.next/server/chunks/[turbopack]_runtime.js:756:12)
+    at Object.m (.next/server/chunks/[turbopack]_runtime.js:765:18)
+Error: @prisma/client did not initialize yet. Please run "prisma generate" and try to import it again.
+    at module evaluation (.next/server/chunks/[root-of-the-server]__1927eb2c._.js:2:6659)
+    at instantiateModule (.next/server/chunks/[turbopack]_runtime.js:715:9)
+    at getOrInstantiateModuleFromParent (.next/server/chunks/[turbopack]_runtime.js:738:12)
+    at Context.esmImport [as i] (.next/server/chunks/[turbopack]_runtime.js:228:20)
+    at module evaluation (.next/server/chunks/[root-of-the-server]__1927eb2c._.js:2:7007)
+    at instantiateModule (.next/server/chunks/[turbopack]_runtime.js:715:9)
+    at instantiateRuntimeModule (.next/server/chunks/[turbopack]_runtime.js:743:12)
+    at getOrInstantiateRuntimeModule (.next/server/chunks/[turbopack]_runtime.js:756:12)
+    at Object.m (.next/server/chunks/[turbopack]_runtime.js:765:18)
+Error: @prisma/client did not initialize yet. Please run "prisma generate" and try to import it again.
+    at module evaluation (.next/server/chunks/[root-of-the-server]__902afac0._.js:2:6925)
+    at instantiateModule (.next/server/chunks/[turbopack]_runtime.js:715:9)
+    at instantiateRuntimeModule (.next/server/chunks/[turbopack]_runtime.js:743:12)
+    at getOrInstantiateRuntimeModule (.next/server/chunks/[turbopack]_runtime.js:756:12)
+    at Object.m (.next/server/chunks/[turbopack]_runtime.js:765:18)
+    at Object.<anonymous> (.next/server/app/api/admin/cleanup-migrations/route.js:6:3)
+Error: @prisma/client did not initialize yet. Please run "prisma generate" and try to import it again.
+    at module evaluation (.next/server/chunks/[root-of-the-server]__6a983036._.js:2:6659)
+    at instantiateModule (.next/server/chunks/[turbopack]_runtime.js:715:9)
+    at getOrInstantiateModuleFromParent (.next/server/chunks/[turbopack]_runtime.js:738:12)
+    at Context.esmImport [as i] (.next/server/chunks/[turbopack]_runtime.js:228:20)
+    at module evaluation (.next/server/chunks/[root-of-the-server]__6a983036._.js:2:8705)
+    at instantiateModule (.next/server/chunks/[turbopack]_runtime.js:715:9)
+    at instantiateRuntimeModule (.next/server/chunks/[turbopack]_runtime.js:743:12)
+    at getOrInstantiateRuntimeModule (.next/server/chunks/[turbopack]_runtime.js:756:12)
+    at Object.m (.next/server/chunks/[turbopack]_runtime.js:765:18)
+
+> Build error occurred
+Error: Failed to collect page data for /api/scraping/process
+    at ignore-listed frames {
+  type: 'Error'
+}

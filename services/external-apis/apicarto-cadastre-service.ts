@@ -372,7 +372,7 @@ export class APICartoCadastreService {
 
       return data as APICartoFeatureCollection<T>
     } catch (error) {
-      console.error(`[APICartoCadastreService] Erreur fetch ${endpoint}:`, error)
+      log.error({ err: error, endpoint }, 'Erreur fetch APICarto')
       throw error
     }
   }

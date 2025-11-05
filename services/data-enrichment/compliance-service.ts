@@ -4,6 +4,9 @@
  */
 
 import type { ComplianceData } from './types'
+import { loggers } from '@/lib/logger'
+
+const log = loggers.enrichment
 
 export class ComplianceEnrichmentService {
   constructor() {
@@ -34,7 +37,7 @@ export class ComplianceEnrichmentService {
         certifications,
       }
     } catch (error) {
-      console.error(`[ComplianceService] Erreur lors de la récupération des données de conformité:`, error)
+      log.error({ err: error }, 'Erreur récupération données conformité')
       // Retourner des données de base en cas d'erreur
       return {
         applicableNorms: this.getApplicableNorms(projectType, tradeType),

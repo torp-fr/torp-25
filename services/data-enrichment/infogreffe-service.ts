@@ -101,7 +101,7 @@ export class InfogreffeEnrichmentService {
         procedureDate: activeProcedures[0]?.dateOuverture,
       }
     } catch (error) {
-      console.error(`[InfogreffeService] Erreur vérification procédures SIREN ${siren}:`, error)
+      log.error({ err: error, siren }, 'Erreur vérification procédures collectives')
       return await this.checkBODACC(siren)
     }
   }
@@ -147,7 +147,7 @@ export class InfogreffeEnrichmentService {
         procedureDate: procedures[0]?.date,
       }
     } catch (error) {
-      console.error(`[InfogreffeService] Erreur BODACC SIREN ${siren}:`, error)
+      log.error({ err: error, siren }, 'Erreur vérification BODACC')
       return null
     }
   }
@@ -162,7 +162,7 @@ export class InfogreffeEnrichmentService {
       // TODO: Utiliser siren pour récupérer le score BDF
       return null
     } catch (error) {
-      console.error(`[InfogreffeService] Erreur score BDF SIREN ${siren}:`, error)
+      log.error({ err: error, siren }, 'Erreur score BDF')
       return null
     }
   }

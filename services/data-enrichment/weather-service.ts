@@ -4,6 +4,9 @@
  */
 
 import type { WeatherData } from './types'
+import { loggers } from '@/lib/logger'
+
+const log = loggers.enrichment
 
 export class WeatherEnrichmentService {
   constructor() {
@@ -21,7 +24,7 @@ export class WeatherEnrichmentService {
       // TODO: Intégrer avec OpenWeather ou Météo France pour des données réelles
       return this.getFallbackWeatherData(region)
     } catch (error) {
-      console.error(`[WeatherService] Erreur lors de la récupération des données météo:`, error)
+      log.error({ err: error }, 'Erreur récupération données météo')
       return this.getFallbackWeatherData(region)
     }
   }

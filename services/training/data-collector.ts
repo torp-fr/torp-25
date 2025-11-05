@@ -125,7 +125,7 @@ export class TrainingDataCollector {
 
         examples.push(example)
       } catch (error) {
-        console.error(`[TrainingCollector] Erreur traitement devis ${currentDevis.id}:`, error)
+        log.error({ err: error, devisId: currentDevis.id }, 'Erreur traitement devis')
       }
     }
 
