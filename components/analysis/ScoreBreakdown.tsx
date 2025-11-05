@@ -13,9 +13,16 @@ import {
   PolarRadiusAxis,
   Radar,
   ResponsiveContainer,
-  Tooltip,
+  Tooltip as RechartsTooltip,
 } from 'recharts'
 import { Badge } from '@/components/ui/badge'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
+import { Info } from 'lucide-react'
 
 interface ScoreBreakdownData {
   prix: number // 0-100
@@ -100,29 +107,50 @@ export function ScoreBreakdown({
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <div className="flex items-center justify-between">
-          <CardTitle className="text-lg">Breakdown du Score TORP</CardTitle>
-          <div className="flex items-center gap-3">
-            <Badge
-              variant="outline"
-              className={`border-2 px-4 py-1 text-2xl font-bold ${getGradeColor(grade)}`}
-            >
-              {grade}
-            </Badge>
-            <div className="text-right">
-              <p
-                className="text-3xl font-bold"
-                style={{ color: getScoreColor(totalScore) }}
+    <TooltipProvider>
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <CardTitle className="text-lg">Breakdown du Score TORP</CardTitle>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Info className="h-4 w-4 text-muted-foreground cursor-help" />
+                </TooltipTrigger>
+                <TooltipContent side="right" className="max-w-xs">
+                  <p className="font-semibold mb-1">Score TORP - 4 dimensions</p>
+                  <p className="text-xs">
+                    Le score TORP évalue chaque devis sur 4 axes clés :
+                    <br />
+                    • <strong>Prix</strong> : Cohérence et compétitivité tarifaire
+                    <br />
+                    • <strong>Qualité</strong> : Certifications et réputation de l&apos;entreprise
+                    <br />
+                    • <strong>Délais</strong> : Réalisme du planning proposé
+                    <br />• <strong>Conformité</strong> : Respect des normes et obligations légales
+                  </p>
+                </TooltipContent>
+              </Tooltip>
+            </div>
+            <div className="flex items-center gap-3">
+              <Badge
+                variant="outline"
+                className={`border-2 px-4 py-1 text-2xl font-bold ${getGradeColor(grade)}`}
               >
-                {totalScore}
-              </p>
-              <p className="text-xs text-muted-foreground">/1000</p>
+                {grade}
+              </Badge>
+              <div className="text-right">
+                <p
+                  className="text-3xl font-bold"
+                  style={{ color: getScoreColor(totalScore) }}
+                >
+                  {totalScore}
+                </p>
+                <p className="text-xs text-muted-foreground">/1000</p>
+              </div>
             </div>
           </div>
-        </div>
-      </CardHeader>
+        </CardHeader>
       <CardContent>
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
           {/* Graphique Radar */}
@@ -147,7 +175,7 @@ export function ScoreBreakdown({
                   fillOpacity={0.6}
                   strokeWidth={2}
                 />
-                <Tooltip content={<CustomTooltip />} />
+                <RechartsTooltip content={<CustomTooltip />} />
               </RadarChart>
             </ResponsiveContainer>
           </div>
@@ -222,5 +250,6 @@ export function ScoreBreakdown({
         </div>
       </CardContent>
     </Card>
+    </TooltipProvider>
   )
 }

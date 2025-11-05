@@ -8,13 +8,19 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import {
+  Tooltip as InfoTooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
+import {
   RadarChart,
   Radar,
   PolarGrid,
   PolarAngleAxis,
   PolarRadiusAxis,
   ResponsiveContainer,
-  Tooltip,
+  Tooltip as RechartsTooltip,
 } from 'recharts'
 import {
   AlertTriangle,
@@ -217,28 +223,53 @@ export function RiskVisualization({ data, address }: RiskVisualizationProps) {
   ]
 
   return (
-    <Card>
-      <CardHeader>
-        <div className="flex items-center justify-between">
-          <CardTitle className="flex items-center gap-2 text-lg">
-            <Shield className="h-5 w-5" />
-            Analyse des Risques Naturels
-          </CardTitle>
-          <Badge
-            variant="outline"
-            className="text-lg font-bold"
-            style={{
-              borderColor: getRiskColor(globalRisk / 20),
-              color: getRiskColor(globalRisk / 20),
-            }}
-          >
-            {globalRisk}%
-          </Badge>
-        </div>
-        {address && (
-          <p className="text-sm text-muted-foreground">{address}</p>
-        )}
-      </CardHeader>
+    <TooltipProvider>
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <Shield className="h-5 w-5" />
+                Analyse des Risques Naturels
+              </CardTitle>
+              <InfoTooltip>
+                <TooltipTrigger asChild>
+                  <Info className="h-4 w-4 text-muted-foreground cursor-help" />
+                </TooltipTrigger>
+                <TooltipContent side="bottom" className="max-w-md">
+                  <p className="font-semibold mb-1">Risques Géorisques</p>
+                  <p className="text-xs">
+                    Données officielles issues de Géorisques.fr :
+                    <br />
+                    • <strong>Inondation (TRI)</strong> : Territoire à Risque important d&apos;Inondation
+                    <br />
+                    • <strong>Sismicité</strong> : Niveau 1 (faible) à 5 (fort) selon zonage réglementaire
+                    <br />
+                    • <strong>Argile (RGA)</strong> : Retrait-gonflement des sols argileux (fondations)
+                    <br />
+                    • <strong>Radon</strong> : Gaz radioactif naturel (catégorie 1-3, santé)
+                    <br />
+                    • <strong>Mouvements terrain</strong> : Glissements, effondrements, éboulements
+                    <br />• <strong>ICPE</strong> : Installations Classées (industries à proximité)
+                  </p>
+                </TooltipContent>
+              </InfoTooltip>
+            </div>
+            <Badge
+              variant="outline"
+              className="text-lg font-bold"
+              style={{
+                borderColor: getRiskColor(globalRisk / 20),
+                color: getRiskColor(globalRisk / 20),
+              }}
+            >
+              {globalRisk}%
+            </Badge>
+          </div>
+          {address && (
+            <p className="text-sm text-muted-foreground">{address}</p>
+          )}
+        </CardHeader>
       <CardContent>
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
           {/* Graphique Radar */}
@@ -263,7 +294,7 @@ export function RiskVisualization({ data, address }: RiskVisualizationProps) {
                   fillOpacity={0.5}
                   strokeWidth={2}
                 />
-                <Tooltip content={<CustomTooltip />} />
+                <RechartsTooltip content={<CustomTooltip />} />
               </RadarChart>
             </ResponsiveContainer>
           </div>
@@ -363,5 +394,6 @@ export function RiskVisualization({ data, address }: RiskVisualizationProps) {
         )}
       </CardContent>
     </Card>
+    </TooltipProvider>
   )
 }

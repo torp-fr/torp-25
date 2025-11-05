@@ -76,6 +76,13 @@ export class InsightsGenerator {
       legalStatusInfo?: any
       activities?: any[]
     }
+    buildingData?: {
+      address?: any
+      georisques?: any
+      dvf?: any
+      cadastre?: any
+      dpe?: any
+    }
   }): Promise<AnalysisInsights> {
     try {
       const prompt = `Tu es un expert en analyse de devis BTP. Analyse les données suivantes et génère des insights stratégiques en JSON.
@@ -107,6 +114,54 @@ ${
 }
 ${analysisData.companyData?.certifications ? `- Certifications: ${JSON.stringify(analysisData.companyData.certifications)}` : ''}
 ${analysisData.companyData?.reputation ? `- Données de réputation: ${JSON.stringify(analysisData.companyData.reputation)}` : ''}
+
+${
+  analysisData.buildingData
+    ? `
+**CONTEXTE CHANTIER (Données enrichies du logement/bâtiment):**
+${
+  analysisData.buildingData.address
+    ? `- Adresse du chantier: ${analysisData.buildingData.address.formatted || JSON.stringify(analysisData.buildingData.address)}`
+    : ''
+}
+${
+  analysisData.buildingData.georisques
+    ? `- **RISQUES NATURELS ET TECHNOLOGIQUES (Géorisques):**
+  - Risque inondation (TRI): ${analysisData.buildingData.georisques.tri?.length > 0 ? '⚠️ OUI - Zone à risque' : '✅ Non'}
+  - Risque sismique: ${analysisData.buildingData.georisques.seisme ? `Zone ${analysisData.buildingData.georisques.seisme.zone} (niveau ${analysisData.buildingData.georisques.seisme.niveau})` : 'Non renseigné'}
+  - Retrait-gonflement argiles: ${analysisData.buildingData.georisques.rga?.potentiel || 'Non renseigné'}
+  - Radon: ${analysisData.buildingData.georisques.radon ? `Catégorie ${analysisData.buildingData.georisques.radon.classe}` : 'Non renseigné'}
+  - Mouvements de terrain: ${analysisData.buildingData.georisques.mvt?.length > 0 ? '⚠️ Risque identifié' : 'Non'}
+  - Installations ICPE: ${analysisData.buildingData.georisques.icpe?.length > 0 ? `${analysisData.buildingData.georisques.icpe.length} installation(s) proche(s)` : 'Aucune'}`
+    : ''
+}
+${
+  analysisData.buildingData.dvf
+    ? `- **VALORISATION IMMOBILIÈRE (DVF):**
+  - Prix médian du secteur: ${analysisData.buildingData.dvf.statistics?.prix_m2_median ? `${analysisData.buildingData.dvf.statistics.prix_m2_median.toLocaleString('fr-FR')} €/m²` : 'Non disponible'}
+  - Estimation du bien: ${analysisData.buildingData.dvf.estimation?.prix_total_estime ? `${(analysisData.buildingData.dvf.estimation.prix_total_estime / 1000).toFixed(0)}k€` : 'Non disponible'}
+  - Confiance estimation: ${analysisData.buildingData.dvf.estimation?.confiance || 'Non disponible'}%
+  - Nombre de transactions comparables: ${analysisData.buildingData.dvf.transactions?.length || 0}`
+    : ''
+}
+${
+  analysisData.buildingData.cadastre
+    ? `- **DONNÉES CADASTRALES:**
+  - Surface parcelle: ${analysisData.buildingData.cadastre.surface || 'Non renseigné'}
+  - Zone inondable: ${analysisData.buildingData.cadastre.constraints?.isFloodZone ? '⚠️ OUI' : 'Non'}
+  - Contraintes particulières: ${analysisData.buildingData.cadastre.constraints?.hasRisk ? '⚠️ OUI' : 'Non'}`
+    : ''
+}
+${
+  analysisData.buildingData.dpe
+    ? `- **PERFORMANCE ÉNERGÉTIQUE (DPE):**
+  - Classe énergétique: ${analysisData.buildingData.dpe.dpeClass || 'Non disponible'}
+  - Consommation: ${analysisData.buildingData.dpe.energyConsumption || 'Non disponible'} kWh/m²/an
+  - Émissions GES: ${analysisData.buildingData.dpe.gesClass || 'Non disponible'}`
+    : ''
+}`
+    : ''
+}
 
 Génère un JSON avec cette structure EXACTE:
 {
@@ -159,7 +214,17 @@ RÈGLES IMPORTANTES pour companyVerification:
 - Si des données financières sont disponibles, verified doit être true, confidence >= 70, et ajouter "Infogreffe" dans dataSources
 - Si une procédure collective est détectée, ajouter une note critique dans notes: "⚠️ Procédure collective en cours"
 - Si les données financières montrent une tendance défavorable (CA en baisse, résultat négatif), ajouter une note d'alerte
-- Lister toutes les sources de données utilisées (Sirene, Infogreffe, etc.)`
+- Lister toutes les sources de données utilisées (Sirene, Infogreffe, etc.)
+
+RÈGLES IMPORTANTES pour l'utilisation du CONTEXTE CHANTIER:
+- Si des risques naturels (inondation, sismique, argile) sont détectés, AJOUTER des recommandations spécifiques dans enhancedRecommendations pour:
+  * Vérifier que l'entreprise a prévu les surcoûts liés aux fondations renforcées (risque argile/sismique)
+  * S'assurer que les matériaux et techniques sont adaptés aux zones à risque (inondation)
+  * Valider que l'assurance décennale couvre ces risques spécifiques
+- Si la valorisation immobilière (DVF) montre un bien sous-évalué, suggérer de vérifier la cohérence des travaux avec la valorisation du patrimoine
+- Si le DPE est mauvais (E, F, G), ajouter des recommandations pour vérifier que les travaux incluent des améliorations énergétiques
+- Si des installations ICPE sont proches, recommander de vérifier les nuisances potentielles et leur impact sur le chantier
+- Intégrer ces éléments de contexte dans l'executiveSummary et les keyStrengths/keyWeaknesses pour une analyse HOLISTIQUE`
 
       // Liste des modèles à essayer (par ordre de préférence)
       // Pour les insights (pas de PDF), on peut utiliser Claude 3 aussi

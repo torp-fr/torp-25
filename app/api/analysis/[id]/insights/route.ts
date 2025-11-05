@@ -84,6 +84,36 @@ export async function GET(
       }, 'Données entreprise disponibles')
     }
 
+    // Récupérer les données du bâtiment lié au devis (si disponible)
+    let buildingData: any = null
+    if (devis.buildingProfileId) {
+      try {
+        const buildingProfile = await prisma.buildingProfile.findUnique({
+          where: { id: devis.buildingProfileId },
+        })
+
+        if (buildingProfile && buildingProfile.enrichedData) {
+          const enriched = buildingProfile.enrichedData as any
+          buildingData = {
+            address: buildingProfile.address,
+            georisques: enriched.georisques,
+            dvf: enriched.dvf,
+            cadastre: enriched.cadastre,
+            dpe: buildingProfile.dpeData,
+          }
+
+          log.debug({
+            hasGeorisques: !!buildingData.georisques,
+            hasDVF: !!buildingData.dvf,
+            hasCadastre: !!buildingData.cadastre,
+            hasDPE: !!buildingData.dpe,
+          }, 'Données bâtiment disponibles pour insights')
+        }
+      } catch (err) {
+        log.warn({ err }, 'Erreur récupération données bâtiment')
+      }
+    }
+
     // Générer les insights avec LLM
     const insightsGenerator = new InsightsGenerator()
     const insights = await insightsGenerator.generateInsights({
@@ -97,6 +127,7 @@ export async function GET(
         recommendations: (score.recommendations as any) || [],
       },
       companyData,
+      buildingData,
     })
 
     return NextResponse.json({
