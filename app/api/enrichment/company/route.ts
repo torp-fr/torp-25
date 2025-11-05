@@ -53,7 +53,7 @@ export async function GET(request: NextRequest) {
       { status: 400 }
     )
   } catch (error) {
-    log.error('[API Company Enrichment] Erreur:', error)
+    log.error({ err: error }, 'Erreur')
     return NextResponse.json(
       {
         error: 'Failed to enrich company data',

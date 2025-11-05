@@ -6,6 +6,9 @@
 
 import { prisma } from '@/lib/db'
 import type { AddressData } from './types'
+import { loggers } from '@/lib/logger'
+
+const log = loggers.enrichment
 
 export interface BANSearchParams {
   department?: string

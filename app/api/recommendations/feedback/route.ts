@@ -65,7 +65,7 @@ export async function POST(request: NextRequest) {
       data: feedback,
     })
   } catch (error) {
-    log.error('[API Recommendation Feedback] Erreur:', error)
+    log.error({ err: error }, 'Erreur')
     return NextResponse.json(
       {
         error: 'Failed to save feedback',

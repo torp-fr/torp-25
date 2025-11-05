@@ -34,7 +34,7 @@ export async function POST(request: NextRequest) {
       verification,
     })
   } catch (error) {
-    log.error('[API Companies Verify] Erreur:', error)
+    log.error({ err: error }, 'Erreur')
     return NextResponse.json(
       {
         error: 'Erreur lors de la vérification de l\'entreprise',

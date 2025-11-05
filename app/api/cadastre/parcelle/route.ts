@@ -62,7 +62,7 @@ export async function GET(request: NextRequest) {
       data: result,
     })
   } catch (error) {
-    log.error('[API Cadastre Parcelle] Erreur:', error)
+    log.error({ err: error }, 'Erreur')
     return NextResponse.json(
       {
         error: 'Erreur lors de la récupération des parcelles cadastrales',

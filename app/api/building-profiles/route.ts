@@ -35,7 +35,7 @@ export async function GET(request: NextRequest) {
       data: profiles,
     })
   } catch (error) {
-    log.error('[API Building Profiles GET] Erreur:', error)
+    log.error({ err: error }, 'Erreur')
     return NextResponse.json(
       {
         error: 'Erreur lors de la récupération des profils',
@@ -82,7 +82,7 @@ export async function POST(request: NextRequest) {
       data: profile,
     }, { status: 201 })
   } catch (error) {
-    log.error('[API Building Profiles POST] Erreur:', error)
+    log.error({ err: error }, 'Erreur')
     
     // Gérer les erreurs de validation spécifiques
     if (error instanceof Error) {

@@ -45,7 +45,7 @@ export async function GET(request: NextRequest) {
       address,
     })
   } catch (error) {
-    log.error('[API Addresses Reverse] Erreur:', error)
+    log.error({ err: error }, 'Erreur')
     return NextResponse.json(
       {
         error: 'Erreur lors du géocodage inverse',

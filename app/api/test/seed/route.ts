@@ -248,7 +248,7 @@ export async function POST(request: NextRequest) {
       },
     })
   } catch (error) {
-    log.error('Seed error:', error)
+    log.error({ err: error }, 'Seed error')
     return NextResponse.json(
       {
         success: false,
@@ -295,7 +295,7 @@ export async function GET(request: NextRequest) {
       },
     })
   } catch (error) {
-    log.error('Check error:', error)
+    log.error({ err: error }, 'Check error')
     return NextResponse.json(
       { success: false, error: 'Failed to check test data' },
       { status: 500 }

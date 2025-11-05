@@ -61,7 +61,7 @@ export async function GET(request: NextRequest) {
       data: addresses, // Format: AddressData[] avec formatted, city, postalCode, coordinates
     })
   } catch (error) {
-    log.error('[API Addresses Search] Erreur:', error)
+    log.error({ err: error }, 'Erreur')
     return NextResponse.json(
       {
         error: 'Erreur lors de la recherche d\'adresses',

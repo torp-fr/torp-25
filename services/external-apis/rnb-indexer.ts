@@ -6,6 +6,9 @@
 
 import { prisma } from '@/lib/db'
 import type { RNBBuildingData } from './rnb-service'
+import { loggers } from '@/lib/logger'
+
+const log = loggers.enrichment
 
 export interface RNBSearchParams {
   department?: string

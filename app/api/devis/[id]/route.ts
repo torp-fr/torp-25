@@ -24,7 +24,7 @@ export async function GET(
 
     return NextResponse.json({ success: true, data: devis })
   } catch (error) {
-    log.error('Devis fetch error:', error)
+    log.error({ err: error }, 'Devis fetch error')
     return NextResponse.json(
       { error: 'Failed to fetch devis' },
       { status: 500 }
@@ -61,7 +61,7 @@ export async function DELETE(
       message: 'Devis deleted successfully',
     })
   } catch (error) {
-    log.error('[API Devis] Erreur suppression:', error)
+    log.error({ err: error }, 'Erreur suppression')
     return NextResponse.json(
       {
         error: 'Failed to delete devis',

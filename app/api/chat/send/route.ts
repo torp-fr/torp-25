@@ -76,7 +76,7 @@ export async function POST(request: NextRequest) {
           assistantResponse = `Concernant cette recommandation, voici des éléments de clarification et des conseils pour améliorer votre situation.`
         }
       } catch (error) {
-        log.error('[Chat] Erreur génération réponse:', error)
+        log.error({ err: error }, 'Erreur génération réponse')
         assistantResponse = 'Désolé, je rencontre une difficulté technique. Pouvez-vous reformuler votre question ?'
       }
 
@@ -102,7 +102,7 @@ export async function POST(request: NextRequest) {
       messageId: userMessage.id,
     })
   } catch (error) {
-    log.error('[API Chat] Erreur:', error)
+    log.error({ err: error }, 'Erreur')
     return NextResponse.json(
       {
         error: 'Failed to send message',

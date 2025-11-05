@@ -52,7 +52,7 @@ export async function GET(
       data: documents,
     })
   } catch (error) {
-    log.error('[API Building Documents GET] Erreur:', error)
+    log.error({ err: error }, 'Erreur')
     return NextResponse.json(
       {
         error: 'Erreur lors de la récupération des documents',
@@ -149,7 +149,7 @@ export async function POST(
       data: document,
     }, { status: 201 })
   } catch (error) {
-    log.error('[API Building Documents POST] Erreur:', error)
+    log.error({ err: error }, 'Erreur')
     return NextResponse.json(
       {
         error: 'Erreur lors de l\'upload du document',

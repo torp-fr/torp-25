@@ -56,7 +56,7 @@ export async function GET(request: NextRequest) {
       data: result,
     })
   } catch (error) {
-    log.error('[API Cadastre Commune] Erreur:', error)
+    log.error({ err: error }, 'Erreur')
     return NextResponse.json(
       {
         error: 'Erreur lors de la récupération des données de commune',

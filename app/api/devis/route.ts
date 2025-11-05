@@ -34,7 +34,7 @@ export async function GET(_request: NextRequest) {
       data: devisList,
     })
   } catch (error) {
-    log.error('Devis fetch error:', error)
+    log.error({ err: error }, 'Devis fetch error')
     return NextResponse.json(
       { error: 'Failed to fetch devis' },
       { status: 500 }
@@ -86,7 +86,7 @@ export async function POST(request: NextRequest) {
       data: devis,
     })
   } catch (error) {
-    log.error('Devis creation error:', error)
+    log.error({ err: error }, 'Devis creation error')
     return NextResponse.json(
       { error: 'Failed to create devis' },
       { status: 500 }

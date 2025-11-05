@@ -49,7 +49,7 @@ export async function POST(request: NextRequest) {
       },
     })
   } catch (error) {
-    log.error('[API ABTest] ❌ Erreur:', error)
+    log.error({ err: error }, '❌ Erreur')
     return NextResponse.json(
       {
         error: 'Erreur lors de la création du test',

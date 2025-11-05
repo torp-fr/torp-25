@@ -70,7 +70,7 @@ export async function POST(request: NextRequest) {
       data: study,
     })
   } catch (error) {
-    log.error('[API Feasibility] Erreur:', error)
+    log.error({ err: error }, 'Erreur')
     return NextResponse.json(
       {
         error: 'Failed to generate feasibility study',

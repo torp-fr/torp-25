@@ -74,7 +74,7 @@ export async function GET(
       },
     })
   } catch (error) {
-    log.error('[API Building Profiles Recommendations] Erreur:', error)
+    log.error({ err: error }, 'Erreur')
     return NextResponse.json(
       {
         error: 'Erreur lors de la récupération des recommandations',

@@ -43,7 +43,7 @@ export async function POST(request: NextRequest) {
       count: results.length,
     })
   } catch (error) {
-    log.error('[API Address] Erreur:', error)
+    log.error({ err: error }, 'Erreur')
     return NextResponse.json(
       {
         error: 'Failed to search address',

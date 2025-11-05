@@ -40,7 +40,7 @@ export async function GET(request: NextRequest) {
       })),
     })
   } catch (error) {
-    log.error('[API Chat Messages] Erreur:', error)
+    log.error({ err: error }, 'Erreur')
     return NextResponse.json(
       {
         error: 'Failed to fetch messages',

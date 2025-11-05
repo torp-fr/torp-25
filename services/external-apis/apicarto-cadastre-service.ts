@@ -16,6 +16,10 @@
  * - Par défaut: PCI si source_ign non spécifié
  */
 
+import { loggers } from '@/lib/logger'
+
+const log = loggers.enrichment
+
 export type APICartoSource = 'PCI' | 'BDP'
 
 export interface APICartoGeometry {

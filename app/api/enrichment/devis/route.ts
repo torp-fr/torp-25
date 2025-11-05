@@ -55,7 +55,7 @@ export async function POST(request: NextRequest) {
       data: enrichment,
     })
   } catch (error) {
-    log.error('[API Enrichment] Erreur:', error)
+    log.error({ err: error }, 'Erreur')
     return NextResponse.json(
       {
         error: 'Failed to enrich devis data',

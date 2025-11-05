@@ -96,7 +96,7 @@ export async function GET(request: NextRequest) {
       { status: 400 }
     )
   } catch (error) {
-    log.error('[API Cadastre DataGouv] ❌ Erreur:', error)
+    log.error({ err: error }, '❌ Erreur')
     return NextResponse.json(
       {
         error: 'Erreur lors de la récupération des données cadastrales',

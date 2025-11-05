@@ -78,7 +78,7 @@ export async function POST(request: NextRequest) {
       data: document,
     })
   } catch (error) {
-    log.error('[API Complementary Documents] Erreur:', error)
+    log.error({ err: error }, 'Erreur')
     return NextResponse.json(
       {
         error: 'Failed to upload complementary document',

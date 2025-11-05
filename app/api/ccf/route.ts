@@ -78,7 +78,7 @@ export async function POST(request: NextRequest) {
       data: ccf,
     })
   } catch (error) {
-    log.error('[API CCF] Erreur:', error)
+    log.error({ err: error }, 'Erreur')
     return NextResponse.json(
       {
         error: 'Failed to save CCF',

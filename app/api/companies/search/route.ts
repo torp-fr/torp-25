@@ -37,7 +37,7 @@ export async function GET(request: NextRequest) {
       results,
     })
   } catch (error) {
-    log.error('[API Companies Search] Erreur:', error)
+    log.error({ err: error }, 'Erreur')
     return NextResponse.json(
       {
         error: 'Erreur lors de la recherche d\'entreprises',

@@ -62,7 +62,7 @@ export async function POST(request: NextRequest) {
       },
     })
   } catch (error) {
-    log.error('OCR processing error:', error)
+    log.error({ err: error }, 'OCR processing error')
 
     // Try to update document status to failed
     try {

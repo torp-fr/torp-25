@@ -37,7 +37,7 @@ export async function POST(
       data: tenantProfile,
     }, { status: 201 })
   } catch (error) {
-    log.error('[API Building Profiles Tenant POST] Erreur:', error)
+    log.error({ err: error }, 'Erreur')
     
     if (error instanceof Error) {
       // Erreur de validation
@@ -101,7 +101,7 @@ export async function GET(
       data: tenantProfiles,
     })
   } catch (error) {
-    log.error('[API Building Profiles Tenant GET] Erreur:', error)
+    log.error({ err: error }, 'Erreur')
     
     if (error instanceof Error) {
       if (error.message.includes('non trouvé') || error.message.includes('non autorisé')) {

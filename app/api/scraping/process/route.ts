@@ -22,7 +22,7 @@ export async function POST(_request: NextRequest) {
       message: 'Queue traitée avec succès',
     })
   } catch (error) {
-    log.error('[API Scraping] ❌ Erreur:', error)
+    log.error({ err: error }, '❌ Erreur')
     return NextResponse.json(
       {
         error: 'Erreur lors du traitement de la queue',
