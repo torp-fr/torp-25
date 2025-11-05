@@ -6,7 +6,9 @@
 import { prisma } from '@/lib/db'
 import type { MLFeatures } from '@/services/ml/scoring-ml'
 import { ScoringML } from '@/services/ml/scoring-ml'
+import { loggers } from '@/lib/logger'
 
+const log = loggers.enrichment
 export interface TrainingExample {
   id: string
   features: MLFeatures
@@ -118,7 +120,7 @@ export class TrainingDataCollector {
           example.predictedGrade = prediction.predictedGrade
           example.error = Math.abs(prediction.predictedScore - Number(latestScore.scoreValue))
         } catch (error) {
-          console.warn(`[TrainingCollector] Erreur prédiction pour ${currentDevis.id}:`, error)
+          log.warn({ err: error, devisId: currentDevis.id }, 'Erreur prédiction')
         }
 
         examples.push(example)
@@ -127,7 +129,7 @@ export class TrainingDataCollector {
       }
     }
 
-    console.log(`[TrainingCollector] ✅ ${examples.length} exemples collectés`)
+    log.debug({ count: examples.length }, 'Exemples collectés')
     return examples
   }
 

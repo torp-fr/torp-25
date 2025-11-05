@@ -6,7 +6,9 @@
 import type { Devis } from '@/types'
 import { AdvancedScoringEngine } from '@/services/scoring/advanced/advanced-scoring-engine'
 import type { FinalScore } from '@/services/scoring/advanced/types'
+import { loggers } from '@/lib/logger'
 
+const log = loggers.enrichment
 export interface ABTestConfig {
   testId: string
   name: string
@@ -76,7 +78,7 @@ export class ABTestEngine {
     }
 
     this.activeTests.set(config.testId, config)
-    console.log(`[ABTestEngine] ✅ Test A/B créé: ${config.name} (${config.testId})`)
+    log.debug(`[ABTestEngine] ✅ Test A/B créé: ${config.name} (${config.testId})`)
   }
 
   /**
@@ -209,7 +211,7 @@ export class ABTestEngine {
     try {
       // Stocker dans une table dédiée (ou utiliser les métadonnées du score)
       // Pour l'instant, on log seulement
-      console.log(`[ABTestEngine] 📊 Test: ${variant} - Score ${score.totalScore} (${score.grade})`)
+      log.debug(`[ABTestEngine] 📊 Test: ${variant} - Score ${score.totalScore} (${score.grade})`)
       
       // TODO: Créer une table ABTestResult dans Prisma si nécessaire
     } catch (error) {

@@ -5,7 +5,9 @@
 
 import { globalCache } from '@/services/cache/data-cache'
 import type { ExtractedDevisData } from '@/services/llm/document-analyzer'
+import { loggers } from '@/lib/logger'
 
+const log = loggers.enrichment
 export interface MinimalEnrichmentData {
   company?: {
     siret?: string
@@ -61,11 +63,11 @@ export class MinimalEnrichmentService {
       }
 
       const duration = Date.now() - startTime
-      console.log(`[MinimalEnrichment] Enrichissement minimal récupéré (${duration}ms)`)
+      log.debug({ duration }, 'Enrichissement minimal récupéré')
       
       return enrichment.company ? enrichment : null
     } catch (error) {
-      console.warn('[MinimalEnrichment] Erreur enrichissement minimal:', error)
+      log.warn({ err: error }, 'Erreur enrichissement minimal')
       return null
     }
   }

@@ -4,7 +4,9 @@
  */
 
 import type { Devis } from '@/types'
+import { loggers } from '@/lib/logger'
 
+const log = loggers.enrichment
 export interface MLFeatures {
   // Features prix
   totalAmount: number
@@ -197,7 +199,7 @@ export class ScoringML {
    */
   async train(trainingData: Array<{ features: MLFeatures; actualScore: number }>): Promise<void> {
     // TODO: Implémenter l'entraînement avec TensorFlow.js ou autre
-    console.log(`[ScoringML] 🔄 Entraînement avec ${trainingData.length} exemples`)
+    log.debug({ count: trainingData.length }, 'Entraînement modèle')
     
     // Pour l'instant, ajustement des poids basé sur les données
     this.priceModel.adjustWeights(trainingData)
@@ -237,7 +239,7 @@ class PricePredictor {
 
   adjustWeights(trainingData: any[]): void {
     // Placeholder - à implémenter avec vraie optimisation
-    console.log('[PricePredictor] Ajustement des poids basé sur', trainingData.length, 'exemples')
+    log.debug({ count: trainingData.length }, 'Ajustement poids PricePredictor')
   }
 }
 
@@ -272,7 +274,7 @@ class QualityPredictor {
   }
 
   adjustWeights(trainingData: any[]): void {
-    console.log('[QualityPredictor] Ajustement des poids basé sur', trainingData.length, 'exemples')
+    log.debug({ count: trainingData.length }, 'Ajustement poids QualityPredictor')
   }
 }
 
@@ -305,7 +307,7 @@ class RiskPredictor {
   }
 
   adjustWeights(trainingData: any[]): void {
-    console.log('[RiskPredictor] Ajustement des poids basé sur', trainingData.length, 'exemples')
+    log.debug({ count: trainingData.length }, 'Ajustement poids RiskPredictor')
   }
 }
 

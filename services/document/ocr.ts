@@ -6,7 +6,9 @@
 import Tesseract from 'tesseract.js'
 // Use dynamic import for CommonJS interop in Next build
 import type { ExtractedData } from '@/types'
+import { loggers } from '@/lib/logger'
 
+const log = loggers.enrichment
 interface OCRResult {
   text: string
   confidence: number
@@ -19,7 +21,7 @@ export class OCRService {
   async extractTextFromImage(imageUrl: string): Promise<OCRResult> {
     try {
       const result = await Tesseract.recognize(imageUrl, 'fra', {
-        logger: (m) => console.log(m),
+        logger: (m) => log.debug(m),
       })
 
       return {
@@ -40,7 +42,7 @@ export class OCRService {
       // TEMPORAIRE: Si c'est une URL mockée (mode développement sans S3)
       // On retourne des données de démo au lieu de fetcher
       if (pdfUrl.includes('/uploads/') || pdfUrl.includes('localhost')) {
-        console.log('[OCR] Mode développement: utilisation de données démo')
+        log.debug('[OCR] Mode développement: utilisation de données démo')
         return {
           text: this.getDemoDevisText(),
           confidence: 95,

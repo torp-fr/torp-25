@@ -5,7 +5,9 @@
 
 import { ApiClient } from './api-client'
 import type { EnrichedCompanyData } from '../scoring/advanced/types'
+import { loggers } from '@/lib/logger'
 
+const log = loggers.enrichment
 export class PappersEnrichmentService {
   private apiClient?: ApiClient
 
@@ -28,7 +30,7 @@ export class PappersEnrichmentService {
   async enrichCompany(siret: string): Promise<Partial<EnrichedCompanyData> | null> {
     try {
       if (!this.apiClient) {
-        console.warn('[PappersService] API key non configurée')
+        log.warn('[PappersService] API key non configurée')
         return null
       }
 

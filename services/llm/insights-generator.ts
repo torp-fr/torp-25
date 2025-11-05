@@ -4,7 +4,9 @@
  */
 
 import Anthropic from '@anthropic-ai/sdk'
+import { loggers } from '@/lib/logger'
 
+const log = loggers.enrichment
 export interface AnalysisInsights {
   executiveSummary: string
   keyStrengths: Array<{
@@ -174,7 +176,7 @@ RÈGLES IMPORTANTES pour companyVerification:
 
       for (const model of modelCandidates) {
         try {
-          console.log(`[InsightsGenerator] Essai du modèle: ${model}`)
+          log.debug(`[InsightsGenerator] Essai du modèle: ${model}`)
           message = await this.client.messages.create({
             model,
             max_tokens: 4000,
@@ -185,11 +187,11 @@ RÈGLES IMPORTANTES pour companyVerification:
               },
             ],
           })
-          console.log(`[InsightsGenerator] ✅ Modèle ${model} fonctionne`)
+          log.debug(`[InsightsGenerator] ✅ Modèle ${model} fonctionne`)
           break // Succès, sortir de la boucle
         } catch (error: any) {
           lastError = error
-          console.warn(
+          log.warn(
             `[InsightsGenerator] ⚠️ Modèle ${model} a échoué:`,
             error.message
           )

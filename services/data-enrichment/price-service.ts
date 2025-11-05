@@ -6,7 +6,9 @@
 import { ApiClient } from './api-client'
 import type { PriceReference, RegionalData } from './types'
 import { globalCache } from '@/services/cache/data-cache'
+import { loggers } from '@/lib/logger'
 
+const log = loggers.enrichment
 export class PriceEnrichmentService {
   private reefPremiumClient?: ApiClient
 
@@ -35,7 +37,7 @@ export class PriceEnrichmentService {
     const cacheKey = `price:${category}:${region}:${item || 'all'}`
     const cached = globalCache.getPriceReference<PriceReference[]>(cacheKey)
     if (cached) {
-      console.log('[PriceService] ✅ Prix récupérés depuis le cache')
+      log.debug('Prix récupérés depuis le cache')
       return cached
     }
 
@@ -76,7 +78,7 @@ export class PriceEnrichmentService {
             )
           }
         } catch (error) {
-          console.warn('[PriceService] Erreur Reef Premium:', error)
+          log.warn({ err: error }, 'Erreur Reef Premium')
         }
       }
 

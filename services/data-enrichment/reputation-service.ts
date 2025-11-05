@@ -5,7 +5,9 @@
 
 import { ApiClient } from './api-client'
 import type { EnrichedCompanyData } from '../scoring/advanced/types'
+import { loggers } from '@/lib/logger'
 
+const log = loggers.enrichment
 export class ReputationEnrichmentService {
   private apiClient: ApiClient
 
@@ -66,7 +68,7 @@ export class ReputationEnrichmentService {
             sources: data.sources,
           }
         } catch (error) {
-          console.warn('[ReputationService] API non disponible, utilisation fallback')
+          log.warn('[ReputationService] API non disponible, utilisation fallback')
           return fallbackReputation
         }
       }

@@ -5,6 +5,9 @@
 
 import { ApiClient } from './api-client'
 import type { EnrichedCompanyData } from '../scoring/advanced/types'
+import { loggers } from '@/lib/logger'
+
+const log = loggers.enrichment
 
 export class InfogreffeEnrichmentService {
   private apiClient?: ApiClient
@@ -29,7 +32,7 @@ export class InfogreffeEnrichmentService {
   async enrichFinancialData(siren: string): Promise<EnrichedCompanyData['financialData'] | null> {
     try {
       if (!this.apiClient) {
-        console.warn('[InfogreffeService] API key non configurée - données limitées')
+        log.warn('API key Infogreffe non configurée - données limitées')
         return null
       }
 
@@ -61,7 +64,7 @@ export class InfogreffeEnrichmentService {
         lastUpdate: new Date().toISOString(),
       }
     } catch (error) {
-      console.error(`[InfogreffeService] Erreur enrichissement financier SIREN ${siren}:`, error)
+      log.error({ err: error, siren }, 'Erreur enrichissement financier Infogreffe')
       return null
     }
   }
