@@ -41,92 +41,126 @@ export interface SimpleRisques {
 }
 
 /**
- * Récupère le DPE depuis l'API ADEME
+ * Récupère le DPE depuis l'API ADEME - RECHERCHE DANS 2 DATASETS
  */
 export async function getDPESimple(address: SimpleAddress): Promise<SimpleDPE | null> {
   try {
     console.log('[SimpleDataService] 🔍 Recherche DPE pour:', address.formatted)
 
-    // 1. Recherche par GPS avec rayons progressifs
-    if (address.coordinates) {
-      const { lat, lng } = address.coordinates
-      const rayons = [200, 500, 1000] // Essayer 200m, 500m, 1000m
+    const datasets = [
+      { id: 'dpe-v2-logements-existants', label: 'DPE v2 (après juillet 2021)' },
+      { id: 'dpe-france', label: 'DPE v1 (avant juillet 2021)' },
+    ]
 
-      for (const rayon of rayons) {
-        const url = `https://data.ademe.fr/data-fair/api/v1/datasets/dpe-v2-logements-existants/lines?geo_distance=${lat},${lng},${rayon}m&size=10&sort=Date_etablissement_DPE:-1`
+    const foundDPEs: Array<{ dpe: any; dataset: string; date: Date }> = []
 
-        console.log(`[SimpleDataService] 📍 Recherche GPS rayon ${rayon}m...`)
+    // Chercher dans les deux datasets
+    for (const dataset of datasets) {
+      console.log(`[SimpleDataService] 📚 Recherche dans ${dataset.label}...`)
 
-        const response = await fetch(url, {
-          headers: { 'Accept': 'application/json' },
-        })
+      // 1. Recherche par GPS avec rayons progressifs
+      if (address.coordinates) {
+        const { lat, lng } = address.coordinates
+        const rayons = [200, 500, 1000] // Essayer 200m, 500m, 1000m
 
-        if (response.ok) {
-          const data = await response.json()
-          console.log(`[SimpleDataService] 📊 ${data.total || 0} DPE trouvés dans rayon ${rayon}m`)
+        for (const rayon of rayons) {
+          const url = `https://data.ademe.fr/data-fair/api/v1/datasets/${dataset.id}/lines?geo_distance=${lat},${lng},${rayon}m&size=10&sort=-date_etablissement_dpe`
 
-          if (data.results && data.results.length > 0) {
-            const dpe = data.results[0]
+          console.log(`[SimpleDataService] 📍 ${dataset.label} - Recherche GPS rayon ${rayon}m...`)
 
-            console.log('[SimpleDataService] ✅ DPE trouvé:', {
-              rayon: `${rayon}m`,
-              classe: dpe.Classe_consommation_energie,
-              consommation: dpe.Consommation_energie,
-              surface: dpe.Surface_habitable,
-              annee: dpe.Annee_construction,
-              adresse: `${dpe.N_rue || ''} ${dpe.Nom_rue || ''} ${dpe.Code_postal || ''}`.trim(),
+          try {
+            const response = await fetch(url, {
+              headers: { 'Accept': 'application/json' },
             })
 
-            return {
-              classe: dpe.Classe_consommation_energie,
-              consommation: parseFloat(dpe.Consommation_energie) || parseFloat(dpe.Conso_5_usages_m2_e_primaire) || undefined,
-              ges: parseFloat(dpe.Emission_GES) || parseFloat(dpe.Emission_GES_5_usages_m2) || undefined,
-              surface: parseFloat(dpe.Surface_habitable) || undefined,
-              annee: dpe.Annee_construction ? parseInt(dpe.Annee_construction, 10) : undefined,
-              type: dpe.Type_batiment,
-              chauffage: dpe.Type_energie_chauffage,
-              dateEstablissement: dpe.Date_etablissement_DPE,
+            if (response.ok) {
+              const data = await response.json()
+              console.log(`[SimpleDataService] 📊 ${dataset.label} - ${data.total || 0} DPE trouvés dans rayon ${rayon}m`)
+
+              if (data.results && data.results.length > 0) {
+                const dpe = data.results[0]
+
+                // Parser la date d'établissement
+                const dateEtablissement = dpe.date_etablissement_dpe || dpe.Date_etablissement_DPE
+                if (dateEtablissement) {
+                  foundDPEs.push({
+                    dpe,
+                    dataset: dataset.label,
+                    date: new Date(dateEtablissement),
+                  })
+                  console.log(`[SimpleDataService] ✅ ${dataset.label} - DPE trouvé à ${rayon}m, date: ${dateEtablissement}`)
+                  break // Passer au dataset suivant
+                }
+              }
             }
+          } catch (e) {
+            console.warn(`[SimpleDataService] ⚠️ Erreur recherche GPS ${dataset.label}:`, e)
           }
         }
       }
-    }
 
-    // 2. Recherche par adresse texte (fallback)
-    console.log('[SimpleDataService] 🔍 Recherche par adresse texte...')
-    const searchUrl = `https://data.ademe.fr/data-fair/api/v1/datasets/dpe-v2-logements-existants/lines?q=${encodeURIComponent(address.formatted)}&size=10&sort=Date_etablissement_DPE:-1`
+      // 2. Recherche par adresse texte (fallback si pas trouvé en GPS)
+      if (foundDPEs.filter(f => f.dataset === dataset.label).length === 0) {
+        console.log(`[SimpleDataService] 🔍 ${dataset.label} - Recherche par adresse texte...`)
+        const searchUrl = `https://data.ademe.fr/data-fair/api/v1/datasets/${dataset.id}/lines?q=${encodeURIComponent(address.formatted)}&size=10&sort=-date_etablissement_dpe`
 
-    const response2 = await fetch(searchUrl, {
-      headers: { 'Accept': 'application/json' },
-    })
+        try {
+          const response = await fetch(searchUrl, {
+            headers: { 'Accept': 'application/json' },
+          })
 
-    if (response2.ok) {
-      const data = await response2.json()
-      console.log(`[SimpleDataService] 📊 ${data.total || 0} DPE trouvés par recherche texte`)
+          if (response.ok) {
+            const data = await response.json()
+            console.log(`[SimpleDataService] 📊 ${dataset.label} - ${data.total || 0} DPE trouvés par recherche texte`)
 
-      if (data.results && data.results.length > 0) {
-        const dpe = data.results[0]
-
-        console.log('[SimpleDataService] ✅ DPE trouvé par adresse:', {
-          classe: dpe.Classe_consommation_energie,
-          adresse: `${dpe.N_rue || ''} ${dpe.Nom_rue || ''} ${dpe.Code_postal || ''}`.trim(),
-        })
-
-        return {
-          classe: dpe.Classe_consommation_energie,
-          consommation: parseFloat(dpe.Consommation_energie) || parseFloat(dpe.Conso_5_usages_m2_e_primaire) || undefined,
-          ges: parseFloat(dpe.Emission_GES) || parseFloat(dpe.Emission_GES_5_usages_m2) || undefined,
-          surface: parseFloat(dpe.Surface_habitable) || undefined,
-          annee: dpe.Annee_construction ? parseInt(dpe.Annee_construction, 10) : undefined,
-          type: dpe.Type_batiment,
-          chauffage: dpe.Type_energie_chauffage,
-          dateEstablissement: dpe.Date_etablissement_DPE,
+            if (data.results && data.results.length > 0) {
+              const dpe = data.results[0]
+              const dateEtablissement = dpe.date_etablissement_dpe || dpe.Date_etablissement_DPE
+              if (dateEtablissement) {
+                foundDPEs.push({
+                  dpe,
+                  dataset: dataset.label,
+                  date: new Date(dateEtablissement),
+                })
+                console.log(`[SimpleDataService] ✅ ${dataset.label} - DPE trouvé par texte, date: ${dateEtablissement}`)
+              }
+            }
+          }
+        } catch (e) {
+          console.warn(`[SimpleDataService] ⚠️ Erreur recherche texte ${dataset.label}:`, e)
         }
       }
     }
 
-    console.warn('[SimpleDataService] ⚠️ Aucun DPE trouvé')
-    return null
+    // Sélectionner le DPE le plus récent parmi tous ceux trouvés
+    if (foundDPEs.length === 0) {
+      console.warn('[SimpleDataService] ⚠️ Aucun DPE trouvé dans aucun des 2 datasets')
+      return null
+    }
+
+    // Trier par date décroissante et prendre le plus récent
+    foundDPEs.sort((a, b) => b.date.getTime() - a.date.getTime())
+    const mostRecent = foundDPEs[0]
+
+    console.log(`[SimpleDataService] ✅ DPE le plus récent sélectionné:`, {
+      dataset: mostRecent.dataset,
+      date: mostRecent.date.toISOString(),
+      classe: mostRecent.dpe.classe_consommation_energie || mostRecent.dpe.Classe_consommation_energie,
+      totalTrouve: foundDPEs.length,
+    })
+
+    const dpe = mostRecent.dpe
+
+    return {
+      classe: dpe.classe_consommation_energie || dpe.Classe_consommation_energie,
+      consommation: parseFloat(dpe.consommation_energie || dpe.Consommation_energie) || parseFloat(dpe.conso_5_usages_m2_e_primaire || dpe.Conso_5_usages_m2_e_primaire) || undefined,
+      ges: parseFloat(dpe.estimation_ges || dpe.Emission_GES) || parseFloat(dpe.emission_ges_5_usages_m2 || dpe.Emission_GES_5_usages_m2) || undefined,
+      surface: parseFloat(dpe.surface_habitable || dpe.Surface_habitable || dpe.surface_thermique_lot) || undefined,
+      annee: (dpe.annee_construction || dpe.Annee_construction) ? parseInt(dpe.annee_construction || dpe.Annee_construction, 10) : undefined,
+      type: dpe.tr002_type_batiment_description || dpe.Type_batiment,
+      chauffage: dpe.type_energie_chauffage || dpe.Type_energie_chauffage,
+      dateEstablissement: dpe.date_etablissement_dpe || dpe.Date_etablissement_DPE,
+    }
   } catch (error) {
     console.error('[SimpleDataService] ❌ Erreur DPE:', error)
     return null
