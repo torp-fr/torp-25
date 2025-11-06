@@ -35,46 +35,79 @@ export class CompanyEnrichmentService {
   /**
    * Enrichit les données d'une entreprise à partir du SIRET
    * Utilise d'abord le service Sirene complet, puis fallback sur API Recherche d'Entreprises
+   * Avec retry logic et validation assouplie pour meilleure robustesse
    */
   async enrichFromSiret(siret: string): Promise<CompanyEnrichment | null> {
     try {
-      // Nettoyer le SIRET (supprimer espaces)
-      const cleanSiret = siret.replace(/\s/g, '')
+      // Nettoyer le SIRET (supprimer espaces, tirets, points)
+      const cleanSiret = siret.replace(/[\s\-\.]/g, '')
       console.log(
-        `[CompanyService] 🔍 Enrichissement pour SIRET: ${cleanSiret}`
+        `[CompanyService] 🔍 Enrichissement pour SIRET: ${cleanSiret} (original: ${siret})`
       )
 
-      if (!this.isValidSiret(cleanSiret)) {
+      // Validation assouplie - vérifier format avant la clé de Luhn
+      if (!/^\d{14}$/.test(cleanSiret)) {
         console.warn(
-          `[CompanyService] ❌ SIRET invalide: ${siret} (après nettoyage: ${cleanSiret})`
+          `[CompanyService] ❌ Format SIRET invalide (doit être 14 chiffres): ${siret} → ${cleanSiret}`
         )
         return null
       }
 
-      // 1. Essayer d'abord avec le service Sirene complet (API INSEE)
-      console.log(
-        '[CompanyService] 🔄 Tentative SireneService.getCompanyBySiret...'
-      )
-      try {
-        const sireneCompany =
-          await this.sireneService.getCompanyBySiret(cleanSiret)
-        if (sireneCompany) {
-          console.log(
-            '[CompanyService] ✅ Données récupérées via SireneService'
-          )
-          return this.mapSireneCompanyToEnrichment(sireneCompany)
-        } else {
-          console.log(
-            '[CompanyService] ⚠️ SireneService.getCompanyBySiret a retourné null'
-          )
-        }
-      } catch (sireneError) {
+      // Validation Luhn (mais continuer même si échec pour être plus permissif)
+      const isValidLuhn = this.isValidSiret(cleanSiret)
+      if (!isValidLuhn) {
         console.warn(
-          `[CompanyService] ⚠️ Erreur SireneService:`,
-          sireneError instanceof Error
-            ? sireneError.message
-            : String(sireneError)
+          `[CompanyService] ⚠️ SIRET échoue validation Luhn: ${cleanSiret} (mais on continue quand même)`
         )
+        // Ne pas retourner null, continuer avec le SIRET nettoyé
+      }
+
+      // Retry logic : jusqu'à 3 tentatives avec backoff exponentiel
+      let lastError: Error | null = null
+      for (let attempt = 1; attempt <= 3; attempt++) {
+        try {
+          if (attempt > 1) {
+            const backoff = attempt * 1000 // 1s, 2s, 3s
+            console.log(`[CompanyService] ⏳ Retry ${attempt}/3 après ${backoff}ms...`)
+            await this.delay(backoff)
+          }
+
+          // 1. Essayer d'abord avec le service Sirene complet (API INSEE ou fallback data.gouv.fr)
+          console.log(
+            `[CompanyService] 🔄 Tentative ${attempt}: SireneService.getCompanyBySiret...`
+          )
+          const sireneCompany =
+            await this.sireneService.getCompanyBySiret(cleanSiret)
+
+          if (sireneCompany) {
+            console.log(
+              `[CompanyService] ✅ Données récupérées via SireneService (tentative ${attempt})`
+            )
+            const enrichment = this.mapSireneCompanyToEnrichment(sireneCompany)
+
+            // Enrichir avec Infogreffe après succès Sirene (non bloquant)
+            await this.enrichWithInfogreffe(enrichment, cleanSiret)
+
+            return enrichment
+          } else {
+            console.log(
+              `[CompanyService] ⚠️ SireneService a retourné null (tentative ${attempt})`
+            )
+          }
+        } catch (sireneError) {
+          lastError = sireneError instanceof Error ? sireneError : new Error(String(sireneError))
+          console.warn(
+            `[CompanyService] ⚠️ Erreur SireneService (tentative ${attempt}):`,
+            lastError.message
+          )
+
+          // Si dernière tentative, on ne retry plus
+          if (attempt === 3) {
+            console.error(
+              `[CompanyService] ❌ Échec après 3 tentatives, passage au fallback API Recherche d'Entreprises`
+            )
+          }
+        }
       }
 
       // 2. Fallback sur l'API Recherche d'Entreprises (data.gouv.fr) - gratuite
@@ -155,74 +188,8 @@ export class CompanyEnrichmentService {
           : [],
       }
 
-      // Enrichir avec Infogreffe pour données financières et juridiques
-      let infogreffeData = null
-      try {
-        const siren = company.siren || cleanSiret.substring(0, 9)
-        if (siren) {
-          console.log(
-            `[CompanyService] 🔄 Enrichissement Infogreffe pour SIREN: ${siren}`
-          )
-          infogreffeData = await this.infogreffeService.getCompanyData(siren)
-
-          if (infogreffeData && infogreffeData.available) {
-            // Enrichir avec les données financières
-            if (infogreffeData.financial) {
-              enrichment.financialData = {
-                ca:
-                  infogreffeData.financial.turnover?.years?.map(
-                    (y) => y.amount
-                  ) ||
-                  (infogreffeData.financial.turnover?.lastYear
-                    ? [infogreffeData.financial.turnover.lastYear]
-                    : []),
-                result:
-                  infogreffeData.financial.netResult?.years?.map(
-                    (y) => y.amount
-                  ) ||
-                  (infogreffeData.financial.netResult?.lastYear
-                    ? [infogreffeData.financial.netResult.lastYear]
-                    : []),
-                ebitda: infogreffeData.financial.ebitda,
-                debt: infogreffeData.financial.debt?.total,
-                lastUpdate:
-                  infogreffeData.financial.lastUpdate ||
-                  infogreffeData.lastUpdated,
-              }
-            }
-
-            // Enrichir avec les données juridiques (procédures collectives)
-            if (infogreffeData.legal?.collectiveProcedures) {
-              const ongoingProcedures =
-                infogreffeData.legal.collectiveProcedures.filter(
-                  (proc) => proc.status === 'ongoing'
-                )
-              if (ongoingProcedures.length > 0) {
-                enrichment.legalStatusDetails = {
-                  hasCollectiveProcedure: true,
-                  procedureType: ongoingProcedures[0].type,
-                  procedureDate: ongoingProcedures[0].startDate,
-                }
-              }
-            }
-
-            console.log(`[CompanyService] ✅ Données Infogreffe récupérées:`, {
-              hasFinancial: !!enrichment.financialData,
-              hasLegal: !!enrichment.legalStatusDetails,
-            })
-          }
-        }
-      } catch (error) {
-        console.warn(
-          `[CompanyService] ⚠️ Erreur enrichissement Infogreffe:`,
-          error
-        )
-        // Ne pas échouer si Infogreffe échoue, on garde les données Sirene
-      }
-
-      // TODO: Enrichir avec d'autres APIs pour les assurances
-      // - API Assurance (à implémenter)
-      // - API Certifications (à implémenter)
+      // Enrichir avec Infogreffe après succès API Recherche d'Entreprises (non bloquant)
+      await this.enrichWithInfogreffe(enrichment, cleanSiret)
 
       console.log('[CompanyService] ✅ Enrichissement terminé avec succès')
       return enrichment
@@ -389,5 +356,83 @@ export class CompanyEnrichmentService {
         warnings: [],
       }
     }
+  }
+
+  /**
+   * Enrichit les données avec Infogreffe (non bloquant)
+   * Ajoute les données financières et juridiques si disponibles
+   */
+  private async enrichWithInfogreffe(
+    enrichment: CompanyEnrichment,
+    siret: string
+  ): Promise<void> {
+    try {
+      const siren = siret.substring(0, 9)
+      console.log(
+        `[CompanyService] 🔄 Enrichissement Infogreffe pour SIREN: ${siren}`
+      )
+
+      const infogreffeData = await this.infogreffeService.getCompanyData(siren)
+
+      if (infogreffeData && infogreffeData.available) {
+        // Enrichir avec les données financières
+        if (infogreffeData.financial) {
+          enrichment.financialData = {
+            ca:
+              infogreffeData.financial.turnover?.years?.map(
+                (y) => y.amount
+              ) ||
+              (infogreffeData.financial.turnover?.lastYear
+                ? [infogreffeData.financial.turnover.lastYear]
+                : []),
+            result:
+              infogreffeData.financial.netResult?.years?.map(
+                (y) => y.amount
+              ) ||
+              (infogreffeData.financial.netResult?.lastYear
+                ? [infogreffeData.financial.netResult.lastYear]
+                : []),
+            ebitda: infogreffeData.financial.ebitda,
+            debt: infogreffeData.financial.debt?.total,
+            lastUpdate:
+              infogreffeData.financial.lastUpdate ||
+              infogreffeData.lastUpdated,
+          }
+        }
+
+        // Enrichir avec les données juridiques (procédures collectives)
+        if (infogreffeData.legal?.collectiveProcedures) {
+          const ongoingProcedures =
+            infogreffeData.legal.collectiveProcedures.filter(
+              (proc) => proc.status === 'ongoing'
+            )
+          if (ongoingProcedures.length > 0) {
+            enrichment.legalStatusDetails = {
+              hasCollectiveProcedure: true,
+              procedureType: ongoingProcedures[0].type,
+              procedureDate: ongoingProcedures[0].startDate,
+            }
+          }
+        }
+
+        console.log(`[CompanyService] ✅ Données Infogreffe récupérées:`, {
+          hasFinancial: !!enrichment.financialData,
+          hasLegal: !!enrichment.legalStatusDetails,
+        })
+      }
+    } catch (error) {
+      console.warn(
+        `[CompanyService] ⚠️ Erreur enrichissement Infogreffe (non bloquant):`,
+        error
+      )
+      // Ne pas échouer si Infogreffe échoue, on garde les données Sirene
+    }
+  }
+
+  /**
+   * Utilitaire : délai pour retry logic
+   */
+  private delay(ms: number): Promise<void> {
+    return new Promise((resolve) => setTimeout(resolve, ms))
   }
 }

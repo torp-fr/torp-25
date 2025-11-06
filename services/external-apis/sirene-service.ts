@@ -416,22 +416,132 @@ export class SireneService {
   }
 
   /**
-   * Fallback : récupération depuis data.gouv.fr
-   * Note: data.gouv.fr fournit des exports complets, pas une API temps réel
-   * Cette méthode est un placeholder pour une future implémentation
+   * Fallback : récupération depuis data.gouv.fr via API Recherche d'Entreprises
+   * API GRATUITE, sans clé requise, temps réel
+   * Documentation: https://recherche-entreprises.api.gouv.fr/docs
    */
   private async fetchFromDataGouv(
     identifier: string,
     type: 'siren' | 'siret'
   ): Promise<SireneCompany | null> {
-    // TODO: Implémenter la recherche dans les exports data.gouv.fr
-    // Dataset ID: 5b7ffc618b4c4169d30727e0
-    // Base URL: https://www.data.gouv.fr/api/1
-    // Pour l'instant, on retourne null et on suggère l'utilisation de l'API INSEE
-    console.warn(
-      `[SireneService] ⚠️ fetchFromDataGouv non implémenté pour ${type}:${identifier}. Utilisez l'API INSEE (INSEE_API_KEY) pour les requêtes temps réel, ou laissez CompanyEnrichmentService utiliser l'API Recherche d'Entreprises comme fallback.`
-    )
-    return null
+    try {
+      console.log(`[SireneService] 🔄 Fallback API Recherche d'Entreprises pour ${type}:${identifier}`)
+
+      // API Recherche d'Entreprises (GRATUITE, sans clé)
+      const response = await fetch(
+        `https://recherche-entreprises.api.gouv.fr/search?q=${encodeURIComponent(identifier)}&per_page=1`,
+        {
+          headers: {
+            'Accept': 'application/json',
+            'User-Agent': 'TORP-Platform/1.0'
+          }
+        }
+      )
+
+      if (!response.ok) {
+        console.error(`[SireneService] ❌ API Recherche d'Entreprises erreur HTTP: ${response.status}`)
+        return null
+      }
+
+      const data = await response.json()
+
+      if (!data.results || data.results.length === 0) {
+        console.warn(`[SireneService] ⚠️ Aucun résultat pour ${type}:${identifier}`)
+        return null
+      }
+
+      const company = data.results[0]
+
+      // Vérifier correspondance exacte
+      const foundIdentifier = type === 'siret' ? company.siret : company.siren
+      if (foundIdentifier !== identifier) {
+        console.warn(`[SireneService] ⚠️ Correspondance partielle: cherché ${identifier}, trouvé ${foundIdentifier}`)
+      }
+
+      console.log(`[SireneService] ✅ Données récupérées via API Recherche d'Entreprises: ${company.nom_complet}`)
+
+      // Mapper vers SireneCompany
+      return {
+        siren: company.siren || identifier.substring(0, 9),
+        siret: company.siret || identifier,
+        name: company.nom_complet || company.nom_raison_sociale || '',
+        commercialName: company.nom_commercial || company.enseigne,
+
+        // Forme juridique
+        legalForm: company.nature_juridique,
+        legalFormLabel: company.libelle_nature_juridique,
+
+        // Activité
+        nafCode: company.activite_principale,
+        nafLabel: company.libelle_activite_principale,
+
+        // Dates
+        creationDate: company.date_creation,
+        lastUpdate: company.date_mise_a_jour,
+
+        // Statut
+        status: company.etat_administratif === 'A' || company.etat_administratif === 'Actif'
+          ? 'ACTIVE'
+          : company.etat_administratif === 'F' || company.etat_administratif === 'Fermé'
+          ? 'CLOSED'
+          : 'UNKNOWN',
+        isHeadquarters: company.etablissement_siege === true || company.etablissement_siege === 'true',
+
+        // Adresse
+        address: {
+          street: company.siege?.adresse
+            ? `${company.siege.adresse.numero_voie || ''} ${company.siege.adresse.type_voie || ''} ${company.siege.adresse.libelle_voie || ''}`.trim()
+            : company.adresse || '',
+          postalCode: company.siege?.adresse?.code_postal || company.code_postal || '',
+          city: company.siege?.adresse?.libelle_commune || company.libelle_commune || '',
+          department: company.siege?.adresse?.code_commune?.substring(0, 2) || '',
+          region: company.siege?.adresse?.libelle_region || company.region || '',
+          country: 'FR',
+          formatted: this.formatDataGouvAddress(company),
+        },
+
+        // Effectifs
+        employees: company.tranche_effectif_salarie
+          ? { range: company.tranche_effectif_salarie }
+          : undefined,
+
+        // Métadonnées
+        sources: ['API Recherche d\'Entreprises (data.gouv.fr)'],
+        lastUpdated: new Date().toISOString(),
+        verified: true,
+      }
+    } catch (error) {
+      console.error(`[SireneService] ❌ Erreur fetchFromDataGouv pour ${type}:${identifier}:`, error)
+      return null
+    }
+  }
+
+  /**
+   * Formate une adresse depuis les données API Recherche d'Entreprises
+   */
+  private formatDataGouvAddress(company: any): string {
+    const parts: string[] = []
+
+    // Essayer d'abord l'adresse du siège si disponible
+    if (company.siege?.adresse) {
+      const addr = company.siege.adresse
+      if (addr.numero_voie || addr.type_voie || addr.libelle_voie) {
+        parts.push(
+          `${addr.numero_voie || ''} ${addr.type_voie || ''} ${addr.libelle_voie || ''}`.trim()
+        )
+      }
+      if (addr.code_postal && addr.libelle_commune) {
+        parts.push(`${addr.code_postal} ${addr.libelle_commune}`)
+      }
+    } else if (company.adresse) {
+      // Fallback sur adresse simple
+      parts.push(company.adresse)
+      if (company.code_postal && company.libelle_commune) {
+        parts.push(`${company.code_postal} ${company.libelle_commune}`)
+      }
+    }
+
+    return parts.filter(Boolean).join(', ')
   }
 
   /**
