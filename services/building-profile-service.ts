@@ -331,7 +331,6 @@ export class BuildingProfileService {
         data: {
           enrichmentStatus: 'completed',
           enrichmentSources: enrichedData.sources,
-          enrichmentErrors: null,
           lastEnrichedAt: new Date(),
           enrichedData: enrichedData as any,
           // Colonnes séparées pour compatibilité
