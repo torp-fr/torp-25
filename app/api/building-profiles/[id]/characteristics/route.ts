@@ -79,9 +79,10 @@ export async function GET(
       enrichedData.energy = profile.dpeData
       enrichedData.dpe = profile.dpeData
     }
-    // Géorisques : peut être dans enrichedData.georisques OU enrichData (sans 's')
+    // Géorisques : pas de colonne séparée, chercher dans enrichedData uniquement
     if (!enrichedData.georisques) {
-      enrichedData.georisques = enrichedData.georisques || enrichedData.georisques || null
+      // Georisques est normalement dans enrichedData, pas de fallback
+      enrichedData.georisques = null
     }
     
     // S'assurer qu'on a au moins l'adresse
@@ -96,25 +97,44 @@ export async function GET(
       enrichedDataType: typeof profile.enrichedData,
       enrichedDataIsArray: Array.isArray(profile.enrichedData),
       enrichedDataKeys: Object.keys(enrichedData),
-      enrichedDataStringified: JSON.stringify(enrichedData).substring(0, 200),
+      enrichedDataStringified: JSON.stringify(enrichedData).substring(0, 500),
       enrichedDataStructure: {
         hasCadastre: !!enrichedData.cadastre,
         cadastreKeys: enrichedData.cadastre ? Object.keys(enrichedData.cadastre) : [],
+        cadastrePreview: enrichedData.cadastre ? JSON.stringify(enrichedData.cadastre).substring(0, 200) : null,
         hasPLU: !!enrichedData.plu,
+        pluKeys: enrichedData.plu ? Object.keys(enrichedData.plu) : [],
         hasRNB: !!enrichedData.rnb,
+        rnbKeys: enrichedData.rnb ? Object.keys(enrichedData.rnb) : [],
+        rnbPreview: enrichedData.rnb ? JSON.stringify(enrichedData.rnb).substring(0, 300) : null,
         hasEnergy: !!enrichedData.energy,
+        energyKeys: enrichedData.energy ? Object.keys(enrichedData.energy) : [],
+        energyPreview: enrichedData.energy ? JSON.stringify(enrichedData.energy).substring(0, 200) : null,
         hasDPE: !!enrichedData.dpe,
+        dpeKeys: enrichedData.dpe ? Object.keys(enrichedData.dpe) : [],
+        dpePreview: enrichedData.dpe ? JSON.stringify(enrichedData.dpe).substring(0, 200) : null,
         hasGeorisques: !!enrichedData.georisques,
+        georisquesKeys: enrichedData.georisques ? Object.keys(enrichedData.georisques) : [],
         hasDVF: !!enrichedData.dvf,
+        dvfKeys: enrichedData.dvf ? Object.keys(enrichedData.dvf) : [],
         hasAddress: !!enrichedData.address,
       },
-      hasCadastralData: !!profile.cadastralData,
-      cadastralDataType: typeof profile.cadastralData,
-      hasPLUData: !!profile.pluData,
-      hasRNBData: !!profile.rnbData,
-      hasDPEData: !!profile.dpeData,
+      separateColumns: {
+        hasCadastralData: !!profile.cadastralData,
+        cadastralDataType: typeof profile.cadastralData,
+        cadastralDataKeys: profile.cadastralData && typeof profile.cadastralData === 'object' ? Object.keys(profile.cadastralData as any) : [],
+        hasPLUData: !!profile.pluData,
+        pluDataKeys: profile.pluData && typeof profile.pluData === 'object' ? Object.keys(profile.pluData as any) : [],
+        hasRNBData: !!profile.rnbData,
+        rnbDataKeys: profile.rnbData && typeof profile.rnbData === 'object' ? Object.keys(profile.rnbData as any) : [],
+        rnbDataPreview: profile.rnbData ? JSON.stringify(profile.rnbData).substring(0, 300) : null,
+        hasDPEData: !!profile.dpeData,
+        dpeDataKeys: profile.dpeData && typeof profile.dpeData === 'object' ? Object.keys(profile.dpeData as any) : [],
+        dpeDataPreview: profile.dpeData ? JSON.stringify(profile.dpeData).substring(0, 200) : null,
+      },
       hasAddress: !!profile.address,
       enrichmentStatus: profile.enrichmentStatus,
+      enrichmentSources: profile.enrichmentSources,
     })
     
     // VÉRIFICATION CRITIQUE : Si enrichedData est vraiment vide, utiliser au moins l'adresse
