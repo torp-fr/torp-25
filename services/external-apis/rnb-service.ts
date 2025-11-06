@@ -95,15 +95,12 @@ export class RNBService {
         return null
       }
 
-      console.log('[RNBService] ⚠️ Données RNB non indexées pour ce département, métadonnées uniquement')
-      // 3. Retourner les métadonnées avec indication que l'indexation est nécessaire
-      return {
-        id: `rnb-${department}-metadata`,
-        commune: address.city,
-        codeINSEE: address.postalCode,
-        sources: ['RNB data.gouv.fr (métadonnées)'],
-        lastUpdated: resource.lastModified,
-      }
+      console.log('[RNBService] ⚠️ Données RNB non indexées pour ce département')
+      console.log('[RNBService] ℹ️ Retour null - les données DPE seront utilisées à la place')
+
+      // REFONTE 2025-11-06: Retourner null au lieu de métadonnées vides
+      // Le système utilisera les données DPE qui contiennent les mêmes informations
+      return null
     } catch (error) {
       console.error('[RNBService] ❌ Erreur récupération données RNB:', error)
       return null
