@@ -1,236 +1,279 @@
 /**
  * Service pour récupérer les données DPE (Diagnostic de Performance Energétique) certifiées
- * Source : https://www.data.gouv.fr/fr/datasets/dpe-v2-logements-existants/
- * Dataset ID: 67f7e5758ffc5d79ab9e8c27
- * 
- * Le dataset DPE contient :
- * - Classes énergétiques (A à G)
- * - Consommations énergétiques (kWh/m²/an)
- * - Émissions de GES (kg CO2/m²/an)
- * - Dates de diagnostic
- * - Informations géographiques (adresse, code INSEE, coordonnées)
- * - Type de bâtiment et autres caractéristiques
+ * Source : API ADEME Data-Fair
+ * URL: https://data.ademe.fr/data-fair/api/v1/datasets/dpe-v2-logements-existants
+ *
+ * REFONTE 2025-11-06: Utilise l'API temps réel au lieu d'un index local
  */
 
 import type { AddressData, EnergyData } from './types'
-import { ApiClient } from '../data-enrichment/api-client'
 
 export interface DPEData extends EnergyData {
   // Identifiants
-  dpeId?: string // Identifiant unique du DPE
-  buildingId?: string // Identifiant du bâtiment
-  
+  dpeId?: string
+  buildingId?: string
+
   // Informations de diagnostic
-  diagnosticDate?: string // Date du diagnostic DPE
-  diagnosticType?: string // Type de diagnostic (vendu, location, etc.)
-  diagnosticStatus?: string // Statut du diagnostic (valide, expiré, etc.)
-  
+  diagnosticDate?: string
+  diagnosticType?: string
+  diagnosticStatus?: string
+
   // Détails énergétiques
   energyConsumptionPrimary?: number // Consommation énergie primaire (kWh/m²/an)
   energyConsumptionFinal?: number // Consommation énergie finale (kWh/m²/an)
   ghgEmissionsPrimary?: number // Émissions GES primaire (kg CO2/m²/an)
   ghgEmissionsFinal?: number // Émissions GES finale (kg CO2/m²/an)
-  
+
   // Classe énergétique
   energyClassPrimary?: 'A' | 'B' | 'C' | 'D' | 'E' | 'F' | 'G'
   energyClassGES?: 'A' | 'B' | 'C' | 'D' | 'E' | 'F' | 'G'
-  
+
   // Caractéristiques du bâtiment
-  buildingType?: string // Type de bâtiment
+  buildingType?: string
   constructionYear?: number
   surface?: number // Surface habitable en m²
-  heatingSystem?: string // Système de chauffage
-  hotWaterSystem?: string // Système eau chaude
-  coolingSystem?: string // Système de refroidissement
-  
+  heatingSystem?: string
+  hotWaterSystem?: string
+  coolingSystem?: string
+
   // Informations géographiques
   address?: string
   postalCode?: string
   city?: string
   codeINSEE?: string
   coordinates?: { lat: number; lng: number }
-  
+
   // Métadonnées
   source: string
   lastUpdated?: string
 }
 
-interface DataGouvDPEDataset {
-  id: string
-  title: string
-  resources: Array<{
-    id: string
-    title: string
-    url: string
-    format: string
-    filesize: number
-    last_modified: string
+interface ADEMEDPEResponse {
+  total: number
+  results: Array<{
+    N_DPE?: string // Identifiant DPE
+    Date_etablissement_DPE?: string
+    Classe_consommation_energie?: string
+    Consommation_energie?: number
+    Classe_emission_GES?: string
+    Emission_GES?: number
+    Conso_5_usages_m2_e_primaire?: number
+    Conso_5_usages_m2_e_finale?: number
+    Emission_GES_5_usages_m2?: number
+    Type_batiment?: string
+    Annee_construction?: string
+    Surface_habitable?: number
+    Type_energie_chauffage?: string
+    Type_energie_ECS?: string
+    Adresse?: string
+    Code_postal?: string
+    Nom_commune?: string
+    Code_INSEE?: string
+    Longitude?: number
+    Latitude?: number
+    [key: string]: any
   }>
 }
 
-// Interface pour les ressources DPE (structure dépend du format CSV/JSON)
-// type DataGouvDPEResource = Record<string, any>
-
 export class DPEService {
-  private readonly datasetId = '67f7e5758ffc5d79ab9e8c27'
-  private readonly baseUrl = 'https://www.data.gouv.fr/api/1'
-  private client: ApiClient
-
-  constructor() {
-    this.client = new ApiClient({
-      baseUrl: this.baseUrl,
-      timeout: 10000,
-      retries: 2,
-    })
-  }
+  private readonly apiUrl = 'https://data.ademe.fr/data-fair/api/v1/datasets/dpe-v2-logements-existants'
 
   /**
    * Récupère les données DPE pour une adresse donnée
-   * Essaie d'abord l'index local si disponible, sinon fait un appel direct
+   * Utilise l'API ADEME Data-Fair en temps réel
    */
   async getDPEData(address: AddressData): Promise<DPEData | null> {
     try {
-      console.log('[DPEService] 🔄 Récupération données DPE pour:', {
+      console.log('[DPEService] 🔄 Recherche DPE via API ADEME pour:', {
         formatted: address.formatted,
         city: address.city,
         postalCode: address.postalCode,
+        hasCoordinates: !!address.coordinates,
       })
 
-      // 1. Essayer de récupérer depuis un index local (si implémenté)
-      // TODO: Implémenter DPEIndexer similaire à RNBIndexer si nécessaire
-
-      // 2. Recherche directe via API data.gouv.fr ou ressources du dataset
-      const dpeData = await this.searchDPEByAddress(address)
-      
-      if (dpeData) {
-        console.log('[DPEService] ✅ Données DPE récupérées:', {
-          hasDPEClass: !!dpeData.dpeClass,
-          hasEnergyConsumption: !!dpeData.energyConsumption,
-          hasGHGEmissions: !!dpeData.ghgEmissions,
-          dpeClass: dpeData.dpeClass,
-        })
-        return dpeData
+      // 1. Recherche par coordonnées GPS (plus précis)
+      if (address.coordinates) {
+        const dpeByGPS = await this.searchByCoordinates(
+          address.coordinates.lat,
+          address.coordinates.lng,
+          200 // Rayon 200m
+        )
+        if (dpeByGPS) {
+          console.log('[DPEService] ✅ DPE trouvé par coordonnées GPS')
+          return dpeByGPS
+        }
       }
 
-      // 3. Si aucune donnée trouvée, retourner null
-      console.warn('[DPEService] ⚠️ Aucune donnée DPE trouvée pour:', address.formatted)
+      // 2. Fallback: Recherche par adresse textuelle
+      const dpeByAddress = await this.searchByAddress(address.formatted, address.postalCode)
+      if (dpeByAddress) {
+        console.log('[DPEService] ✅ DPE trouvé par adresse textuelle')
+        return dpeByAddress
+      }
+
+      console.warn('[DPEService] ⚠️ Aucun DPE trouvé pour cette adresse')
       return null
     } catch (error) {
-      console.error('[DPEService] ❌ Erreur récupération données DPE:', error)
+      console.error('[DPEService] ❌ Erreur récupération DPE:', error)
       return null
     }
   }
 
   /**
-   * Recherche DPE par adresse
-   * Utilise les ressources du dataset pour rechercher les DPE correspondants
+   * Recherche DPE par coordonnées GPS
    */
-  private async searchDPEByAddress(address: AddressData): Promise<DPEData | null> {
-    try {
-      // Récupérer les métadonnées du dataset
-      const dataset = await this.getDatasetInfo()
-      if (!dataset || !dataset.resources || dataset.resources.length === 0) {
-        console.warn('[DPEService] Aucune ressource trouvée pour le dataset DPE')
-        return null
-      }
-
-      // Extraire le code INSEE depuis l'adresse
-      const codeINSEE = this.extractCodeINSEE(address.postalCode, address.city)
-      
-      // Chercher la ressource la plus récente
-      const latestResource = dataset.resources
-        .filter(r => r.format === 'csv' || r.format === 'json' || r.format === 'geojson')
-        .sort((a, b) => new Date(b.last_modified).getTime() - new Date(a.last_modified).getTime())[0]
-
-      if (!latestResource) {
-        console.warn('[DPEService] Aucune ressource récente trouvée')
-        return null
-      }
-
-      // Pour les gros fichiers, on peut utiliser une recherche par département
-      // ou utiliser un service d'indexation local
-      // Pour l'instant, on retourne les métadonnées avec indication que l'indexation est nécessaire
-      
-      return {
-        source: 'DPE data.gouv.fr (métadonnées)',
-        codeINSEE: codeINSEE || address.postalCode?.substring(0, 5),
-        address: address.formatted,
-        city: address.city,
-        postalCode: address.postalCode,
-        coordinates: address.coordinates,
-        lastUpdated: latestResource.last_modified,
-      }
-    } catch (error) {
-      console.error('[DPEService] Erreur recherche DPE par adresse:', error)
-      return null
-    }
-  }
-
-  /**
-   * Récupère les informations du dataset depuis data.gouv.fr
-   */
-  private async getDatasetInfo(): Promise<DataGouvDPEDataset | null> {
-    try {
-      const response = await this.client.get<DataGouvDPEDataset>(
-        `/datasets/${this.datasetId}/`
-      )
-      return response
-    } catch (error) {
-      console.error('[DPEService] Erreur récupération métadonnées dataset:', error)
-      return null
-    }
-  }
-
-  /**
-   * Récupère les données DPE depuis une ressource spécifique
-   * Pour les gros fichiers, cette méthode peut être utilisée avec un index local
-   */
-  async getDPEFromResource(
-    resourceUrl: string,
-    _address: AddressData
+  private async searchByCoordinates(
+    lat: number,
+    lng: number,
+    radiusMeters: number = 200
   ): Promise<DPEData | null> {
     try {
-      // Note: Pour les très gros fichiers CSV/JSON, il est recommandé d'utiliser
-      // un système d'indexation local (similaire à RNBIndexer)
-      // ou d'utiliser un service de recherche externe
+      // API Data-Fair utilise le format: lat,lon,distance
+      const geoDistance = `${lat},${lng},${radiusMeters}m`
 
-      // Pour l'instant, on retourne null et indique qu'une indexation est nécessaire
-      console.log('[DPEService] Recherche dans ressource:', resourceUrl)
-      console.log('[DPEService] Indexation recommandée pour recherche efficace')
+      const params = new URLSearchParams({
+        geo_distance: geoDistance,
+        size: '5', // Récupérer 5 résultats max
+        sort: 'Date_etablissement_DPE:-1', // Tri par date décroissante (plus récent d'abord)
+      })
 
-      return null
+      const response = await fetch(`${this.apiUrl}/lines?${params}`, {
+        headers: {
+          'Accept': 'application/json',
+        },
+      })
+
+      if (!response.ok) {
+        console.warn('[DPEService] Erreur API ADEME:', response.status, response.statusText)
+        return null
+      }
+
+      const data: ADEMEDPEResponse = await response.json()
+
+      if (!data.results || data.results.length === 0) {
+        return null
+      }
+
+      // Prendre le DPE le plus récent
+      return this.parseDPEResult(data.results[0])
     } catch (error) {
-      console.error('[DPEService] Erreur lecture ressource DPE:', error)
+      console.error('[DPEService] Erreur recherche GPS:', error)
       return null
     }
   }
 
   /**
-   * Recherche DPE par code INSEE et coordonnées
+   * Recherche DPE par adresse textuelle
    */
-  async searchDPEByLocation(
-    _codeINSEE: string,
-    _coordinates?: { lat: number; lng: number }
-  ): Promise<DPEData[]> {
+  private async searchByAddress(address: string, postalCode?: string): Promise<DPEData | null> {
     try {
-      // TODO: Implémenter recherche par localisation
-      // Peut utiliser un index local ou une API de recherche
-      return []
+      // Construire la requête de recherche
+      let searchQuery = address
+      if (postalCode) {
+        searchQuery += ` ${postalCode}`
+      }
+
+      const params = new URLSearchParams({
+        q: searchQuery,
+        q_fields: 'Adresse,Code_postal,Nom_commune',
+        size: '5',
+        sort: 'Date_etablissement_DPE:-1',
+      })
+
+      const response = await fetch(`${this.apiUrl}/lines?${params}`, {
+        headers: {
+          'Accept': 'application/json',
+        },
+      })
+
+      if (!response.ok) {
+        console.warn('[DPEService] Erreur API ADEME:', response.status, response.statusText)
+        return null
+      }
+
+      const data: ADEMEDPEResponse = await response.json()
+
+      if (!data.results || data.results.length === 0) {
+        return null
+      }
+
+      // Prendre le DPE le plus récent
+      return this.parseDPEResult(data.results[0])
     } catch (error) {
-      console.error('[DPEService] Erreur recherche DPE par localisation:', error)
-      return []
+      console.error('[DPEService] Erreur recherche adresse:', error)
+      return null
     }
   }
 
   /**
-   * Extrait le code INSEE depuis le code postal et la ville
+   * Parse un résultat de l'API ADEME en format DPEData
    */
-  private extractCodeINSEE(postalCode?: string, _city?: string): string | null {
-    if (!postalCode) return null
-    
-    // Les 5 premiers chiffres du code postal peuvent servir d'approximation
-    // Pour un code INSEE précis, il faudrait utiliser l'API Adresse
-    return postalCode.substring(0, 5)
+  private parseDPEResult(result: ADEMEDPEResponse['results'][0]): DPEData {
+    // Parser l'année de construction
+    let constructionYear: number | undefined
+    if (result.Annee_construction) {
+      const year = parseInt(result.Annee_construction, 10)
+      if (!isNaN(year) && year > 1800 && year <= new Date().getFullYear()) {
+        constructionYear = year
+      }
+    }
+
+    return {
+      // Identifiants
+      dpeId: result.N_DPE,
+
+      // Dates
+      diagnosticDate: result.Date_etablissement_DPE,
+      dpeDate: result.Date_etablissement_DPE,
+
+      // Classes énergétiques
+      dpeClass: this.normalizeDPEClass(result.Classe_consommation_energie),
+      energyClassPrimary: this.normalizeDPEClass(result.Classe_consommation_energie),
+      energyClassGES: this.normalizeDPEClass(result.Classe_emission_GES),
+
+      // Consommations et émissions
+      energyConsumption: result.Consommation_energie,
+      energyConsumptionPrimary: result.Conso_5_usages_m2_e_primaire,
+      energyConsumptionFinal: result.Conso_5_usages_m2_e_finale,
+      ghgEmissions: result.Emission_GES,
+      ghgEmissionsPrimary: result.Emission_GES_5_usages_m2,
+
+      // Caractéristiques bâtiment
+      buildingType: result.Type_batiment,
+      constructionYear,
+      surface: result.Surface_habitable,
+      heatingSystem: result.Type_energie_chauffage,
+      hotWaterSystem: result.Type_energie_ECS,
+
+      // Informations géographiques
+      address: result.Adresse,
+      postalCode: result.Code_postal,
+      city: result.Nom_commune,
+      codeINSEE: result.Code_INSEE,
+      coordinates: result.Latitude && result.Longitude ? {
+        lat: result.Latitude,
+        lng: result.Longitude,
+      } : undefined,
+
+      // Métadonnées
+      source: 'ADEME DPE (API Data-Fair)',
+      lastUpdated: result.Date_etablissement_DPE,
+
+      // Recommendations vide pour compatibilité
+      recommendations: [],
+    }
+  }
+
+  /**
+   * Normalise une classe DPE (A-G)
+   */
+  private normalizeDPEClass(classe?: string): 'A' | 'B' | 'C' | 'D' | 'E' | 'F' | 'G' | undefined {
+    if (!classe) return undefined
+    const normalized = classe.trim().toUpperCase()
+    if (['A', 'B', 'C', 'D', 'E', 'F', 'G'].includes(normalized)) {
+      return normalized as 'A' | 'B' | 'C' | 'D' | 'E' | 'F' | 'G'
+    }
+    return undefined
   }
 
   /**
@@ -242,8 +285,7 @@ export class DPEService {
       dpeClass: dpeData.energyClassPrimary || dpeData.dpeClass,
       energyConsumption: dpeData.energyConsumptionPrimary || dpeData.energyConsumption,
       ghgEmissions: dpeData.ghgEmissionsPrimary || dpeData.ghgEmissions,
-      recommendations: [], // À extraire depuis les données DPE si disponible
+      recommendations: dpeData.recommendations || [],
     }
   }
 }
-
