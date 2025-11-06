@@ -48,7 +48,7 @@ export async function GET(
     }
 
     // Récupérer les documents directement via Prisma
-    let documents = []
+    let documents: any[] = []
     try {
       documents = await prisma.buildingDocument.findMany({
         where: { buildingProfileId: profileId },
