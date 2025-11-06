@@ -479,9 +479,9 @@ export class BuildingProfileEnrichmentService {
     }
 
     // Section cadastrale (peut être dans cadastralData.parcelle.section ou sectionCadastrale du profil)
-    const sectionCadastrale = cadastralData?.parcelle?.section || 
+    const sectionCadastrale = cadastralData?.parcelle?.section ||
                                cadastralData?.sectionCadastrale
-    
+
     if (sectionCadastrale) {
       characteristics.push({
         id: 'cadastre-section',
@@ -507,6 +507,67 @@ export class BuildingProfileEnrichmentService {
         priority: 'low',
         icon: 'MapPin',
         description: 'Section cadastrale',
+      })
+    }
+
+    // Commune (depuis cadastralData, enrichedData.cadastre, ou enrichedData.address)
+    const commune = cadastralData?.commune ||
+                    enrichedData?.cadastre?.commune ||
+                    enrichedData?.plu?.commune ||
+                    rnbData?.commune
+
+    if (commune) {
+      characteristics.push({
+        id: 'cadastre-commune',
+        category: 'cadastre',
+        label: 'Commune',
+        value: commune,
+        valueDisplay: commune,
+        status: 'known',
+        editable: true,
+        priority: 'medium',
+        icon: 'MapPin',
+        description: 'Commune du bien',
+      })
+    }
+
+    // Code INSEE (depuis cadastralData)
+    const codeINSEE = cadastralData?.codeINSEE ||
+                      enrichedData?.cadastre?.codeINSEE ||
+                      enrichedData?.plu?.codeINSEE ||
+                      rnbData?.codeINSEE
+
+    if (codeINSEE) {
+      characteristics.push({
+        id: 'cadastre-code-insee',
+        category: 'cadastre',
+        label: 'Code INSEE',
+        value: codeINSEE,
+        valueDisplay: codeINSEE,
+        status: 'known',
+        editable: true,
+        priority: 'low',
+        icon: 'MapPin',
+        description: 'Code INSEE de la commune',
+      })
+    }
+
+    // Code département (depuis cadastralData)
+    const codeDepartement = cadastralData?.codeDepartement ||
+                            enrichedData?.cadastre?.codeDepartement
+
+    if (codeDepartement) {
+      characteristics.push({
+        id: 'cadastre-departement',
+        category: 'cadastre',
+        label: 'Département',
+        value: codeDepartement,
+        valueDisplay: codeDepartement,
+        status: 'known',
+        editable: true,
+        priority: 'low',
+        icon: 'MapPin',
+        description: 'Code département',
       })
     }
 
