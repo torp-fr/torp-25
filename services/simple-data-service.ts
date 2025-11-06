@@ -47,43 +47,54 @@ export async function getDPESimple(address: SimpleAddress): Promise<SimpleDPE | 
   try {
     console.log('[SimpleDataService] 🔍 Recherche DPE pour:', address.formatted)
 
-    // 1. Recherche par GPS
+    // 1. Recherche par GPS avec rayons progressifs
     if (address.coordinates) {
       const { lat, lng } = address.coordinates
-      const url = `https://data.ademe.fr/data-fair/api/v1/datasets/dpe-v2-logements-existants/lines?geo_distance=${lat},${lng},200m&size=1&sort=Date_etablissement_DPE:-1`
+      const rayons = [200, 500, 1000] // Essayer 200m, 500m, 1000m
 
-      const response = await fetch(url, {
-        headers: { 'Accept': 'application/json' },
-      })
+      for (const rayon of rayons) {
+        const url = `https://data.ademe.fr/data-fair/api/v1/datasets/dpe-v2-logements-existants/lines?geo_distance=${lat},${lng},${rayon}m&size=10&sort=Date_etablissement_DPE:-1`
 
-      if (response.ok) {
-        const data = await response.json()
+        console.log(`[SimpleDataService] 📍 Recherche GPS rayon ${rayon}m...`)
 
-        if (data.results && data.results.length > 0) {
-          const dpe = data.results[0]
+        const response = await fetch(url, {
+          headers: { 'Accept': 'application/json' },
+        })
 
-          console.log('[SimpleDataService] ✅ DPE trouvé:', {
-            classe: dpe.Classe_consommation_energie,
-            consommation: dpe.Consommation_energie,
-            surface: dpe.Surface_habitable,
-          })
+        if (response.ok) {
+          const data = await response.json()
+          console.log(`[SimpleDataService] 📊 ${data.total || 0} DPE trouvés dans rayon ${rayon}m`)
 
-          return {
-            classe: dpe.Classe_consommation_energie,
-            consommation: dpe.Consommation_energie || dpe.Conso_5_usages_m2_e_primaire,
-            ges: dpe.Emission_GES || dpe.Emission_GES_5_usages_m2,
-            surface: dpe.Surface_habitable,
-            annee: dpe.Annee_construction ? parseInt(dpe.Annee_construction, 10) : undefined,
-            type: dpe.Type_batiment,
-            chauffage: dpe.Type_energie_chauffage,
-            dateEstablissement: dpe.Date_etablissement_DPE,
+          if (data.results && data.results.length > 0) {
+            const dpe = data.results[0]
+
+            console.log('[SimpleDataService] ✅ DPE trouvé:', {
+              rayon: `${rayon}m`,
+              classe: dpe.Classe_consommation_energie,
+              consommation: dpe.Consommation_energie,
+              surface: dpe.Surface_habitable,
+              annee: dpe.Annee_construction,
+              adresse: `${dpe.N_rue || ''} ${dpe.Nom_rue || ''} ${dpe.Code_postal || ''}`.trim(),
+            })
+
+            return {
+              classe: dpe.Classe_consommation_energie,
+              consommation: parseFloat(dpe.Consommation_energie) || parseFloat(dpe.Conso_5_usages_m2_e_primaire) || undefined,
+              ges: parseFloat(dpe.Emission_GES) || parseFloat(dpe.Emission_GES_5_usages_m2) || undefined,
+              surface: parseFloat(dpe.Surface_habitable) || undefined,
+              annee: dpe.Annee_construction ? parseInt(dpe.Annee_construction, 10) : undefined,
+              type: dpe.Type_batiment,
+              chauffage: dpe.Type_energie_chauffage,
+              dateEstablissement: dpe.Date_etablissement_DPE,
+            }
           }
         }
       }
     }
 
     // 2. Recherche par adresse texte (fallback)
-    const searchUrl = `https://data.ademe.fr/data-fair/api/v1/datasets/dpe-v2-logements-existants/lines?q=${encodeURIComponent(address.formatted)}&size=1&sort=Date_etablissement_DPE:-1`
+    console.log('[SimpleDataService] 🔍 Recherche par adresse texte...')
+    const searchUrl = `https://data.ademe.fr/data-fair/api/v1/datasets/dpe-v2-logements-existants/lines?q=${encodeURIComponent(address.formatted)}&size=10&sort=Date_etablissement_DPE:-1`
 
     const response2 = await fetch(searchUrl, {
       headers: { 'Accept': 'application/json' },
@@ -91,19 +102,21 @@ export async function getDPESimple(address: SimpleAddress): Promise<SimpleDPE | 
 
     if (response2.ok) {
       const data = await response2.json()
+      console.log(`[SimpleDataService] 📊 ${data.total || 0} DPE trouvés par recherche texte`)
 
       if (data.results && data.results.length > 0) {
         const dpe = data.results[0]
 
         console.log('[SimpleDataService] ✅ DPE trouvé par adresse:', {
           classe: dpe.Classe_consommation_energie,
+          adresse: `${dpe.N_rue || ''} ${dpe.Nom_rue || ''} ${dpe.Code_postal || ''}`.trim(),
         })
 
         return {
           classe: dpe.Classe_consommation_energie,
-          consommation: dpe.Consommation_energie || dpe.Conso_5_usages_m2_e_primaire,
-          ges: dpe.Emission_GES || dpe.Emission_GES_5_usages_m2,
-          surface: dpe.Surface_habitable,
+          consommation: parseFloat(dpe.Consommation_energie) || parseFloat(dpe.Conso_5_usages_m2_e_primaire) || undefined,
+          ges: parseFloat(dpe.Emission_GES) || parseFloat(dpe.Emission_GES_5_usages_m2) || undefined,
+          surface: parseFloat(dpe.Surface_habitable) || undefined,
           annee: dpe.Annee_construction ? parseInt(dpe.Annee_construction, 10) : undefined,
           type: dpe.Type_batiment,
           chauffage: dpe.Type_energie_chauffage,
@@ -155,6 +168,8 @@ export async function getCadastreSimple(address: SimpleAddress): Promise<SimpleC
 
       const parcelleUrl = `https://apicarto.ign.fr/api/cadastre/parcelle?geom=${encodeURIComponent(geom)}&source_ign=PCI&_limit=1`
 
+      console.log('[SimpleDataService] 📍 Recherche parcelle GPS:', { lat, lng })
+
       try {
         const response = await fetch(parcelleUrl, {
           headers: { 'Accept': 'application/json' },
@@ -162,6 +177,7 @@ export async function getCadastreSimple(address: SimpleAddress): Promise<SimpleC
 
         if (response.ok) {
           const data = await response.json()
+          console.log(`[SimpleDataService] 📊 ${data.features?.length || 0} parcelle(s) trouvée(s)`)
 
           if (data.features && data.features.length > 0) {
             const parcelle = data.features[0].properties
@@ -169,6 +185,8 @@ export async function getCadastreSimple(address: SimpleAddress): Promise<SimpleC
             console.log('[SimpleDataService] ✅ Parcelle trouvée:', {
               numero: parcelle.numero,
               section: parcelle.section,
+              surface: parcelle.surface,
+              commune: parcelle.commune,
             })
 
             return {
@@ -179,10 +197,14 @@ export async function getCadastreSimple(address: SimpleAddress): Promise<SimpleC
               section: parcelle.section,
               surface: parcelle.surface,
             }
+          } else {
+            console.warn('[SimpleDataService] ⚠️ API Carto ne retourne aucune parcelle pour ces coordonnées')
           }
+        } else {
+          console.warn(`[SimpleDataService] ⚠️ API Carto erreur HTTP: ${response.status}`)
         }
       } catch (e) {
-        console.warn('[SimpleDataService] ⚠️ Erreur API Carto:', e)
+        console.error('[SimpleDataService] ❌ Erreur API Carto:', e)
       }
     }
 
