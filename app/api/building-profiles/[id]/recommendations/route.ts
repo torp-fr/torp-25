@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { BuildingRecommendationsService } from '@/services/building-recommendations-service'
+import { BuildingProfileService } from '@/services/building-profile-service'
+import { prisma } from '@/lib/db'
 
 export const dynamic = 'force-dynamic'
 
@@ -16,38 +18,51 @@ export async function GET(
     const searchParams = request.nextUrl.searchParams
     const userId = searchParams.get('userId')
 
+    console.log('[API Recommendations] 🔄 Chargement recommandations pour:', { profileId, userId })
+
     if (!userId) {
+      console.log('[API Recommendations] ❌ userId manquant')
       return NextResponse.json(
         { error: 'userId est requis' },
         { status: 400 }
       )
     }
 
-    // Récupérer le profil complet
-    const profileResponse = await fetch(
-      `${request.nextUrl.origin}/api/building-profiles/${profileId}?userId=${userId}`
-    )
-
-    if (!profileResponse.ok) {
+    // Récupérer le profil complet directement via le service
+    const profileService = new BuildingProfileService()
+    let profile
+    try {
+      profile = await profileService.getProfileById(profileId, userId)
+      console.log('[API Recommendations] ✅ Profil chargé:', {
+        id: profile.id,
+        hasEnrichedData: !!profile.enrichedData,
+        hasDPEData: !!profile.dpeData,
+        enrichmentStatus: profile.enrichmentStatus
+      })
+    } catch (error) {
+      console.error('[API Recommendations] ❌ Erreur chargement profil:', error)
       return NextResponse.json(
         { error: 'Profil non trouvé' },
         { status: 404 }
       )
     }
 
-    const profileData = await profileResponse.json()
-    const profile = profileData.data
-
-    // Récupérer les documents
-    const documentsResponse = await fetch(
-      `${request.nextUrl.origin}/api/building-profiles/${profileId}/documents?userId=${userId}`
-    )
-    const documentsData = documentsResponse.ok ? await documentsResponse.json() : { data: [] }
-    const documents = documentsData.data || []
+    // Récupérer les documents directement via Prisma
+    let documents = []
+    try {
+      documents = await prisma.buildingDocument.findMany({
+        where: { buildingProfileId: profileId },
+        orderBy: { createdAt: 'desc' },
+      })
+      console.log('[API Recommendations] ✅ Documents chargés:', documents.length)
+    } catch (error) {
+      console.log('[API Recommendations] ⚠️ Erreur chargement documents (non bloquant):', error instanceof Error ? error.message : 'Unknown error')
+      documents = []
+    }
 
     // Générer les recommandations et notifications
     const recommendationsService = new BuildingRecommendationsService()
-    
+
     const recommendations = recommendationsService.generateRecommendations(
       profile.enrichedData,
       profile.dpeData,
@@ -58,6 +73,11 @@ export async function GET(
       profile,
       documents
     )
+
+    console.log('[API Recommendations] ✅ Recommandations générées:', {
+      recommendations: recommendations.length,
+      notifications: notifications.length
+    })
 
     return NextResponse.json({
       success: true,
@@ -72,7 +92,7 @@ export async function GET(
       },
     })
   } catch (error) {
-    console.error('[API Building Profiles Recommendations] Erreur:', error)
+    console.error('[API Building Profiles Recommendations] ❌ Erreur:', error)
     return NextResponse.json(
       {
         error: 'Erreur lors de la récupération des recommandations',
