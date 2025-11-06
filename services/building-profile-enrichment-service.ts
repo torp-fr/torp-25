@@ -304,8 +304,9 @@ export class BuildingProfileEnrichmentService {
     // CATÉGORIE : ÉNERGIE
     // ============================================
 
-    // Classe DPE (peut être dans dpeData.dpeClass, dpeData.energyClassPrimary, ou rnbData.dpeClass)
-    const dpeClass = dpeData?.dpeClass || 
+    // Classe DPE (peut être dans dpeData.dpeClass, dpeData.classe, dpeData.energyClassPrimary, ou rnbData.dpeClass)
+    const dpeClass = dpeData?.dpeClass ||
+                     dpeData?.classe ||  // Nouveau format simple-data-service
                      dpeData?.energyClassPrimary ||
                      (rnbData?.dpeClass && rnbData.dpeClass !== 'N/A' ? rnbData.dpeClass : undefined)
     
@@ -337,8 +338,9 @@ export class BuildingProfileEnrichmentService {
       })
     }
 
-    // Consommation énergétique (peut être dans dpeData.energyConsumption, dpeData.energyConsumptionPrimary, ou rnbData.energyConsumption)
-    const energyConsumption = dpeData?.energyConsumption || 
+    // Consommation énergétique (peut être dans dpeData.energyConsumption, dpeData.consommation, dpeData.energyConsumptionPrimary, ou rnbData.energyConsumption)
+    const energyConsumption = dpeData?.energyConsumption ||
+                               dpeData?.consommation ||  // Nouveau format simple-data-service
                                dpeData?.energyConsumptionPrimary ||
                                rnbData?.energyConsumption
     
@@ -372,8 +374,9 @@ export class BuildingProfileEnrichmentService {
       })
     }
 
-    // Émissions GES (peut être dans dpeData.ghgEmissions, dpeData.ghgEmissionsPrimary, ou rnbData.ghgEmissions)
-    const ghgEmissions = dpeData?.ghgEmissions || 
+    // Émissions GES (peut être dans dpeData.ghgEmissions, dpeData.ges, dpeData.ghgEmissionsPrimary, ou rnbData.ghgEmissions)
+    const ghgEmissions = dpeData?.ghgEmissions ||
+                         dpeData?.ges ||  // Nouveau format simple-data-service
                          dpeData?.ghgEmissionsPrimary ||
                          rnbData?.ghgEmissions
     
@@ -698,9 +701,10 @@ export class BuildingProfileEnrichmentService {
     // CATÉGORIE : STRUCTURE
     // ============================================
 
-    // Année de construction (peut être dans RNB, enrichedData.rnb, ou enrichedData.building)
-    const constructionYear = enrichedData?.rnb?.constructionYear || 
+    // Année de construction (peut être dans RNB, enrichedData.rnb, dpeData.annee, ou enrichedData.building)
+    const constructionYear = enrichedData?.rnb?.constructionYear ||
                             rnbData?.constructionYear ||
+                            dpeData?.annee ||  // Nouveau format simple-data-service
                             enrichedData?.building?.constructionYear ||
                             enrichedData?.rnb?.annee_construction
     
@@ -763,9 +767,10 @@ export class BuildingProfileEnrichmentService {
       })
     }
 
-    // Type de bien (peut être dans enrichedData.building.buildingType ou rnbData.buildingType)
-    const buildingType = enrichedData?.building?.buildingType || 
+    // Type de bien (peut être dans enrichedData.building.buildingType, dpeData.type, ou rnbData.buildingType)
+    const buildingType = enrichedData?.building?.buildingType ||
                          rnbData?.buildingType ||
+                         dpeData?.type ||  // Nouveau format simple-data-service
                          enrichedData?.rnb?.buildingType
     
     characteristics.push({
