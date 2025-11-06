@@ -101,37 +101,10 @@ export async function getDPESimple(address: SimpleAddress): Promise<SimpleDPE | 
         }
       }
 
-      // 2. Recherche par adresse texte (fallback si pas trouvé en GPS)
-      if (foundDPEs.filter(f => f.dataset === dataset.label).length === 0) {
-        console.log(`[SimpleDataService] 🔍 ${dataset.label} - Recherche par adresse texte (fallback)...`)
-        const searchUrl = `https://data.ademe.fr/data-fair/api/v1/datasets/${dataset.id}/lines?q=${encodeURIComponent(address.formatted)}&size=10&sort=-date_etablissement_dpe`
-
-        try {
-          const response = await fetch(searchUrl, {
-            headers: { 'Accept': 'application/json' },
-          })
-
-          if (response.ok) {
-            const data = await response.json()
-            console.log(`[SimpleDataService] 📊 ${dataset.label} - ${data.total || 0} DPE trouvés par recherche texte`)
-
-            if (data.results && data.results.length > 0) {
-              const dpe = data.results[0]
-              const dateEtablissement = dpe.date_etablissement_dpe || dpe.Date_etablissement_DPE
-              if (dateEtablissement) {
-                foundDPEs.push({
-                  dpe,
-                  dataset: dataset.label,
-                  date: new Date(dateEtablissement),
-                })
-                console.log(`[SimpleDataService] ✅ ${dataset.label} - DPE trouvé par texte, date: ${dateEtablissement}`)
-              }
-            }
-          }
-        } catch (e) {
-          console.warn(`[SimpleDataService] ⚠️ Erreur recherche texte ${dataset.label}:`, e)
-        }
-      }
+      // 2. Recherche par adresse texte DÉSACTIVÉE
+      // La recherche texte retourne des données incorrectes et non pertinentes
+      // Il vaut mieux retourner NULL que de fausses données
+      console.log(`[SimpleDataService] ⚠️ ${dataset.label} - Recherche texte désactivée (retournait toujours les mêmes fausses données)`)
     }
 
     // Sélectionner le DPE le plus récent parmi tous ceux trouvés
