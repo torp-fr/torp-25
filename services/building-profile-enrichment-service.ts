@@ -41,20 +41,6 @@ export class BuildingProfileEnrichmentService {
   }
 
   /**
-   * Récupère une valeur depuis un objet avec un chemin (ex: "parcelle.numero")
-   */
-  private getValue(obj: any, path: string): any {
-    if (!obj) return null
-    const parts = path.split('.')
-    let current = obj
-    for (const part of parts) {
-      if (current === null || current === undefined) return null
-      current = current[part]
-    }
-    return this.isEmpty(current) ? null : current
-  }
-
-  /**
    * Transforme les données techniques en caractéristiques lisibles
    * @param enrichedData - Données enrichies complètes (AggregatedBuildingData)
    * @param profileDpeData - Données DPE du profil (si stockées séparément)
