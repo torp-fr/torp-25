@@ -95,8 +95,16 @@ export class RNBService {
         return null
       }
 
-      console.log('[RNBService] ⚠️ Données RNB non indexées pour ce département, métadonnées uniquement')
-      // 3. Retourner les métadonnées avec indication que l'indexation est nécessaire
+      // 3. Fallback: Essayer l'API nationale RNB (GRATUITE, temps réel)
+      console.log('[RNBService] 🔄 Fallback API nationale RNB...')
+      const apiData = await this.searchBuildingFromNationalAPI(address)
+      if (apiData) {
+        console.log('[RNBService] ✅ Données récupérées via API nationale RNB')
+        return apiData
+      }
+
+      console.log('[RNBService] ⚠️ Données RNB non trouvées, retour métadonnées uniquement')
+      // 4. Dernier recours: Retourner les métadonnées avec indication que l'indexation est recommandée
       return {
         id: `rnb-${department}-metadata`,
         commune: address.city,
@@ -107,6 +115,94 @@ export class RNBService {
     } catch (error) {
       console.error('[RNBService] ❌ Erreur récupération données RNB:', error)
       return null
+    }
+  }
+
+  /**
+   * Recherche un bâtiment via l'API nationale RNB (GRATUITE, sans clé requise)
+   * Documentation: https://rnb.beta.gouv.fr/api/v0/docs
+   */
+  private async searchBuildingFromNationalAPI(
+    address: AddressData
+  ): Promise<RNBBuildingData | null> {
+    try {
+      const { coordinates, formatted } = address
+
+      // L'API RNB nationale permet de chercher par coordonnées ou par adresse
+      const apiUrl = 'https://rnb.beta.gouv.fr/api/v0'
+
+      // 1. Recherche par coordonnées si disponibles (plus précis)
+      if (coordinates) {
+        console.log(`[RNBService] 🔎 Recherche par coordonnées: ${coordinates.lat}, ${coordinates.lng}`)
+        const response = await fetch(
+          `${apiUrl}/buildings?point=${coordinates.lng},${coordinates.lat}&max_distance=50`,
+          {
+            headers: {
+              'Accept': 'application/json',
+              'User-Agent': 'TORP-Platform/1.0'
+            }
+          }
+        )
+
+        if (response.ok) {
+          const data = await response.json()
+          if (data.buildings && data.buildings.length > 0) {
+            const building = data.buildings[0]
+            return this.mapNationalAPIResponse(building)
+          }
+        }
+      }
+
+      // 2. Recherche par adresse si pas de coordonnées ou pas trouvé
+      if (formatted) {
+        console.log(`[RNBService] 🔎 Recherche par adresse: ${formatted}`)
+        const response = await fetch(
+          `${apiUrl}/buildings?q=${encodeURIComponent(formatted)}&limit=1`,
+          {
+            headers: {
+              'Accept': 'application/json',
+              'User-Agent': 'TORP-Platform/1.0'
+            }
+          }
+        )
+
+        if (response.ok) {
+          const data = await response.json()
+          if (data.buildings && data.buildings.length > 0) {
+            const building = data.buildings[0]
+            return this.mapNationalAPIResponse(building)
+          }
+        }
+      }
+
+      return null
+    } catch (error) {
+      console.warn('[RNBService] ⚠️ Erreur API nationale RNB:', error)
+      return null
+    }
+  }
+
+  /**
+   * Mappe la réponse de l'API nationale RNB vers notre interface
+   */
+  private mapNationalAPIResponse(building: any): RNBBuildingData {
+    return {
+      id: building.rnb_id || building.id || `rnb-api-${Date.now()}`,
+      constructionYear: building.construction_year || building.annee_construction,
+      buildingType: building.building_type || building.type_batiment,
+      surface: building.surface || building.surface_totale,
+      dpeClass: building.dpe_class || building.classe_dpe || 'N/A',
+      dpeDate: building.dpe_date || building.date_dpe,
+      energyConsumption: building.energy_consumption || building.consommation_energie,
+      ghgEmissions: building.ghg_emissions || building.emissions_ges,
+      commune: building.commune || building.nom_commune,
+      codeINSEE: building.code_insee,
+      address: building.address || building.adresse,
+      coordinates: building.coordinates
+        ? { lat: building.coordinates.lat, lng: building.coordinates.lon || building.coordinates.lng }
+        : undefined,
+      sources: ['API nationale RNB (temps réel)'],
+      lastUpdated: new Date().toISOString(),
     }
   }
 
