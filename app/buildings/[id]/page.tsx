@@ -291,6 +291,7 @@ export default function BuildingDetailPage() {
       setLoadingCharacteristics(true)
       console.log('[Frontend] 🔄 Chargement caractéristiques pour:', profileId)
       console.log('[Frontend] 📡 URL:', `/api/building-profiles/${profileId}/characteristics?userId=${DEMO_USER_ID}`)
+      console.log('[Frontend] 🆕 Cache invalidation: 2025-11-06')
       
       const response = await fetch(`/api/building-profiles/${profileId}/characteristics?userId=${DEMO_USER_ID}`)
       
