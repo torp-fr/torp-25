@@ -185,26 +185,49 @@ export default function BuildingDetailPage() {
     }
   }, [profile?.id])
 
-  // Polling automatique si enrichissement en cours
+  // Polling automatique si enrichissement en cours OU en attente
   useEffect(() => {
-    if (!profile || profile.enrichmentStatus !== 'in_progress') {
+    if (!profile || (profile.enrichmentStatus !== 'in_progress' && profile.enrichmentStatus !== 'pending')) {
       return
     }
 
-    console.log('[Building Detail] 🔄 Enrichissement en cours, démarrage polling automatique...')
+    console.log('[Building Detail] 🔄 Enrichissement', profile.enrichmentStatus, '- démarrage polling automatique...')
+
+    let pollCount = 0
+    const maxPolls = 40 // Max 2 minutes (40 * 3s)
+
     const interval = setInterval(async () => {
-      console.log('[Building Detail] 🔄 Polling automatique: vérification statut enrichissement...')
-      await fetchProfile()
-      
+      pollCount++
+      console.log('[Building Detail] 🔄 Polling automatique:', pollCount, '/', maxPolls, '- vérification statut enrichissement...')
+
       // Re-vérifier le statut depuis l'API
       try {
         const statusResponse = await fetch(`/api/building-profiles/${profileId}?userId=${DEMO_USER_ID}`)
         if (statusResponse.ok) {
           const statusData = await statusResponse.json()
           const currentStatus = statusData.data?.enrichmentStatus
-          
-          // Si le statut a changé, arrêter le polling et recharger les données
-          if (currentStatus !== 'in_progress') {
+
+          console.log('[Building Detail] 📊 Statut actuel:', currentStatus)
+
+          // Si toujours pending après 3 polls (9s), lancer manuellement l'enrichissement
+          if (currentStatus === 'pending' && pollCount === 3) {
+            console.log('[Building Detail] ⚠️ Status toujours pending après 9s, lancement manuel enrichissement...')
+            try {
+              const enrichResponse = await fetch(`/api/building-profiles/${profileId}/enrich?userId=${DEMO_USER_ID}`, {
+                method: 'POST',
+              })
+              if (enrichResponse.ok) {
+                console.log('[Building Detail] ✅ Enrichissement lancé manuellement')
+              } else {
+                console.error('[Building Detail] ❌ Erreur lancement enrichissement manuel')
+              }
+            } catch (enrichErr) {
+              console.error('[Building Detail] ❌ Erreur lancement enrichissement:', enrichErr)
+            }
+          }
+
+          // Si le statut a changé vers completed ou failed, arrêter le polling et recharger
+          if (currentStatus === 'completed' || currentStatus === 'failed') {
             console.log('[Building Detail] ✅ Enrichissement terminé (statut:', currentStatus, '), arrêt polling')
             clearInterval(interval)
             await fetchProfile()
@@ -214,6 +237,12 @@ export default function BuildingDetailPage() {
         }
       } catch (err) {
         console.error('[Building Detail] ❌ Erreur vérification statut:', err)
+      }
+
+      // Arrêter après max polls
+      if (pollCount >= maxPolls) {
+        console.warn('[Building Detail] ⚠️ Timeout polling après', maxPolls * 3, 'secondes')
+        clearInterval(interval)
       }
     }, 3000) // Toutes les 3 secondes
 
