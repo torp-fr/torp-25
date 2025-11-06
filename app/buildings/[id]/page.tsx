@@ -1,4 +1,5 @@
 'use client'
+// Force cache invalidation - 2025-11-06
 
 import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
