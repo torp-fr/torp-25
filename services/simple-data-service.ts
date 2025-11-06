@@ -46,6 +46,7 @@ export interface SimpleRisques {
 export async function getDPESimple(address: SimpleAddress): Promise<SimpleDPE | null> {
   try {
     console.log('[SimpleDataService] 🔍 Recherche DPE pour:', address.formatted)
+    console.log('[SimpleDataService] 🌍 GPS utilisés:', JSON.stringify(address.coordinates, null, 2))
 
     const datasets = [
       { id: 'dpe-v2-logements-existants', label: 'DPE v2 (après juillet 2021)' },
@@ -67,6 +68,7 @@ export async function getDPESimple(address: SimpleAddress): Promise<SimpleDPE | 
           const url = `https://data.ademe.fr/data-fair/api/v1/datasets/${dataset.id}/lines?geo_distance=${lat},${lng},${rayon}m&size=10&sort=-date_etablissement_dpe`
 
           console.log(`[SimpleDataService] 📍 ${dataset.label} - Recherche GPS rayon ${rayon}m...`)
+          console.log(`[SimpleDataService] 🔗 URL complète: ${url}`)
 
           try {
             const response = await fetch(url, {

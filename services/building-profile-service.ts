@@ -212,7 +212,13 @@ export class BuildingProfileService {
 
       const addressData = profile.address as unknown as AddressData
       console.log('[BuildingProfileService] 🚀 ENRICHISSEMENT SIMPLE - REFONTE 2025-11-06')
-      console.log('📍 Adresse:', addressData.formatted)
+      console.log('📍 Adresse complète:', JSON.stringify({
+        formatted: addressData.formatted,
+        city: addressData.city,
+        postalCode: addressData.postalCode,
+        coordinates: addressData.coordinates,
+      }, null, 2))
+      console.log('🌍 Coordonnées GPS utilisées pour enrichissement:', addressData.coordinates)
 
       // ============================================
       // UTILISER LE NOUVEAU SERVICE SIMPLE
