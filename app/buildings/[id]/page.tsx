@@ -683,6 +683,12 @@ export default function BuildingDetailPage() {
                 <MapPin className="h-4 w-4" />
                 {profile.address?.formatted || 'Adresse non définie'}
               </p>
+              {/* AFFICHAGE GPS POUR VALIDATION */}
+              {profile.coordinates && (
+                <p className="text-xs text-blue-600 mt-1 font-mono">
+                  GPS: {profile.coordinates.lat?.toFixed(6)}, {profile.coordinates.lng?.toFixed(6)}
+                </p>
+              )}
             </div>
             <div className="flex gap-2">
               <Button
@@ -1289,6 +1295,50 @@ export default function BuildingDetailPage() {
 
           {/* Sidebar */}
           <div className="space-y-6">
+            {/* DEBUG: Coordonnées GPS et Données Brutes */}
+            <Card className="border-blue-200 bg-blue-50">
+              <CardHeader>
+                <CardTitle className="text-sm">🔍 Debug - Données Brutes</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3 text-xs font-mono">
+                <div>
+                  <div className="font-semibold text-blue-900 mb-1">Coordonnées GPS:</div>
+                  <div className="bg-white p-2 rounded border">
+                    {profile.coordinates ? (
+                      <>
+                        <div>Lat: {profile.coordinates.lat}</div>
+                        <div>Lng: {profile.coordinates.lng}</div>
+                      </>
+                    ) : (
+                      <div className="text-red-600">❌ Aucune coordonnée GPS!</div>
+                    )}
+                  </div>
+                </div>
+                {profile.dpeData && (
+                  <div>
+                    <div className="font-semibold text-blue-900 mb-1">DPE stocké en DB:</div>
+                    <div className="bg-white p-2 rounded border overflow-auto max-h-32">
+                      <pre>{JSON.stringify(profile.dpeData, null, 2)}</pre>
+                    </div>
+                  </div>
+                )}
+                <div>
+                  <div className="font-semibold text-blue-900 mb-1">Statut enrichissement:</div>
+                  <div className="bg-white p-2 rounded border">
+                    {profile.enrichmentStatus}
+                  </div>
+                </div>
+                {profile.enrichmentSources && profile.enrichmentSources.length > 0 && (
+                  <div>
+                    <div className="font-semibold text-blue-900 mb-1">Sources:</div>
+                    <div className="bg-white p-2 rounded border">
+                      {profile.enrichmentSources.join(', ')}
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
             {/* Quick Info */}
             <Card>
               <CardHeader>
