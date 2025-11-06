@@ -58,6 +58,11 @@ export async function GET(request: NextRequest) {
 
     const { getDPESimple } = await import('@/services/simple-data-service')
 
+    if (!addressData.coordinates) {
+      debug.steps.push({ step: 2, status: 'failed', error: 'Coordonnées GPS manquantes' })
+      return NextResponse.json({ debug, error: 'Coordonnées GPS manquantes' }, { status: 400 })
+    }
+
     const simpleAddress = {
       formatted: addressData.formatted,
       city: addressData.city,
@@ -123,6 +128,10 @@ export async function GET(request: NextRequest) {
 
     const { getCadastreSimple } = await import('@/services/simple-data-service')
     const cadastreData = await getCadastreSimple(simpleAddress)
+
+    if (!cadastreData) {
+      debug.steps.push({ step: 4, status: 'not_found' })
+    }
 
     debug.steps.push({
       step: 4,
