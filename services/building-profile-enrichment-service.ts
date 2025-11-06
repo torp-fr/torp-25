@@ -29,6 +29,33 @@ export interface BuildingCharacteristic {
 
 export class BuildingProfileEnrichmentService {
   /**
+   * Vérifie si un objet est vide (pas de clés ou toutes les valeurs sont null/undefined)
+   */
+  private isEmptyObject(obj: any): boolean {
+    if (!obj || typeof obj !== 'object' || Array.isArray(obj)) {
+      return true
+    }
+
+    const keys = Object.keys(obj)
+    if (keys.length === 0) {
+      return true
+    }
+
+    // Vérifier si toutes les valeurs sont null, undefined, ou des objets vides
+    const hasRealData = keys.some(key => {
+      const value = obj[key]
+      if (value === null || value === undefined) return false
+      if (typeof value === 'object' && this.isEmptyObject(value)) return false
+      if (typeof value === 'string' && value.trim() === '') return false
+      // Ignorer les clés metadata
+      if (['sources', 'lastUpdated', 'id'].includes(key)) return false
+      return true
+    })
+
+    return !hasRealData
+  }
+
+  /**
    * Transforme les données techniques en caractéristiques lisibles
    * @param enrichedData - Données enrichies complètes (AggregatedBuildingData)
    * @param profileDpeData - Données DPE du profil (si stockées séparément)
@@ -74,10 +101,20 @@ export class BuildingProfileEnrichmentService {
     })
     
     // Utiliser les données du profil si disponibles, sinon celles de enrichedData
+    // IMPORTANT : Filtrer les objets vides pour éviter d'utiliser {} au lieu de null
+
     // DPE peut être dans plusieurs endroits : profileDpeData, enrichedData.energy, enrichedData.dpe, ou enrichedData.rnb
-    let dpeData = profileDpeData || enrichedData?.energy || enrichedData?.dpe
+    let dpeData = null
+    if (profileDpeData && !this.isEmptyObject(profileDpeData)) {
+      dpeData = profileDpeData
+    } else if (enrichedData?.energy && !this.isEmptyObject(enrichedData.energy)) {
+      dpeData = enrichedData.energy
+    } else if (enrichedData?.dpe && !this.isEmptyObject(enrichedData.dpe)) {
+      dpeData = enrichedData.dpe
+    }
+
     // Si pas de DPE mais RNB disponible, utiliser RNB pour DPE
-    if (!dpeData && enrichedData?.rnb) {
+    if (!dpeData && enrichedData?.rnb && !this.isEmptyObject(enrichedData.rnb)) {
       const rnb = enrichedData.rnb as any
       if (rnb.dpeClass || rnb.energyConsumption) {
         dpeData = {
@@ -88,32 +125,52 @@ export class BuildingProfileEnrichmentService {
         }
       }
     }
+
+    // Risques - filtrer les objets vides
+    let riskData = null
+    if (profileRiskData && !this.isEmptyObject(profileRiskData)) {
+      riskData = profileRiskData
+    } else if (enrichedData?.georisques && !this.isEmptyObject(enrichedData.georisques)) {
+      riskData = enrichedData.georisques
+    }
+
+    // Cadastre - filtrer les objets vides
+    let cadastralData = null
+    if (profileCadastralData && !this.isEmptyObject(profileCadastralData)) {
+      cadastralData = profileCadastralData
+    } else if (enrichedData?.cadastre && !this.isEmptyObject(enrichedData.cadastre)) {
+      cadastralData = enrichedData.cadastre
+    }
+
+    // DVF - filtrer les objets vides
+    let dvfData = null
+    if (profileDvfData && !this.isEmptyObject(profileDvfData)) {
+      dvfData = profileDvfData
+    } else if (enrichedData?.dvf && !this.isEmptyObject(enrichedData.dvf)) {
+      dvfData = enrichedData.dvf
+    }
+
+    // RNB pour données structure (année, surface, type) - filtrer les objets vides
+    const rnbData = enrichedData?.rnb && !this.isEmptyObject(enrichedData.rnb) ? enrichedData.rnb : null
     
-    // Risques
-    const riskData = profileRiskData || enrichedData?.georisques
-    
-    // Cadastre
-    const cadastralData = profileCadastralData || enrichedData?.cadastre
-    
-    // DVF
-    const dvfData = profileDvfData || enrichedData?.dvf
-    
-    // RNB pour données structure (année, surface, type)
-    const rnbData = enrichedData?.rnb
-    
-    console.log('[BuildingProfileEnrichmentService] 📊 Données extraites pour traitement:', {
+    console.log('[BuildingProfileEnrichmentService] 📊 Données extraites pour traitement (après filtrage objets vides):', {
       hasDpeData: !!dpeData,
       dpeDataKeys: dpeData ? Object.keys(dpeData) : [],
       dpeClass: dpeData?.dpeClass,
       energyConsumption: dpeData?.energyConsumption,
+      dpeDataIsEmpty: dpeData ? this.isEmptyObject(dpeData) : true,
       hasRiskData: !!riskData,
       riskDataKeys: riskData ? Object.keys(riskData) : [],
+      riskDataIsEmpty: riskData ? this.isEmptyObject(riskData) : true,
       hasCadastralData: !!cadastralData,
       cadastralDataKeys: cadastralData ? Object.keys(cadastralData) : [],
+      cadastralDataIsEmpty: cadastralData ? this.isEmptyObject(cadastralData) : true,
       hasDvfData: !!dvfData,
       dvfDataKeys: dvfData ? Object.keys(dvfData) : [],
+      dvfDataIsEmpty: dvfData ? this.isEmptyObject(dvfData) : true,
       hasRnbData: !!rnbData,
       rnbDataKeys: rnbData ? Object.keys(rnbData) : [],
+      rnbDataIsEmpty: rnbData ? this.isEmptyObject(rnbData) : true,
     })
     
     // Surface habitable (calculée une seule fois, utilisée dans STRUCTURE et VALORISATION)
