@@ -265,119 +265,93 @@ export class BuildingProfileService {
         enrichedData.address = addressData
       }
 
-      console.log('[BuildingProfileService] 🏗️ ÉTAPE 2: Parcelle → Bâti et données associées')
+      console.log('[BuildingProfileService] 🏗️ ÉTAPE 2 & 3: Bâti et Valorisation (PARALLÈLE)')
 
       // ============================================
-      // ÉTAPE 2: PARCELLE → BÂTI ET DONNÉES ASSOCIÉES
+      // ÉTAPE 2 & 3: APPELS PARALLÈLES POUR PERFORMANCES
+      // BuildingService + DVF en même temps
       // ============================================
-      try {
-        console.log('📊 Récupération données agrégées du bâti...')
-        console.log('📍 Adresse formatée:', addressData.formatted)
-        
-        const aggregatedData = await this.buildingService.getAggregatedData(addressData.formatted)
-        
-        if (aggregatedData) {
-          console.log('✅ Données bâti récupérées:', {
-            hasPLU: !!aggregatedData.plu,
-            pluKeys: aggregatedData.plu ? Object.keys(aggregatedData.plu) : [],
-            hasRNB: !!aggregatedData.rnb,
-            rnbKeys: aggregatedData.rnb ? Object.keys(aggregatedData.rnb) : [],
-            hasDPE: !!aggregatedData.energy || !!aggregatedData.dpe,
-            energyKeys: aggregatedData.energy ? Object.keys(aggregatedData.energy) : [],
-            dpeKeys: aggregatedData.dpe ? Object.keys(aggregatedData.dpe) : [],
-            hasGeorisques: !!aggregatedData.georisques,
-            georisquesKeys: aggregatedData.georisques ? Object.keys(aggregatedData.georisques) : [],
-            hasBuilding: !!aggregatedData.building,
-            hasUrbanism: !!aggregatedData.urbanism,
-            sources: aggregatedData.sources || [],
-          })
-          
-          sources.push(...(aggregatedData.sources || []))
-          
-             // Construire enrichedData progressivement - IMPORTANT : Ne pas mettre null si la clé existe déjà
-             // GARANTIR qu'on a au moins l'adresse et le cadastre de base
-             enrichedData = {
-               address: aggregatedData.address || enrichedData.address || addressData,
-               cadastre: enrichedData.cadastre || aggregatedData.cadastre || null, // Conserver cadastre de l'étape 1, même basique
-               urbanism: aggregatedData.urbanism || enrichedData.urbanism || null,
-               building: aggregatedData.building || enrichedData.building || null,
-               energy: aggregatedData.energy || aggregatedData.dpe || enrichedData.energy || null,
-               dpe: aggregatedData.dpe || aggregatedData.energy || enrichedData.dpe || null,
-               plu: aggregatedData.plu || enrichedData.plu || null,
-               rnb: aggregatedData.rnb || enrichedData.rnb || null,
-               georisques: aggregatedData.georisques || enrichedData.georisques || null,
-               sources: Array.from(new Set([
-                 ...(aggregatedData.sources || []), 
-                 ...(enrichedData.sources || []),
-                 'API Adresse', // Toujours présent
-               ])),
-               lastUpdated: new Date().toISOString(),
-             }
-          
-          console.log('[BuildingProfileService] 📦 enrichedData construit:', {
-            keys: Object.keys(enrichedData),
-            hasCadastre: !!enrichedData.cadastre,
-            hasPLU: !!enrichedData.plu,
-            hasRNB: !!enrichedData.rnb,
-            hasEnergy: !!enrichedData.energy,
-            hasDpe: !!enrichedData.dpe,
-            hasGeorisques: !!enrichedData.georisques,
-            cadastreKeys: enrichedData.cadastre ? Object.keys(enrichedData.cadastre) : [],
-          })
-          
-          // Sauvegarder dans les champs séparés aussi
-          await prisma.buildingProfile.update({
-            where: { id: profileId },
-            data: {
-              enrichedData: enrichedData as any,
-              pluData: aggregatedData.plu ? (aggregatedData.plu as any) : null,
-              rnbData: aggregatedData.rnb ? (aggregatedData.rnb as any) : null,
-              dpeData: aggregatedData.energy || aggregatedData.dpe ? ((aggregatedData.energy || aggregatedData.dpe) as any) : null,
-              urbanismData: aggregatedData.urbanism ? (aggregatedData.urbanism as any) : null,
-            },
-          })
-          
-          console.log('[BuildingProfileService] ✅ Données sauvegardées en base')
-        } else {
-          console.warn('⚠️ Aucune donnée bâti récupérée - aggregatedData est null')
-        }
-      } catch (error) {
-        console.error('❌ Erreur récupération données bâti:', error)
-        errors.push(`Bâti: ${error instanceof Error ? error.message : 'Unknown error'}`)
-      }
-
-      console.log('[BuildingProfileService] 💰 ÉTAPE 3: Valorisation (DVF)')
-
-      // ============================================
-      // ÉTAPE 3: VALORISATION (DVF)
-      // ============================================
-      try {
-        const dvfData = await this.dvfService.getDVFData(addressData, {
+      const [aggregatedDataResult, dvfDataResult] = await Promise.allSettled([
+        this.buildingService.getAggregatedData(addressData.formatted),
+        this.dvfService.getDVFData(addressData, {
           rayon: 1000,
           annee_min: new Date().getFullYear() - 5,
         })
-        
-        if (dvfData) {
-          console.log('✅ Données DVF récupérées:', {
-            hasEstimation: !!dvfData.estimation,
-            hasStatistics: !!dvfData.statistics,
-            hasComparables: !!dvfData.comparables?.length,
-          })
-          sources.push('DVF (Demandes de Valeurs Foncières)')
-          enrichedData.dvf = dvfData
-          
-          await prisma.buildingProfile.update({
-            where: { id: profileId },
-            data: {
-              enrichedData: enrichedData as any,
-            },
-          })
-        } else {
-          console.warn('⚠️ Aucune donnée DVF récupérée')
+      ])
+
+      // Traiter résultat BuildingService
+      if (aggregatedDataResult.status === 'fulfilled' && aggregatedDataResult.value) {
+        const aggregatedData = aggregatedDataResult.value
+        console.log('✅ Données bâti récupérées:', {
+          hasPLU: !!aggregatedData.plu,
+          hasRNB: !!aggregatedData.rnb,
+          hasDPE: !!aggregatedData.energy || !!aggregatedData.dpe,
+          hasGeorisques: !!aggregatedData.georisques,
+          hasBuilding: !!aggregatedData.building,
+          sources: aggregatedData.sources || [],
+        })
+
+        sources.push(...(aggregatedData.sources || []))
+
+        // Construire enrichedData progressivement
+        enrichedData = {
+          address: aggregatedData.address || enrichedData.address || addressData,
+          cadastre: enrichedData.cadastre || aggregatedData.cadastre || null,
+          urbanism: aggregatedData.urbanism || enrichedData.urbanism || null,
+          building: aggregatedData.building || enrichedData.building || null,
+          energy: aggregatedData.energy || aggregatedData.dpe || enrichedData.energy || null,
+          dpe: aggregatedData.dpe || aggregatedData.energy || enrichedData.dpe || null,
+          plu: aggregatedData.plu || enrichedData.plu || null,
+          rnb: aggregatedData.rnb || enrichedData.rnb || null,
+          georisques: aggregatedData.georisques || enrichedData.georisques || null,
+          sources: Array.from(new Set([
+            ...(aggregatedData.sources || []),
+            ...(enrichedData.sources || []),
+            'API Adresse',
+          ])),
+          lastUpdated: new Date().toISOString(),
         }
-      } catch (error) {
-        console.error('❌ Erreur récupération DVF:', error)
-        errors.push(`DVF: ${error instanceof Error ? error.message : 'Unknown error'}`)
+
+        // Sauvegarder les champs séparés
+        await prisma.buildingProfile.update({
+          where: { id: profileId },
+          data: {
+            enrichedData: enrichedData as any,
+            pluData: aggregatedData.plu ? (aggregatedData.plu as any) : null,
+            rnbData: aggregatedData.rnb ? (aggregatedData.rnb as any) : null,
+            dpeData: aggregatedData.energy || aggregatedData.dpe ? ((aggregatedData.energy || aggregatedData.dpe) as any) : null,
+            urbanismData: aggregatedData.urbanism ? (aggregatedData.urbanism as any) : null,
+          },
+        })
+      } else if (aggregatedDataResult.status === 'rejected') {
+        console.error('❌ Erreur récupération données bâti:', aggregatedDataResult.reason)
+        errors.push(`Bâti: ${aggregatedDataResult.reason instanceof Error ? aggregatedDataResult.reason.message : 'Unknown error'}`)
+      } else {
+        console.warn('⚠️ Aucune donnée bâti récupérée')
+      }
+
+      // Traiter résultat DVF
+      if (dvfDataResult.status === 'fulfilled' && dvfDataResult.value) {
+        const dvfData = dvfDataResult.value
+        console.log('✅ Données DVF récupérées:', {
+          hasEstimation: !!dvfData.estimation,
+          hasStatistics: !!dvfData.statistics,
+          hasComparables: !!dvfData.comparables?.length,
+        })
+        sources.push('DVF (Demandes de Valeurs Foncières)')
+        enrichedData.dvf = dvfData
+
+        await prisma.buildingProfile.update({
+          where: { id: profileId },
+          data: {
+            enrichedData: enrichedData as any,
+          },
+        })
+      } else if (dvfDataResult.status === 'rejected') {
+        console.error('❌ Erreur récupération DVF:', dvfDataResult.reason)
+        errors.push(`DVF: ${dvfDataResult.reason instanceof Error ? dvfDataResult.reason.message : 'Unknown error'}`)
+      } else {
+        console.warn('⚠️ Aucune donnée DVF récupérée')
       }
 
       // ============================================
