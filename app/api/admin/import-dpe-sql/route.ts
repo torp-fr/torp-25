@@ -44,8 +44,6 @@ export async function POST(request: NextRequest) {
     if (tableName) {
       console.log('[Import DPE SQL] 📝 Exécution du SQL directement...')
 
-      // Diviser en chunks pour éviter les timeouts
-      const chunkSize = 1000 // Lignes par transaction
       let processed = 0
       let errors = 0
 
