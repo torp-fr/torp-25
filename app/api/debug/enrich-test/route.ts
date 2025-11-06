@@ -88,7 +88,7 @@ export async function GET(request: NextRequest) {
 
       // Tester les 2 datasets avec rayon 500m
       const datasets = [
-        { id: 'dpe-v2-logements-existants', label: 'DPE v2 (après juillet 2021)' },
+        { id: 'meg-83tjwtg8dyz4vv7h1dqe', label: 'DPE v2 (après juillet 2021)' }, // Nouveau ID depuis 2024
         { id: 'dpe-france', label: 'DPE v1 (avant juillet 2021)' },
       ]
 
