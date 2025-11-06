@@ -64,9 +64,9 @@ export async function GET(
     const recommendationsService = new BuildingRecommendationsService()
 
     const recommendations = recommendationsService.generateRecommendations(
-      profile.enrichedData,
-      profile.dpeData,
-      profile.enrichedData?.georisques
+      profile.enrichedData as any,
+      profile.dpeData as any,
+      (profile.enrichedData as any)?.georisques
     )
 
     const notifications = recommendationsService.generateNotifications(
