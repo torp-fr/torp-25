@@ -217,6 +217,10 @@ export class BuildingProfileService {
       // ============================================
       // UTILISER LE NOUVEAU SERVICE SIMPLE
       // ============================================
+      if (!addressData.coordinates) {
+        throw new Error('Coordonnées GPS manquantes - enrichissement impossible')
+      }
+
       const { enrichirComplet } = await import('./simple-data-service')
 
       const simpleAddress = {
