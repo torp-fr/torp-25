@@ -49,7 +49,7 @@ export async function getDPESimple(address: SimpleAddress): Promise<SimpleDPE | 
     console.log('[SimpleDataService] 🌍 GPS utilisés:', JSON.stringify(address.coordinates, null, 2))
 
     const datasets = [
-      { id: 'dpe-v2-logements-existants', label: 'DPE v2 (après juillet 2021)' },
+      { id: 'meg-83tjwtg8dyz4vv7h1dqe', label: 'DPE v2 (après juillet 2021)' }, // Nouveau ID depuis 2024
       { id: 'dpe-france', label: 'DPE v1 (avant juillet 2021)' },
     ]
 
@@ -103,7 +103,7 @@ export async function getDPESimple(address: SimpleAddress): Promise<SimpleDPE | 
 
       // 2. Recherche par adresse texte (fallback si pas trouvé en GPS)
       if (foundDPEs.filter(f => f.dataset === dataset.label).length === 0) {
-        console.log(`[SimpleDataService] 🔍 ${dataset.label} - Recherche par adresse texte...`)
+        console.log(`[SimpleDataService] 🔍 ${dataset.label} - Recherche par adresse texte (fallback)...`)
         const searchUrl = `https://data.ademe.fr/data-fair/api/v1/datasets/${dataset.id}/lines?q=${encodeURIComponent(address.formatted)}&size=10&sort=-date_etablissement_dpe`
 
         try {
