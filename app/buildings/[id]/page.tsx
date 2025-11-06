@@ -167,22 +167,38 @@ export default function BuildingDetailPage() {
   const [expirationDate, setExpirationDate] = useState('')
 
   useEffect(() => {
-    if (!profileId) return
+    if (!profileId) {
+      console.error('[Building Detail] ❌ ERREUR: profileId est vide/null!')
+      return
+    }
 
-    console.log('[Building Detail] 🔄 Initialisation page, profileId:', profileId)
+    console.log('[Building Detail] 🆕 REFONTE 2025-11-06: Initialisation page, profileId:', profileId)
     fetchProfile()
   }, [profileId])
 
   // Charger les caractéristiques et recommandations quand le profil est chargé
   useEffect(() => {
+    console.log('[Building Detail] 🔍 useEffect déclenché - vérification profil:', {
+      hasProfile: !!profile,
+      profileId: profile?.id,
+      willFetch: !!(profile && profile.id),
+    })
+
     if (profile && profile.id) {
-      console.log('[Building Detail] 📋 Profil chargé, récupération caractéristiques et recommandations...', {
+      console.log('[Building Detail] ✅ REFONTE 2025-11-06: Profil chargé, récupération caractéristiques et recommandations...', {
         id: profile.id,
         enrichmentStatus: profile.enrichmentStatus,
         hasEnrichedData: !!profile.enrichedData,
+        enrichedDataKeys: profile.enrichedData && typeof profile.enrichedData === 'object' ? Object.keys(profile.enrichedData as any) : [],
       })
+      console.log('[Building Detail] 🚀 Appel fetchCharacteristics() MAINTENANT')
       fetchCharacteristics()
+      console.log('[Building Detail] 🚀 Appel fetchRecommendations() MAINTENANT')
       fetchRecommendations()
+    } else {
+      console.warn('[Building Detail] ⚠️ Profil non chargé, skip fetchCharacteristics', {
+        profile: profile ? 'exists but no id' : 'null',
+      })
     }
   }, [profile?.id])
 
@@ -225,6 +241,7 @@ export default function BuildingDetailPage() {
   }, [profile?.enrichmentStatus, profileId])
 
   const fetchProfile = async () => {
+    console.log('[Building Detail] 🆕 REFONTE 2025-11-06: DEBUT fetchProfile()')
     try {
       setLoading(true)
       console.log('[Building Detail] 🔄 Chargement profil:', profileId)
@@ -287,11 +304,12 @@ export default function BuildingDetailPage() {
   }
 
   const fetchCharacteristics = async () => {
+    console.log('[Frontend] 🆕🆕🆕 REFONTE 2025-11-06: DEBUT fetchCharacteristics() - CE LOG PROUVE QUE LE NOUVEAU CODE EST CHARGE!')
     try {
       setLoadingCharacteristics(true)
       console.log('[Frontend] 🔄 Chargement caractéristiques pour:', profileId)
       console.log('[Frontend] 📡 URL:', `/api/building-profiles/${profileId}/characteristics?userId=${DEMO_USER_ID}`)
-      console.log('[Frontend] 🆕 Cache invalidation: 2025-11-06')
+      console.log('[Frontend] 🆕 TIMESTAMP:', new Date().toISOString())
       
       const response = await fetch(`/api/building-profiles/${profileId}/characteristics?userId=${DEMO_USER_ID}`)
       
