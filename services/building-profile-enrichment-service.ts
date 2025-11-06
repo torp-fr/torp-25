@@ -29,18 +29,6 @@ export interface BuildingCharacteristic {
 
 export class BuildingProfileEnrichmentService {
   /**
-   * Vérifie si une valeur est vraiment vide/nulle
-   * Version simplifiée - vérifie uniquement null, undefined, et objets littéralement vides
-   */
-  private isEmpty(value: any): boolean {
-    if (value === null || value === undefined) return true
-    if (typeof value === 'string' && value.trim() === '') return true
-    if (typeof value === 'object' && !Array.isArray(value) && Object.keys(value).length === 0) return true
-    if (Array.isArray(value) && value.length === 0) return true
-    return false
-  }
-
-  /**
    * Transforme les données techniques en caractéristiques lisibles
    * @param enrichedData - Données enrichies complètes (AggregatedBuildingData)
    * @param profileDpeData - Données DPE du profil (si stockées séparément)
