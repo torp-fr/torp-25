@@ -13,7 +13,6 @@ import { BuildingService } from './external-apis/building-service'
 import { CadastreService } from './external-apis/cadastre-service'
 import { DVFService } from './external-apis/dvf-service'
 import type { AddressData } from './external-apis/types'
-import type { CadastralData } from './external-apis/cadastre-service'
 
 export interface BuildingProfileCreateInput {
   userId: string
