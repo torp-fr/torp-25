@@ -36,7 +36,7 @@
     "db:generate": "prisma generate",
     "db:push": "prisma db push",
     "db:migrate": "prisma migrate dev",
-    "db:migrate:deploy": "node scripts/pre-migrate-cleanup.js && prisma migrate deploy",
+    "db:migrate:deploy": "node scripts/migrate-with-check.js",
     "db:studio": "prisma studio",
     "postinstall": "prisma generate",
     "prepare": "husky install"
