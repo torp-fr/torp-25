@@ -125,7 +125,9 @@ export class RNBIndexer {
         },
       })
 
-      return buildings.map((b) => this.mapToRNBBuildingData(b))
+      return buildings.map((b: (typeof buildings)[number]) =>
+        this.mapToRNBBuildingData(b)
+      )
     } catch (error) {
       console.error('[RNBIndexer] Erreur recherche bâtiments:', error)
       return []
@@ -272,7 +274,7 @@ export class RNBIndexer {
       },
     })
 
-    return jobs.map((job) => ({
+    return jobs.map((job: (typeof jobs)[number]) => ({
       department: job.department,
       status: job.status.toLowerCase() as 'pending' | 'in_progress' | 'completed' | 'failed',
       progress: job.progress,
@@ -293,7 +295,7 @@ export class RNBIndexer {
     })
 
     const result: Record<string, number> = {}
-    stats.forEach((stat) => {
+    stats.forEach((stat: (typeof stats)[number]) => {
       result[stat.department] = stat._count.id
     })
 

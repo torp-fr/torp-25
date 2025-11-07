@@ -286,7 +286,7 @@ export class BANIndexer {
       },
     })
 
-    return jobs.map((job) => ({
+    return jobs.map((job: (typeof jobs)[number]) => ({
       department: job.department,
       status: job.status.toLowerCase() as 'pending' | 'in_progress' | 'completed' | 'failed',
       progress: job.progress,
@@ -307,7 +307,7 @@ export class BANIndexer {
     })
 
     const result: Record<string, number> = {}
-    stats.forEach((stat) => {
+    stats.forEach((stat: (typeof stats)[number]) => {
       result[stat.department] = stat._count.id
     })
 

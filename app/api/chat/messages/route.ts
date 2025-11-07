@@ -28,7 +28,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      messages: messages.map((msg) => ({
+      messages: messages.map((msg: (typeof messages)[number]) => ({
         id: msg.id,
         role: msg.role,
         content: msg.content,

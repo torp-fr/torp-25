@@ -11,6 +11,7 @@ import { PriceEnrichmentService } from './price-service'
 import { ComplianceEnrichmentService } from './compliance-service'
 import { WeatherEnrichmentService } from './weather-service'
 import { CertificationsEnrichmentService } from './certifications-service'
+import { BODACCService } from '../external-apis/bodacc-service'
 import type {
   EnrichedCompanyData,
   ScoringEnrichmentData,
@@ -31,6 +32,7 @@ export class AdvancedEnrichmentService {
   private complianceService: ComplianceEnrichmentService
   private weatherService: WeatherEnrichmentService
   private certificationsService: CertificationsEnrichmentService
+  private bodaccService: BODACCService
 
   constructor() {
     this.companyService = new CompanyEnrichmentService()
@@ -41,6 +43,7 @@ export class AdvancedEnrichmentService {
     this.complianceService = new ComplianceEnrichmentService()
     this.weatherService = new WeatherEnrichmentService()
     this.certificationsService = new CertificationsEnrichmentService()
+    this.bodaccService = new BODACCService()
   }
 
   /**
@@ -78,15 +81,13 @@ export class AdvancedEnrichmentService {
           confidence += 10
         }
 
-        // Source 2: Infogreffe (si disponible) - Parallélisé
+        // Source 2: Infogreffe + BODACC (si disponible) - Parallélisé
         if (enrichedCompany?.siren) {
           try {
-            // Récupérer données financières et juridiques en parallèle
-            const [financialData, legalStatus] = await Promise.allSettled([
+            // Récupérer données financières (Infogreffe) et juridiques (BODACC officiel) en parallèle
+            const [financialData, bodaccStatus] = await Promise.allSettled([
               this.infogreffeService.enrichFinancialData(enrichedCompany.siren),
-              this.infogreffeService.checkCollectiveProcedures(
-                enrichedCompany.siren
-              ),
+              this.bodaccService.getLegalStatus(enrichedCompany.siren),
             ])
 
             if (financialData.status === 'fulfilled' && financialData.value) {
@@ -95,13 +96,30 @@ export class AdvancedEnrichmentService {
               confidence += 5
             }
 
-            if (legalStatus.status === 'fulfilled' && legalStatus.value) {
-              enrichedCompany.legalStatusDetails = legalStatus.value
-              sources.push('Infogreffe/BODACC (procédures)')
-              confidence += 5
+            if (bodaccStatus.status === 'fulfilled' && bodaccStatus.value) {
+              const legalStatus = bodaccStatus.value
+
+              // Enrichir avec les procédures collectives officielles BODACC
+              if (legalStatus.hasCollectiveProcedure) {
+                enrichedCompany.legalStatusDetails = {
+                  hasCollectiveProcedure: true,
+                  procedureType: legalStatus.procedureType,
+                  procedureDate: legalStatus.procedureDate,
+                }
+                sources.push('BODACC (procédures collectives officielles)')
+                confidence += 5
+
+                console.log(
+                  `[AdvancedEnrichment] ⚠️ Procédure collective détectée: ${legalStatus.procedureType} (${legalStatus.procedureDate})`
+                )
+              } else {
+                console.log(
+                  '[AdvancedEnrichment] ✅ Aucune procédure collective en cours (BODACC)'
+                )
+              }
             }
           } catch (error) {
-            console.warn('[AdvancedEnrichment] Erreur Infogreffe:', error)
+            console.warn('[AdvancedEnrichment] Erreur Infogreffe/BODACC:', error)
             confidence -= 3
           }
         }

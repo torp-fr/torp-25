@@ -156,17 +156,17 @@ export class BenchmarkEngine {
       },
     })
 
-    return devis.map((devis) => {
-      const latestScore = devis.torpScores[0]
-      
+    return devis.map((d: (typeof devis)[number]) => {
+      const latestScore = d.torpScores[0]
+
       // Calculer la complétude des données
-      const dataCompleteness = this.calculateDataCompleteness(devis)
-      
+      const dataCompleteness = this.calculateDataCompleteness(d)
+
       // Identifier les sources utilisées
-      const sourcesUsed = this.identifySources(devis)
+      const sourcesUsed = this.identifySources(d)
 
       return {
-        devisId: devis.id,
+        devisId: d.id,
         actualGrade: latestScore?.scoreGrade || 'E',
         scoreDeviation: latestScore ? undefined : 0, // À améliorer avec validation manuelle
         dataCompleteness,
