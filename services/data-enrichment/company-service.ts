@@ -10,11 +10,13 @@ import {
   type SireneCompany,
 } from '../external-apis/sirene-service'
 import { InfogreffeService } from '../external-apis/infogreffe-service'
+import { AnnuaireEntreprisesService } from '../external-apis/annuaire-entreprises-service'
 
 export class CompanyEnrichmentService {
   private sireneClient: ApiClient
   private sireneService: SireneService
   private infogreffeService: InfogreffeService
+  private annuaireService: AnnuaireEntreprisesService
 
   constructor() {
     // API Recherche d'Entreprises (data.gouv.fr) - gratuite, sans clé
@@ -30,6 +32,9 @@ export class CompanyEnrichmentService {
 
     // Service Infogreffe pour données financières et juridiques
     this.infogreffeService = new InfogreffeService()
+
+    // Service Annuaire Entreprises pour enrichissement complet
+    this.annuaireService = new AnnuaireEntreprisesService()
   }
 
   /**
@@ -86,88 +91,57 @@ export class CompanyEnrichmentService {
         )
       }
 
-      // 2. Fallback sur l'API Recherche d'Entreprises (data.gouv.fr) - gratuite
+      // 2. Fallback sur l'Annuaire des Entreprises (service complet)
       console.log(
-        "[CompanyService] 🔄 Fallback sur API Recherche d'Entreprises (data.gouv.fr)..."
+        "[CompanyService] 🔄 Fallback sur Annuaire des Entreprises (data.gouv.fr)..."
       )
-      const data = await this.sireneClient.get<{
-        results?: Array<{
-          siret: string
-          siren: string
-          nom_complet: string
-          forme_juridique?: string
-          activite_principale?: string
-          libelle_activite_principale?: string
-          adresse?: {
-            numero_voie?: string
-            type_voie?: string
-            libelle_voie?: string
-            code_postal?: string
-            ville?: string
-            region?: string
-          }
-        }>
-      }>(`/search`, {
-        q: cleanSiret,
-        per_page: '1',
-      })
 
-      console.log(`[CompanyService] 📋 Réponse API Recherche d'Entreprises:`, {
-        hasResults: !!data.results,
-        resultsCount: data.results?.length || 0,
-      })
+      const annuaireData = await this.annuaireService.searchBySiret(cleanSiret)
 
-      if (!data.results || data.results.length === 0) {
+      if (!annuaireData) {
         console.warn(
-          `[CompanyService] ❌ Aucune entreprise trouvée pour SIRET: ${siret} via API Recherche d'Entreprises`
+          `[CompanyService] ❌ Aucune entreprise trouvée pour SIRET: ${siret} via Annuaire des Entreprises`
         )
         return null
       }
 
-      const company = data.results[0]
       console.log(
-        "[CompanyService] ✅ Données récupérées via API Recherche d'Entreprises:",
+        "[CompanyService] ✅ Données récupérées via Annuaire des Entreprises:",
         {
-          siret: company.siret,
-          name: company.nom_complet,
-          hasAddress: !!company.adresse,
+          siret: annuaireData.siret,
+          name: annuaireData.name,
+          hasAddress: !!annuaireData.address,
+          hasActivities: !!annuaireData.activities,
+          employees: annuaireData.employees,
         }
       )
 
-      // Construire l'enrichissement
+      // Convertir les données de l'Annuaire en CompanyEnrichment
       const enrichment: CompanyEnrichment = {
-        siret: company.siret,
-        siren: company.siren,
-        name: company.nom_complet,
-        legalStatus: company.forme_juridique,
-        address: company.adresse
+        siret: annuaireData.siret,
+        siren: annuaireData.siren,
+        name: annuaireData.name,
+        legalStatus: annuaireData.legalStatus,
+        address: annuaireData.address
           ? {
-              street: [
-                company.adresse.numero_voie,
-                company.adresse.type_voie,
-                company.adresse.libelle_voie,
-              ]
-                .filter(Boolean)
-                .join(' '),
-              city: company.adresse.ville || '',
-              postalCode: company.adresse.code_postal || '',
-              region: company.adresse.region || '',
+              street: annuaireData.address.street,
+              city: annuaireData.address.city,
+              postalCode: annuaireData.address.postalCode,
+              region: '', // Non fourni par l'Annuaire
             }
           : undefined,
-        activities: company.activite_principale
-          ? [
-              {
-                code: company.activite_principale,
-                label: company.libelle_activite_principale || '',
-              },
-            ]
+        activities: annuaireData.activities
+          ? annuaireData.activities.map((a) => ({
+                code: a.code,
+                label: a.label,
+              }))
           : [],
       }
 
       // Enrichir avec Infogreffe pour données financières et juridiques
       let infogreffeData = null
       try {
-        const siren = company.siren || cleanSiret.substring(0, 9)
+        const siren = annuaireData.siren || cleanSiret.substring(0, 9)
         if (siren) {
           console.log(
             `[CompanyService] 🔄 Enrichissement Infogreffe pour SIREN: ${siren}`
