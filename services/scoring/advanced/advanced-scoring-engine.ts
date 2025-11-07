@@ -1,7 +1,7 @@
 /**
  * TORP Advanced Scoring Engine
- * Architecture multi-niveaux : 8 axes, 45 sous-critères, 250+ points de contrôle
- * Score total : 1200 points
+ * Architecture multi-niveaux : 9 axes, 48 sous-critères, 250+ points de contrôle
+ * Score total : 1350 points
  */
 
 import type {
@@ -25,6 +25,7 @@ import { Axe5Transparence } from './axes/axe5-transparence'
 import { Axe6Garanties } from './axes/axe6-garanties'
 import { Axe7Innovation } from './axes/axe7-innovation'
 import { Axe8Delais } from './axes/axe8-delais'
+import { Axe9Coherence } from './axes/axe9-coherence'
 import { ScoringML } from '@/services/ml/scoring-ml'
 
 interface AxisConfig {
@@ -37,7 +38,7 @@ interface AxisConfig {
 }
 
 export class AdvancedScoringEngine {
-  private readonly version = '2.1.0' // Version avec ML
+  private readonly version = '2.2.0' // Version avec Axe 9 Cohérence
   private axesConfig!: AxisConfig[]
   private axeInstances!: {
     conformite: Axe1Conformite
@@ -48,6 +49,7 @@ export class AdvancedScoringEngine {
     garanties: Axe6Garanties
     innovation: Axe7Innovation
     delais: Axe8Delais
+    coherence: Axe9Coherence
   }
   private mlEngine: ScoringML
   private useML: boolean
@@ -69,6 +71,7 @@ export class AdvancedScoringEngine {
       garanties: new Axe6Garanties(),
       innovation: new Axe7Innovation(),
       delais: new Axe8Delais(),
+      coherence: new Axe9Coherence(),
     }
   }
 
@@ -137,6 +140,14 @@ export class AdvancedScoringEngine {
         weightB2C: 0.05,
         weightB2B: 0.10,
         maxPoints: 70,
+      },
+      {
+        id: 'coherence',
+        name: 'Cohérence Demande/Devis',
+        weight: 0.11,
+        weightB2C: 0.12,
+        weightB2B: 0.08,
+        maxPoints: 150,
       },
     ]
   }
@@ -229,6 +240,17 @@ export class AdvancedScoringEngine {
     )
     axisScores.push(this.applyWeight(delaisScore, 'delais', context.profile))
 
+    // Axe 9: Cohérence Demande/Devis
+    const coherenceScore = await this.axeInstances.coherence.calculate(
+      devis,
+      enrichmentData,
+      {
+        projectType: context.projectType,
+        coherenceData: (context as any).coherenceData, // Données CCF du wizard
+      }
+    )
+    axisScores.push(this.applyWeight(coherenceScore, 'coherence', context.profile))
+
     // Agréger tous les scores
     // Les scores sont déjà pondérés par applyWeight, on les somme directement
     let totalScore = 0
@@ -238,9 +260,9 @@ export class AdvancedScoringEngine {
       allRecommendations.push(...axisScore.recommendations)
     }
 
-    // Normaliser sur 1200 points (les poids B2C/B2B sont déjà appliqués)
+    // Normaliser sur 1350 points (les poids B2C/B2B sont déjà appliqués)
     const totalWeightedMax = this.getTotalWeightedPoints(context.profile)
-    totalScore = (totalScore / totalWeightedMax) * 1200
+    totalScore = (totalScore / totalWeightedMax) * 1350
 
     // Ajustement ML si activé
     let finalScore = totalScore
@@ -254,7 +276,7 @@ export class AdvancedScoringEngine {
         // Appliquer l'ajustement ML avec pondération de confiance
         const mlWeight = mlPrediction.confidence * 0.3 // Max 30% d'ajustement
         finalScore = totalScore * (1 - mlWeight) + mlPrediction.predictedScore * mlWeight
-        finalScore = Math.max(0, Math.min(1200, finalScore))
+        finalScore = Math.max(0, Math.min(1350, finalScore))
         
         console.log(`[AdvancedScoringEngine] ML adjustment: ${(finalScore - totalScore).toFixed(1)} points (confidence: ${(mlPrediction.confidence * 100).toFixed(1)}%)`)
       } catch (error) {
@@ -264,7 +286,7 @@ export class AdvancedScoringEngine {
 
     // Déterminer le grade
     const grade = this.getGradeFromScore(finalScore)
-    const percentage = (finalScore / 1200) * 100
+    const percentage = (finalScore / 1350) * 100
 
     // Calculer le niveau de confiance global
     let confidenceLevel = this.calculateConfidenceLevel(axisScores, enrichmentData)
@@ -402,11 +424,12 @@ export class AdvancedScoringEngine {
    * Détermine le grade depuis le score
    */
   private getGradeFromScore(score: number): ScoreGrade {
-    if (score >= 1080) return 'A+'
-    if (score >= 960) return 'A'
-    if (score >= 840) return 'B'
-    if (score >= 720) return 'C'
-    if (score >= 600) return 'D'
+    // Seuils ajustés pour 1350 points (90%, 80%, 70%, 60%, 50%)
+    if (score >= 1215) return 'A+' // 90% de 1350
+    if (score >= 1080) return 'A' // 80% de 1350
+    if (score >= 945) return 'B' // 70% de 1350
+    if (score >= 810) return 'C' // 60% de 1350
+    if (score >= 675) return 'D' // 50% de 1350
     return 'E'
   }
 

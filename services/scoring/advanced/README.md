@@ -2,12 +2,12 @@
 
 ## Vue d'Ensemble
 
-Le système de scoring avancé TORP v2.0 implémente une architecture hiérarchique multi-niveaux complète :
+Le système de scoring avancé TORP v2.2 implémente une architecture hiérarchique multi-niveaux complète :
 
-- **8 Axes Principaux** (macro-analyse)
-- **45 Sous-critères** (méso-analyse)  
+- **9 Axes Principaux** (macro-analyse)
+- **48 Sous-critères** (méso-analyse)
 - **250+ Points de contrôle** (micro-analyse)
-- **Score Total** : 1200 points
+- **Score Total** : 1350 points
 
 ## Structure des Axes
 
@@ -123,6 +123,25 @@ Le système de scoring avancé TORP v2.0 implémente une architecture hiérarchi
   - Historique Performance (20 pts)
   - Engagement Contractuel (10 pts)
 
+### Axe 9 : Cohérence Demande/Devis (150 pts) 🆕
+**Fichier** : `axes/axe9-coherence.ts`
+
+- **9.1 Adéquation à la Demande** (70 pts)
+  - Travaux demandés présents dans devis (40 pts)
+  - Solutions proposées répondent au besoin (20 pts)
+  - Respect contraintes exprimées (10 pts)
+
+- **9.2 Analyse des Écarts** (50 pts)
+  - Détection éléments manquants (25 pts)
+  - Détection éléments superflus (25 pts)
+
+- **9.3 Compréhension du Besoin** (30 pts)
+  - Pertinence de la solution vs problème (15 pts)
+  - Justification des choix techniques (10 pts)
+  - Clarté de la réponse au besoin (5 pts)
+
+**Note**: L'Axe 9 nécessite les données du wizard de cohérence (CCF). Si ces données ne sont pas fournies, le score sera de 0/150 avec des recommandations pour utiliser le wizard lors du prochain upload.
+
 ## Utilisation
 
 ```typescript
@@ -153,7 +172,7 @@ const score = await scoringEngine.calculateScore(
 )
 
 // 3. Utiliser les résultats
-console.log(`Score: ${score.totalScore}/1200 (${score.grade})`)
+console.log(`Score: ${score.totalScore}/1350 (${score.grade})`)
 console.log(`Confiance: ${score.confidenceLevel}%`)
 console.log(`Alertes: ${score.overallAlerts.length}`)
 console.log(`Recommandations: ${score.overallRecommendations.length}`)
@@ -179,12 +198,12 @@ Le système applique automatiquement une pondération différente selon le profi
 
 ## Grades
 
-- **A+** (1080-1200) : 🏆 Excellence
-- **A** (960-1079) : ⭐ Très bien
-- **B** (840-959) : ✅ Satisfaisant
-- **C** (720-839) : ⚠️ Moyen
-- **D** (600-719) : 🔍 Problématique
-- **E** (<600) : 🚨 Déconseillé
+- **A+** (1215-1350) : 🏆 Excellence (≥90%)
+- **A** (1080-1214) : ⭐ Très bien (≥80%)
+- **B** (945-1079) : ✅ Satisfaisant (≥70%)
+- **C** (810-944) : ⚠️ Moyen (≥60%)
+- **D** (675-809) : 🔍 Problématique (≥50%)
+- **E** (<675) : 🚨 Déconseillé (<50%)
 
 ## Données Requises
 
