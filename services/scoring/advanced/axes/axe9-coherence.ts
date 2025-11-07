@@ -36,7 +36,7 @@ export class Axe9Coherence {
    */
   async calculate(
     devis: Devis,
-    enrichmentData: ScoringEnrichmentData,
+    _enrichmentData: ScoringEnrichmentData,
     context: { projectType: string; coherenceData?: CoherenceData }
   ): Promise<AxisScore> {
     const subCriteriaScores: SubCriteriaScore[] = []
