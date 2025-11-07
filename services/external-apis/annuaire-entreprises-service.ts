@@ -237,10 +237,12 @@ export class AnnuaireEntreprisesService {
       siege?.libelle_activite_principale || result.libelle_activite_principale
 
     if (activityCode) {
+      // Si on a le label, l'utiliser. Sinon utiliser le code APE/NAF
+      const displayLabel = activityLabel || `Activité ${activityCode}`
       activities = [
         {
           code: activityCode,
-          label: activityLabel || 'Activité non spécifiée',
+          label: displayLabel,
         },
       ]
     }
