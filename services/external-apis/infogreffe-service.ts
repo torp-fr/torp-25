@@ -149,18 +149,171 @@ export class InfogreffeService {
    */
   private async fetchFromExploreAPI(siren: string): Promise<InfogreffeCompanyData | null> {
     try {
-      // L'Explore API v2 d'Infogreffe n'est pas directement accessible via une URL publique standard
-      // Il faudrait consulter la documentation officielle pour les endpoints exacts
-      // Pour l'instant, on retourne null et on utilise le dataset data.gouv.fr en fallback
-      
       console.log(`[InfogreffeService] 🔄 Tentative récupération depuis Explore API v2 pour SIREN: ${siren}`)
-      // TODO: Implémenter quand l'endpoint exact sera connu
-      // Endpoint potentiel: /api/v2/companies/{siren} ou similaire
-      
+
+      // Base URL de l'API OpenDataSoft Infogreffe
+      const baseUrl = 'https://opendata.datainfogreffe.fr/api/explore/v2.1'
+      const apiKey = process.env.INFOGREFFE_API_KEY || ''
+
+      // Dataset IDs connus sur opendata.datainfogreffe.fr
+      // Pour trouver les datasets: GET /catalog/datasets
+      const datasetsToTry = [
+        'comptes-annuels', // Potentiel dataset des comptes annuels
+        'entreprises', // Potentiel dataset des entreprises
+        'bilans', // Potentiel dataset des bilans
+      ]
+
+      // Tenter de récupérer les données depuis différents datasets
+      for (const datasetId of datasetsToTry) {
+        try {
+          // Construire l'URL de requête
+          const url = new URL(`${baseUrl}/catalog/datasets/${datasetId}/records`)
+          url.searchParams.append('where', `siren="${siren}"`)
+          url.searchParams.append('limit', '10')
+          if (apiKey) {
+            url.searchParams.append('apikey', apiKey)
+          }
+
+          console.log(`[InfogreffeService] 📡 Requête dataset: ${datasetId}`)
+
+          const response = await fetch(url.toString())
+
+          // Si 404, le dataset n'existe pas, passer au suivant
+          if (response.status === 404) {
+            continue
+          }
+
+          if (!response.ok) {
+            console.warn(`[InfogreffeService] ⚠️ Erreur HTTP ${response.status} pour dataset ${datasetId}`)
+            continue
+          }
+
+          const data = await response.json()
+
+          // Vérifier si des résultats sont retournés
+          if (data.results && data.results.length > 0) {
+            console.log(`[InfogreffeService] ✅ Données trouvées dans dataset: ${datasetId}`)
+
+            // Parser les résultats (format à adapter selon le dataset réel)
+            return this.parseInfogreffeData(siren, data.results, datasetId)
+          }
+        } catch (datasetError) {
+          console.warn(`[InfogreffeService] ⚠️ Erreur dataset ${datasetId}:`, datasetError)
+          continue
+        }
+      }
+
+      console.log(`[InfogreffeService] ℹ️ Aucune donnée trouvée dans les datasets Infogreffe pour SIREN: ${siren}`)
       return null
     } catch (error) {
       console.warn('[InfogreffeService] ⚠️ Erreur Explore API v2:', error)
       return null
+    }
+  }
+
+  /**
+   * Parse les données brutes de l'API Infogreffe OpenDataSoft
+   */
+  private parseInfogreffeData(
+    siren: string,
+    results: any[],
+    datasetId: string
+  ): InfogreffeCompanyData {
+    const sources = [`Infogreffe OpenDataSoft (${datasetId})`]
+
+    // Extraction des données financières
+    const financial: InfogreffeFinancialData = {}
+    const legal: InfogreffeLegalData = {}
+
+    // Parser selon le format du dataset
+    // Note: Le format exact dépend du dataset Infogreffe utilisé
+    // Voici une implémentation générique à adapter
+
+    for (const record of results) {
+      const fields = record.fields || record
+
+      // Chiffre d'affaires
+      if (fields.ca || fields.chiffre_affaires || fields.turnover) {
+        const ca = fields.ca || fields.chiffre_affaires || fields.turnover
+        if (!financial.turnover) {
+          financial.turnover = { years: [] }
+        }
+        if (fields.annee || fields.year) {
+          financial.turnover.years?.push({
+            year: parseInt(fields.annee || fields.year),
+            amount: parseFloat(ca),
+          })
+        }
+      }
+
+      // Résultat net
+      if (fields.resultat || fields.result || fields.net_result) {
+        const result = fields.resultat || fields.result || fields.net_result
+        if (!financial.netResult) {
+          financial.netResult = { years: [] }
+        }
+        if (fields.annee || fields.year) {
+          financial.netResult.years?.push({
+            year: parseInt(fields.annee || fields.year),
+            amount: parseFloat(result),
+          })
+        }
+      }
+
+      // Capital social
+      if (fields.capital || fields.capital_social) {
+        financial.capital = parseFloat(fields.capital || fields.capital_social)
+      }
+
+      // Procédures collectives
+      if (fields.procedure_collective || fields.collective_procedure) {
+        if (!legal.collectiveProcedures) {
+          legal.collectiveProcedures = []
+        }
+        legal.collectiveProcedures.push({
+          type: fields.type_procedure || 'unknown',
+          startDate: fields.date_debut || fields.start_date,
+          status: fields.statut === 'en_cours' ? 'ongoing' : 'completed',
+        })
+      }
+    }
+
+    // Calculer les dernières valeurs et évolutions
+    if (financial.turnover?.years && financial.turnover.years.length > 0) {
+      const sorted = financial.turnover.years.sort((a, b) => b.year - a.year)
+      financial.turnover.lastYear = sorted[0]?.amount
+      financial.turnover.previousYear = sorted[1]?.amount
+
+      if (financial.turnover.lastYear && financial.turnover.previousYear) {
+        financial.turnover.evolution =
+          ((financial.turnover.lastYear - financial.turnover.previousYear) /
+            financial.turnover.previousYear) *
+          100
+      }
+    }
+
+    if (financial.netResult?.years && financial.netResult.years.length > 0) {
+      const sorted = financial.netResult.years.sort((a, b) => b.year - a.year)
+      financial.netResult.lastYear = sorted[0]?.amount
+      financial.netResult.previousYear = sorted[1]?.amount
+
+      if (financial.netResult.lastYear && financial.netResult.previousYear) {
+        financial.netResult.evolution =
+          ((financial.netResult.lastYear - financial.netResult.previousYear) /
+            financial.netResult.previousYear) *
+          100
+      }
+    }
+
+    financial.lastUpdate = new Date().toISOString()
+
+    return {
+      siren,
+      financial: Object.keys(financial).length > 1 ? financial : undefined,
+      legal: Object.keys(legal).length > 0 ? legal : undefined,
+      sources,
+      lastUpdated: new Date().toISOString(),
+      available: true,
     }
   }
   
