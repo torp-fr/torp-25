@@ -493,7 +493,6 @@ export class Axe9Coherence {
     let confidence = 65
 
     const need = coherenceData.clientNeed.toLowerCase()
-    const request = coherenceData.clientRequest.toLowerCase()
     const extractedData = devis.extractedData as any
     const devisDescription = extractedData?.project?.description?.toLowerCase() || ''
 
