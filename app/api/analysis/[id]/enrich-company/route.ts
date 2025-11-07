@@ -47,95 +47,34 @@ export async function GET(
       `[API Enrich Company] 🔍 Début enrichissement pour SIRET: ${siret}`
     )
 
-    // Utiliser AdvancedEnrichmentService pour un enrichissement complet
-    // Cela inclut réputation, certifications RGE, qualifications, etc.
-    try {
-      console.log(
-        '[API Enrich Company] 🔄 Tentative AdvancedEnrichmentService...'
-      )
-      const advancedService = new AdvancedEnrichmentService()
-      const scoringEnrichment = await advancedService.enrichForScoring(
-        extractedData as ExtractedDevisData,
-        devis.projectType || 'renovation',
-        devis.tradeType || undefined,
-        'ILE_DE_FRANCE' // TODO: Récupérer la région du projet si disponible
-      )
+    // Utiliser l'enrichissement complet avec recherche intelligente et avis clients
+    console.log(
+      '[API Enrich Company] 🔍 Enrichissement complet avec IntelligentCompanySearch + Reviews'
+    )
 
-      const enrichedCompany = scoringEnrichment.company
-
-      // AdvancedEnrichmentService retourne toujours un company (même minimal)
-      if (enrichedCompany && enrichedCompany.siret) {
-        console.log(
-          '[API Enrich Company] ✅ Enrichissement AdvancedEnrichmentService réussi'
-        )
-        console.log(`[API Enrich Company] 📊 Données disponibles:`, {
-          siret: enrichedCompany.siret,
-          name: enrichedCompany.name || 'Non disponible',
-          hasAddress: !!enrichedCompany.address,
-          hasFinancialData: !!enrichedCompany.financialData,
-          hasReputation: !!enrichedCompany.reputation,
-          hasQualifications: !!enrichedCompany.qualifications?.length,
-          hasCertifications: !!enrichedCompany.certifications?.length,
-          hasLegalStatus: !!enrichedCompany.legalStatusDetails,
-          hasPortfolio: !!enrichedCompany.portfolio,
-          hasHumanResources: !!enrichedCompany.humanResources,
-          hasFinancialScore: !!enrichedCompany.financialScore,
-        })
-
-        // Sauvegarder les données enrichies complètes dans le devis
-        const enrichedData = {
-          ...((devis as any).enrichedData || {}),
-          company: enrichedCompany,
-        }
-
-        await prisma.devis.update({
-          where: { id: devisId },
-          data: {
-            enrichedData: enrichedData as any,
-          },
-        })
-
-        console.log(
-          '[API Enrich Company] 💾 Données sauvegardées dans enrichedData.company'
-        )
-
-        return NextResponse.json({
-          success: true,
-          data: enrichedCompany,
-        })
-      } else {
-        console.warn(
-          `[API Enrich Company] ⚠️ enrichedCompany invalide ou sans SIRET. enrichedCompany:`,
-          JSON.stringify(enrichedCompany, null, 2)
-        )
-      }
-    } catch (advancedError) {
-      console.error(
-        '[API Enrich Company] ❌ AdvancedEnrichment échoué, fallback sur CompanyService:',
-        advancedError instanceof Error
-          ? advancedError.message
-          : String(advancedError),
-        advancedError instanceof Error ? advancedError.stack : undefined
-      )
-    }
-
-    // Fallback sur CompanyEnrichmentService si AdvancedEnrichment échoue
-    console.log('[API Enrich Company] 🔄 Fallback sur CompanyEnrichmentService')
     try {
       const companyService = new CompanyEnrichmentService()
-      console.log(`[API Enrich Company] 🔄 Appel enrichFromSiret(${siret})...`)
-      const enrichment = await companyService.enrichFromSiret(siret)
-      console.log(`[API Enrich Company] 📋 Résultat enrichFromSiret:`, {
-        success: !!enrichment,
-        hasSiret: !!enrichment?.siret,
-        hasName: !!enrichment?.name,
-        hasAddress: !!enrichment?.address,
-        hasFinancialData: !!enrichment?.financialData,
-      })
 
-      if (!enrichment) {
+      // Utiliser enrichFromSiretComplete pour avoir :
+      // - Recherche intelligente multi-stratégies (SIRET → SIREN → fuzzy)
+      // - Date de création et âge de l'entreprise
+      // - Mots-clés d'activité
+      // - Avis clients agrégés (Google + Trustpilot + Eldo)
+      // - Score de complétude des données
+      // - Recoupement multi-sources
+      const enrichedProfile = await companyService.enrichFromSiretComplete(
+        siret,
+        {
+          name: extractedData?.company?.name,
+          address: extractedData?.company?.address?.fullAddress,
+          postalCode: extractedData?.company?.address?.postalCode,
+          city: extractedData?.company?.address?.city,
+        }
+      )
+
+      if (!enrichedProfile) {
         console.error(
-          '[API Enrich Company] ❌ enrichFromSiret a retourné null - aucune donnée récupérée'
+          '[API Enrich Company] ❌ enrichFromSiretComplete a retourné null'
         )
         return NextResponse.json(
           {
@@ -145,8 +84,8 @@ export async function GET(
             siret,
             suggestions: [
               'Vérifiez que le SIRET est valide (14 chiffres)',
-              'Les services externes (Sirene, Infogreffe) peuvent être temporairement indisponibles',
-              'Vérifiez les clés API si configurées (INSEE_API_KEY, INFOGREFFE_API_KEY)',
+              'Les services externes (Sirene, Annuaire Entreprises) peuvent être temporairement indisponibles',
+              'Si le SIRET est mal extrait, le système tentera une recherche par nom et adresse',
             ],
           },
           { status: 404 }
@@ -154,28 +93,30 @@ export async function GET(
       }
 
       console.log(
-        '[API Enrich Company] ✅ Données récupérées via CompanyEnrichmentService'
+        '[API Enrich Company] ✅ Enrichissement complet réussi'
       )
+      console.log(`[API Enrich Company] 📊 Données disponibles:`, {
+        siret: enrichedProfile.siret,
+        name: enrichedProfile.name,
+        hasAddress: !!enrichedProfile.address,
+        hasFinancialData: !!enrichedProfile.financialData,
+        hasCertifications: !!enrichedProfile.certifications?.length,
+        hasLegalStatus: !!enrichedProfile.legalStatusDetails,
+        hasInsurances: !!enrichedProfile.insurances,
+        hasCreationDate: !!enrichedProfile.creationDate,
+        companyAge: enrichedProfile.companyAge,
+        isRecent: enrichedProfile.isRecent,
+        hasReviews: !!(enrichedProfile as any).reviews,
+        hasActivityKeywords: !!enrichedProfile.activityKeywords?.length,
+        dataCompleteness: enrichedProfile.dataCompleteness,
+        confidenceScore: enrichedProfile.confidenceScore,
+        dataSources: enrichedProfile.dataSources,
+      })
 
-      // Convertir CompanyEnrichment en EnrichedCompanyData pour cohérence
-      const enrichedCompanyData: any = {
-        siret: enrichment.siret,
-        siren: enrichment.siren || enrichment.siret.substring(0, 9),
-        name: enrichment.name,
-        legalStatus: enrichment.legalStatus,
-        address: enrichment.address,
-        activities: enrichment.activities,
-        financialData: enrichment.financialData,
-        legalStatusDetails: enrichment.legalStatusDetails,
-        insurances: enrichment.insurances,
-        certifications: enrichment.certifications,
-        financialHealth: enrichment.financialHealth,
-      }
-
-      // Sauvegarder les données enrichies dans le devis
+      // Sauvegarder les données enrichies complètes dans le devis
       const enrichedData = {
         ...((devis as any).enrichedData || {}),
-        company: enrichedCompanyData,
+        company: enrichedProfile,
       }
 
       await prisma.devis.update({
@@ -186,19 +127,61 @@ export async function GET(
       })
 
       console.log(
-        '[API Enrich Company] 💾 Données fallback sauvegardées dans enrichedData.company'
+        '[API Enrich Company] 💾 Profil enrichi sauvegardé dans enrichedData.company'
       )
 
       return NextResponse.json({
         success: true,
-        data: enrichedCompanyData,
+        data: enrichedProfile,
       })
-    } catch (fallbackError) {
+    } catch (error) {
       console.error(
-        '[API Enrich Company] ❌ Erreur lors du fallback:',
-        fallbackError
+        '[API Enrich Company] ❌ Erreur enrichissement complet:',
+        error instanceof Error ? error.message : String(error),
+        error instanceof Error ? error.stack : undefined
       )
-      throw fallbackError
+
+      // Fallback sur AdvancedEnrichmentService (pour le scoring)
+      console.log('[API Enrich Company] 🔄 Fallback sur AdvancedEnrichmentService')
+      try {
+        const advancedService = new AdvancedEnrichmentService()
+        const scoringEnrichment = await advancedService.enrichForScoring(
+          extractedData as ExtractedDevisData,
+          devis.projectType || 'renovation',
+          devis.tradeType || undefined,
+          'ILE_DE_FRANCE'
+        )
+
+        const enrichedCompany = scoringEnrichment.company
+
+        if (enrichedCompany && enrichedCompany.siret) {
+          console.log('[API Enrich Company] ✅ Fallback réussi')
+
+          const enrichedData = {
+            ...((devis as any).enrichedData || {}),
+            company: enrichedCompany,
+          }
+
+          await prisma.devis.update({
+            where: { id: devisId },
+            data: {
+              enrichedData: enrichedData as any,
+            },
+          })
+
+          return NextResponse.json({
+            success: true,
+            data: enrichedCompany,
+          })
+        }
+      } catch (fallbackError) {
+        console.error(
+          '[API Enrich Company] ❌ Fallback échoué:',
+          fallbackError
+        )
+      }
+
+      throw error
     }
   } catch (error) {
     console.error('[API Enrich Company] ❌ Erreur globale:', error)

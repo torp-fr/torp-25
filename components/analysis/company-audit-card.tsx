@@ -1,12 +1,14 @@
 /**
  * Carte d'Audit Entreprise
  * Affiche les vérifications administratives, financières et les certifications
+ * + Date de création, avis clients, mots-clés activité, score complétude
  */
 
 'use client'
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { Progress } from '@/components/ui/progress'
 import {
   Building2,
   CheckCircle2,
@@ -20,6 +22,12 @@ import {
   MapPin,
   Calendar,
   DollarSign,
+  Star,
+  ThumbsUp,
+  Tag,
+  Database,
+  Clock,
+  Award,
 } from 'lucide-react'
 
 interface CompanyEnrichment {
@@ -53,6 +61,7 @@ interface CompanyEnrichment {
     name: string
     type: string
     validUntil?: string
+    valid?: boolean
   }>
   financialData?: {
     ca: number[] // Chiffre d'affaires par année
@@ -65,6 +74,46 @@ interface CompanyEnrichment {
     hasCollectiveProcedure?: boolean
     procedureType?: string
     procedureDate?: string
+  }
+  // Nouvelles propriétés d'enrichissement intelligent
+  creationDate?: string
+  companyAge?: number
+  isRecent?: boolean
+  dataSources?: string[]
+  dataCompleteness?: number
+  confidenceScore?: number
+  activityKeywords?: string[]
+  lastEnrichmentDate?: string
+  verificationStatus?: {
+    siretVerified: boolean
+    addressVerified: boolean
+    activityVerified: boolean
+  }
+  reviews?: {
+    overallRating: number
+    totalReviews: number
+    bySource: {
+      google: { count: number; averageRating: number; url?: string }
+      trustpilot: { count: number; averageRating: number; url?: string }
+      eldo: { count: number; averageRating: number; url?: string }
+    }
+    distribution: { 1: number; 2: number; 3: number; 4: number; 5: number }
+    insights: {
+      recommendationRate: number
+      responseRate: number
+      recentTrend: 'improving' | 'stable' | 'declining'
+    }
+    recentReviews?: Array<{
+      source: string
+      rating: number
+      date: string
+      author: string
+      text: string
+    }>
+    keywords: {
+      positive: string[]
+      negative: string[]
+    }
   }
 }
 
@@ -304,8 +353,267 @@ export function CompanyAuditCard({ companyData, projectType }: CompanyAuditCardP
                 </div>
               </div>
             )}
+
+            {/* Date de création et âge */}
+            {companyData.creationDate && (
+              <div className="flex items-center gap-2 border-t pt-3 text-sm">
+                <Calendar className="h-4 w-4 text-slate-600" />
+                <div className="flex flex-1 items-center justify-between">
+                  <span className="text-slate-700">
+                    Créée: <span className="font-medium">{companyData.creationDate}</span>
+                    {companyData.companyAge !== undefined && (
+                      <span className="text-slate-600">
+                        {' '}
+                        ({companyData.companyAge} an{companyData.companyAge > 1 ? 's' : ''})
+                      </span>
+                    )}
+                  </span>
+                  {companyData.isRecent ? (
+                    <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-200">
+                      🆕 Récente
+                    </Badge>
+                  ) : companyData.companyAge && companyData.companyAge >= 10 ? (
+                    <Badge className="bg-emerald-100 text-emerald-800 hover:bg-emerald-200">
+                      ⭐ Établie
+                    </Badge>
+                  ) : null}
+                </div>
+              </div>
+            )}
+
+            {/* Message informatif pour entreprise récente */}
+            {companyData.isRecent && (
+              <div className="rounded border border-blue-200 bg-blue-50 p-3">
+                <div className="flex gap-2">
+                  <Info className="h-4 w-4 shrink-0 text-blue-600" />
+                  <p className="text-xs text-blue-700">
+                    <span className="font-medium">Entreprise récente :</span> Les données
+                    financières et certifications seront disponibles après dépôt du premier bilan
+                    (12-18 mois).
+                  </p>
+                </div>
+              </div>
+            )}
           </div>
         </div>
+
+        {/* Mots-clés d'activité */}
+        {companyData.activityKeywords && companyData.activityKeywords.length > 0 && (
+          <div className="space-y-3">
+            <h3 className="flex items-center gap-2 text-sm font-semibold">
+              <Tag className="h-4 w-4" />
+              Domaines d'activité
+            </h3>
+            <div className="rounded-lg border bg-slate-50 p-4">
+              <div className="flex flex-wrap gap-2">
+                {companyData.activityKeywords.map((keyword, idx) => (
+                  <Badge
+                    key={idx}
+                    variant="outline"
+                    className="border-indigo-300 bg-indigo-50 text-indigo-700"
+                  >
+                    {keyword}
+                  </Badge>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Avis Clients */}
+        {companyData.reviews && companyData.reviews.totalReviews > 0 && (
+          <div className="space-y-3">
+            <h3 className="flex items-center gap-2 text-sm font-semibold">
+              <Star className="h-4 w-4" />
+              Avis Clients
+            </h3>
+            <div className="space-y-4 rounded-lg border bg-slate-50 p-4">
+              {/* Note globale */}
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-1">
+                    {Array.from({ length: 5 }).map((_, i) => (
+                      <Star
+                        key={i}
+                        className={`h-5 w-5 ${
+                          i < Math.round(companyData.reviews!.overallRating)
+                            ? 'fill-yellow-400 text-yellow-400'
+                            : 'text-slate-300'
+                        }`}
+                      />
+                    ))}
+                  </div>
+                  <div>
+                    <p className="text-lg font-bold">
+                      {companyData.reviews.overallRating.toFixed(1)}/5
+                    </p>
+                    <p className="text-xs text-slate-600">
+                      {companyData.reviews.totalReviews} avis
+                    </p>
+                  </div>
+                </div>
+
+                {/* Tendance */}
+                {companyData.reviews.insights.recentTrend === 'improving' && (
+                  <Badge className="bg-green-100 text-green-800">
+                    <TrendingUp className="mr-1 h-3 w-3" />
+                    En progression
+                  </Badge>
+                )}
+                {companyData.reviews.insights.recentTrend === 'declining' && (
+                  <Badge className="bg-orange-100 text-orange-800">
+                    <TrendingDown className="mr-1 h-3 w-3" />
+                    En baisse
+                  </Badge>
+                )}
+              </div>
+
+              {/* Répartition par source */}
+              <div className="space-y-2">
+                <p className="text-xs font-medium text-slate-700">Sources :</p>
+                <div className="grid grid-cols-3 gap-2">
+                  {companyData.reviews.bySource.google.count > 0 && (
+                    <div className="rounded border bg-white p-2 text-center">
+                      <p className="text-xs font-medium text-slate-600">Google</p>
+                      <p className="text-sm font-bold">
+                        {companyData.reviews.bySource.google.averageRating.toFixed(1)}
+                      </p>
+                      <p className="text-xs text-slate-500">
+                        {companyData.reviews.bySource.google.count} avis
+                      </p>
+                    </div>
+                  )}
+                  {companyData.reviews.bySource.trustpilot.count > 0 && (
+                    <div className="rounded border bg-white p-2 text-center">
+                      <p className="text-xs font-medium text-slate-600">Trustpilot</p>
+                      <p className="text-sm font-bold">
+                        {companyData.reviews.bySource.trustpilot.averageRating.toFixed(1)}
+                      </p>
+                      <p className="text-xs text-slate-500">
+                        {companyData.reviews.bySource.trustpilot.count} avis
+                      </p>
+                    </div>
+                  )}
+                  {companyData.reviews.bySource.eldo.count > 0 && (
+                    <div className="rounded border bg-white p-2 text-center">
+                      <p className="text-xs font-medium text-slate-600">Eldo</p>
+                      <p className="text-sm font-bold">
+                        {companyData.reviews.bySource.eldo.averageRating.toFixed(1)}
+                      </p>
+                      <p className="text-xs text-slate-500">
+                        {companyData.reviews.bySource.eldo.count} avis
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Insights */}
+              <div className="grid grid-cols-2 gap-4 border-t pt-3">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <ThumbsUp className="h-4 w-4 text-green-600" />
+                    <span className="text-xs text-slate-600">Recommandation</span>
+                  </div>
+                  <p className="text-lg font-bold text-green-700">
+                    {Math.round(companyData.reviews.insights.recommendationRate)}%
+                  </p>
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <Award className="h-4 w-4 text-blue-600" />
+                    <span className="text-xs text-slate-600">Réponse pro</span>
+                  </div>
+                  <p className="text-lg font-bold text-blue-700">
+                    {Math.round(companyData.reviews.insights.responseRate)}%
+                  </p>
+                </div>
+              </div>
+
+              {/* Mots-clés positifs/négatifs */}
+              {(companyData.reviews.keywords.positive.length > 0 ||
+                companyData.reviews.keywords.negative.length > 0) && (
+                <div className="space-y-2 border-t pt-3">
+                  <p className="text-xs font-medium text-slate-700">Retours clients :</p>
+                  {companyData.reviews.keywords.positive.length > 0 && (
+                    <div className="flex flex-wrap gap-1">
+                      <span className="text-xs text-slate-600">+</span>
+                      {companyData.reviews.keywords.positive.map((kw, idx) => (
+                        <Badge
+                          key={idx}
+                          variant="outline"
+                          className="border-green-300 bg-green-50 text-green-700"
+                        >
+                          {kw}
+                        </Badge>
+                      ))}
+                    </div>
+                  )}
+                  {companyData.reviews.keywords.negative.length > 0 && (
+                    <div className="flex flex-wrap gap-1">
+                      <span className="text-xs text-slate-600">-</span>
+                      {companyData.reviews.keywords.negative.map((kw, idx) => (
+                        <Badge
+                          key={idx}
+                          variant="outline"
+                          className="border-orange-300 bg-orange-50 text-orange-700"
+                        >
+                          {kw}
+                        </Badge>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Score de complétude des données */}
+        {companyData.dataCompleteness !== undefined && (
+          <div className="space-y-3">
+            <h3 className="flex items-center gap-2 text-sm font-semibold">
+              <Database className="h-4 w-4" />
+              Complétude des données
+            </h3>
+            <div className="rounded-lg border bg-slate-50 p-4">
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-slate-700">Données disponibles</span>
+                  <span className="text-lg font-bold text-indigo-700">
+                    {Math.round(companyData.dataCompleteness)}%
+                  </span>
+                </div>
+                <Progress value={companyData.dataCompleteness} className="h-2" />
+
+                {/* Sources utilisées */}
+                {companyData.dataSources && companyData.dataSources.length > 0 && (
+                  <div className="space-y-1 pt-2">
+                    <p className="text-xs font-medium text-slate-700">Sources utilisées :</p>
+                    <div className="flex flex-wrap gap-1">
+                      {companyData.dataSources.map((source, idx) => (
+                        <Badge key={idx} variant="secondary" className="text-xs">
+                          {source}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Dernière mise à jour */}
+                {companyData.lastEnrichmentDate && (
+                  <div className="flex items-center gap-2 border-t pt-2 text-xs text-slate-600">
+                    <Clock className="h-3 w-3" />
+                    <span>
+                      Dernière mise à jour :{' '}
+                      {new Date(companyData.lastEnrichmentDate).toLocaleDateString('fr-FR')}
+                    </span>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Assurances */}
         <div className="space-y-3">
