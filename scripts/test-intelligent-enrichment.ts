@@ -3,6 +3,10 @@
  * Usage: npx tsx scripts/test-intelligent-enrichment.ts [SIRET]
  */
 
+// Charger les variables d'environnement depuis .env
+import { config } from 'dotenv'
+config()
+
 import { CompanyEnrichmentService } from '../services/data-enrichment/company-service'
 
 const testSiret = process.argv[2] || '91789983300029' // SIRET de test: NDT Nord Diffusion Toiture

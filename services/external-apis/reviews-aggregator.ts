@@ -152,21 +152,22 @@ export class ReviewsAggregator {
       // 1. Rechercher le place_id
       const searchQuery = address ? `${companyName} ${address}` : companyName
 
-      const searchResponse = await this.apiClient.get<{
+      const searchUrl = new URL(
+        'https://maps.googleapis.com/maps/api/place/findplacefromtext/json'
+      )
+      searchUrl.searchParams.append('input', searchQuery)
+      searchUrl.searchParams.append('inputtype', 'textquery')
+      searchUrl.searchParams.append('fields', 'place_id,name,rating')
+      searchUrl.searchParams.append('key', apiKey)
+
+      const searchRes = await fetch(searchUrl.toString())
+      const searchResponse = (await searchRes.json()) as {
         candidates?: Array<{
           place_id: string
           name: string
           rating?: number
         }>
-      }>(
-        'https://maps.googleapis.com/maps/api/place/findplacefromtext/json',
-        {
-          input: searchQuery,
-          inputtype: 'textquery',
-          fields: 'place_id,name,rating',
-          key: apiKey,
-        }
-      )
+      }
 
       if (!searchResponse.candidates || searchResponse.candidates.length === 0) {
         console.log('[ReviewsAggregator] ℹ️ Établissement non trouvé sur Google')
@@ -176,7 +177,16 @@ export class ReviewsAggregator {
       const placeId = searchResponse.candidates[0].place_id
 
       // 2. Récupérer les détails et avis
-      const detailsResponse = await this.apiClient.get<{
+      const detailsUrl = new URL(
+        'https://maps.googleapis.com/maps/api/place/details/json'
+      )
+      detailsUrl.searchParams.append('place_id', placeId)
+      detailsUrl.searchParams.append('fields', 'rating,user_ratings_total,reviews')
+      detailsUrl.searchParams.append('key', apiKey)
+      detailsUrl.searchParams.append('language', 'fr')
+
+      const detailsRes = await fetch(detailsUrl.toString())
+      const detailsResponse = (await detailsRes.json()) as {
         result?: {
           rating?: number
           user_ratings_total?: number
@@ -187,15 +197,7 @@ export class ReviewsAggregator {
             time: number
           }>
         }
-      }>(
-        'https://maps.googleapis.com/maps/api/place/details/json',
-        {
-          place_id: placeId,
-          fields: 'rating,user_ratings_total,reviews',
-          key: apiKey,
-          language: 'fr',
-        }
-      )
+      }
 
       const result = detailsResponse.result
       if (!result?.reviews) {
