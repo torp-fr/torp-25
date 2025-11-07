@@ -39,7 +39,6 @@ import {
   MapPin,
   FileText,
   CheckCircle2,
-  Upload,
 } from 'lucide-react'
 
 export interface CoherenceCCFData {
