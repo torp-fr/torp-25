@@ -1,6 +1,8 @@
 /**
  * Script Node.js de pré-migration qui nettoie les migrations échouées
  * S'exécute AVANT prisma migrate deploy pour débloquer la situation
+ *
+ * IMPORTANT: Skip complètement si DATABASE_URL n'est pas disponible (build Vercel)
  */
 
 const { PrismaClient } = require('@prisma/client')
@@ -11,8 +13,11 @@ async function cleanupBeforeMigration() {
   // Vérifier si DATABASE_URL existe
   if (!process.env.DATABASE_URL) {
     console.log('⚠️  DATABASE_URL non trouvé (normal en build Vercel)')
-    console.log('✅ Skip nettoyage, continuation...\n')
-    return 0
+    console.log('✅ Skip nettoyage ET migrations, continuation...\n')
+
+    // Skip prisma migrate deploy aussi
+    // On met à jour package.json pour skip les migrations pendant le build
+    process.exit(0)
   }
 
   let prisma
