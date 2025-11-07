@@ -22,7 +22,6 @@ import {
   AlertCircle,
   Target,
   Sparkles,
-  Award,
 } from 'lucide-react'
 import { AppHeader } from '@/components/app-header'
 import { DevisChat } from '@/components/chat/devis-chat'
