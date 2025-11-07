@@ -62,7 +62,7 @@ export async function getDPESimple(address: SimpleAddress): Promise<SimpleDPE | 
       // 1. Recherche par GPS avec rayons progressifs
       if (address.coordinates) {
         const { lat, lng } = address.coordinates
-        const rayons = [200, 500, 1000] // Essayer 200m, 500m, 1000m
+        const rayons = [200, 500, 1000, 3000, 5000] // Essayer jusqu'à 5km pour maximiser les chances
 
         for (const rayon of rayons) {
           const url = `https://data.ademe.fr/data-fair/api/v1/datasets/${dataset.id}/lines?geo_distance=${lat},${lng},${rayon}m&size=10&sort=-date_etablissement_dpe`
