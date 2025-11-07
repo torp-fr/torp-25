@@ -164,6 +164,7 @@ export class AdvancedScoringEngine {
       projectAmount: ProjectAmount
       region?: string
       tradeType?: string
+      coherenceData?: any
     }
   ): Promise<FinalScore> {
     const axisScores: AxisScore[] = []
@@ -246,7 +247,7 @@ export class AdvancedScoringEngine {
       enrichmentData,
       {
         projectType: context.projectType,
-        coherenceData: (context as any).coherenceData, // Données CCF du wizard
+        coherenceData: context.coherenceData, // Données CCF du wizard
       }
     )
     axisScores.push(this.applyWeight(coherenceScore, 'coherence', context.profile))
