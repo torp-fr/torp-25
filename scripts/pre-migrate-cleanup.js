@@ -5,11 +5,20 @@
 
 const { PrismaClient } = require('@prisma/client')
 
-const prisma = new PrismaClient()
-
 async function cleanupBeforeMigration() {
+  console.log('🧹 Nettoyage pré-migration des migrations RNB échouées...\n')
+
+  // Vérifier si DATABASE_URL existe
+  if (!process.env.DATABASE_URL) {
+    console.log('⚠️  DATABASE_URL non trouvé (normal en build Vercel)')
+    console.log('✅ Skip nettoyage, continuation...\n')
+    return 0
+  }
+
+  let prisma
+
   try {
-    console.log('🧹 Nettoyage pré-migration des migrations RNB échouées...\n')
+    prisma = new PrismaClient()
 
     // Se connecter à la base
     await prisma.$connect()
@@ -17,9 +26,9 @@ async function cleanupBeforeMigration() {
 
     // Supprimer TOUTES les migrations RNB échouées
     const result = await prisma.$executeRaw`
-      DELETE FROM "_prisma_migrations" 
+      DELETE FROM "_prisma_migrations"
       WHERE (
-        migration_name LIKE '%rnb%' 
+        migration_name LIKE '%rnb%'
         OR migration_name LIKE '%RNB%'
         OR migration_name IN (
           '20250127_add_rnb_models',
@@ -41,7 +50,9 @@ async function cleanupBeforeMigration() {
     console.log('   Continuation quand même...\n')
     return 0 // Retourner 0 pour ne pas bloquer le build
   } finally {
-    await prisma.$disconnect()
+    if (prisma) {
+      await prisma.$disconnect()
+    }
   }
 }
 
