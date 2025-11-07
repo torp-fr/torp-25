@@ -106,8 +106,19 @@ export function CompanyAuditCard({ companyData, projectType }: CompanyAuditCardP
     )
   }
 
+  // Vérifier si les données sont partielles (juste SIRET sans enrichissement)
+  const isPartialData = !companyData.address && !companyData.activities && !companyData.financialData
+
   // Calculer les alertes
   const alerts: Array<{ type: 'error' | 'warning' | 'info'; message: string }> = []
+
+  // Ajouter alerte si données partielles
+  if (isPartialData) {
+    alerts.push({
+      type: 'info',
+      message: 'Données enrichies non disponibles. Seules les informations de base (SIRET) sont affichées.',
+    })
+  }
 
   // Vérifier assurances
   if (!companyData.insurances?.hasDecennale) {
@@ -204,6 +215,33 @@ export function CompanyAuditCard({ companyData, projectType }: CompanyAuditCardP
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
+        {/* Message d'information si données partielles */}
+        {isPartialData && (
+          <div className="rounded-lg border border-orange-200 bg-orange-50 p-4">
+            <div className="flex gap-3">
+              <AlertTriangle className="h-5 w-5 shrink-0 text-orange-600" />
+              <div className="space-y-2">
+                <p className="text-sm font-medium text-orange-900">
+                  Données d'enrichissement limitées
+                </p>
+                <p className="text-sm text-orange-800">
+                  L'enrichissement automatique des données entreprise n'a pas pu récupérer toutes les informations.
+                  Cela peut être dû à :
+                </p>
+                <ul className="list-inside list-disc space-y-1 text-sm text-orange-800">
+                  <li>SIRET invalide ou mal formaté (doit contenir 14 chiffres)</li>
+                  <li>Entreprise non trouvée dans les bases de données publiques</li>
+                  <li>APIs externes temporairement indisponibles (Sirene, Infogreffe)</li>
+                  <li>Délai d'attente dépassé lors de la récupération des données</li>
+                </ul>
+                <p className="text-sm text-orange-800">
+                  Seules les informations de base extraites du devis sont affichées ci-dessous.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Informations Administratives */}
         <div className="space-y-3">
           <h3 className="flex items-center gap-2 text-sm font-semibold">
