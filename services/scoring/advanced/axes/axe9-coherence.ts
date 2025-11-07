@@ -490,7 +490,7 @@ export class Axe9Coherence {
   ): Promise<ControlPointScore> {
     let score = 10
     let justification = 'Solution proposée cohérente avec le besoin'
-    const confidence = 65
+    let confidence = 65
 
     const need = coherenceData.clientNeed.toLowerCase()
     const request = coherenceData.clientRequest.toLowerCase()
@@ -545,7 +545,7 @@ export class Axe9Coherence {
   private async scoreJustificationTechnique(devis: Devis): Promise<ControlPointScore> {
     let score = 5
     let justification = 'Justifications techniques standards'
-    const confidence = 60
+    let confidence = 60
 
     const extractedData = devis.extractedData as any
     const devisDescription = extractedData?.project?.description?.toLowerCase() || ''
@@ -582,7 +582,7 @@ export class Axe9Coherence {
   ): Promise<ControlPointScore> {
     let score = 3
     let justification = 'Réponse claire au besoin exprimé'
-    const confidence = 60
+    let confidence = 60
 
     const extractedData = devis.extractedData as any
     const devisDescription = extractedData?.project?.description || ''
