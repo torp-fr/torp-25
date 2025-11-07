@@ -296,7 +296,11 @@ export async function POST(request: NextRequest) {
         documentId: document.id,
         userId,
         extractedData: analysis.extractedData as any,
-        enrichedData: enrichedDataForDevis as any,
+        enrichedData: {
+          ...(enrichedDataForDevis as any),
+          // Ajouter les données CCF pour l'analyse de cohérence (Axe 9)
+          ccfData: ccfData || null,
+        } as any,
         validationStatus: 'COMPLETED',
         totalAmount: new Decimal(analysis.extractedData.totals.total),
         projectType: analysis.extractedData.project.title || 'Non spécifié',
@@ -430,12 +434,13 @@ export async function POST(request: NextRequest) {
             projectAmount,
             region: regionForScoring,
             tradeType: tradeTypeForScoring,
+            coherenceData: ccfData || undefined, // Données du wizard de cohérence pour Axe 9
           }
         )
 
         const scoringDuration = Date.now() - scoringStartTime
         console.log(
-          `[LLM Analyze] Score avancé calculé (fallback, ${scoringDuration}ms): ${advancedScore.totalScore}/1200`
+          `[LLM Analyze] Score avancé calculé (fallback, ${scoringDuration}ms): ${advancedScore.totalScore}/1350`
         )
         useAdvancedScoring = true
       } catch (error) {

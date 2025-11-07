@@ -28,6 +28,7 @@ import {
 import { AppHeader } from '@/components/app-header'
 import { DevisChat } from '@/components/chat/devis-chat'
 import { RecommendationCard } from '@/components/recommendations/recommendation-card'
+import { CoherenceCard } from '@/components/analysis/coherence-card'
 
 // ... existing code ...
 
@@ -375,7 +376,7 @@ export default function AnalysisPage() {
                     {score.scoreGrade}
                   </div>
                   <div className="text-2xl font-semibold">
-                    {Math.round(Number(score.scoreValue))}/1000
+                    {Math.round(Number(score.scoreValue))}/1350
                   </div>
                   <div className="mt-1 text-sm opacity-75">
                     Confiance: {Math.round(Number(score.confidenceLevel))}%
@@ -402,6 +403,37 @@ export default function AnalysisPage() {
             </CardContent>
           </Card>
         )}
+
+        {/* Coherence Analysis - Axe 9 */}
+        <CoherenceCard
+          coherenceData={(devis as any).enrichedData?.ccfData}
+          coherenceAnalysis={
+            score?.breakdown?.axisScores?.find((axis: any) => axis.axisId === 'coherence')
+              ? {
+                  score:
+                    score.breakdown.axisScores.find((axis: any) => axis.axisId === 'coherence')
+                      ?.score || 0,
+                  maxPoints:
+                    score.breakdown.axisScores.find((axis: any) => axis.axisId === 'coherence')
+                      ?.maxPoints || 150,
+                  percentage:
+                    score.breakdown.axisScores.find((axis: any) => axis.axisId === 'coherence')
+                      ?.percentage || 0,
+                  matchingElements: [],
+                  missingElements: [],
+                  extraElements: [],
+                  alerts:
+                    score.breakdown.axisScores
+                      .find((axis: any) => axis.axisId === 'coherence')
+                      ?.alerts.map((alert: any) => ({
+                        type: alert.type,
+                        message: alert.message,
+                      })) || [],
+                }
+              : undefined
+          }
+          devisAmount={devis.totalAmount}
+        />
 
         {/* Company Verification - Enriched Section */}
         {/* Toujours afficher si on a un SIRET, même sans données enrichies */}
