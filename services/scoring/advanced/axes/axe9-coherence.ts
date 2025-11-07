@@ -577,7 +577,7 @@ export class Axe9Coherence {
    */
   private async scoreClarteReponse(
     devis: Devis,
-    coherenceData: CoherenceData
+    _coherenceData: CoherenceData
   ): Promise<ControlPointScore> {
     let score = 3
     let justification = 'Réponse claire au besoin exprimé'
