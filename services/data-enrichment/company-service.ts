@@ -38,17 +38,26 @@ export class CompanyEnrichmentService {
    */
   async enrichFromSiret(siret: string): Promise<CompanyEnrichment | null> {
     try {
-      // Nettoyer le SIRET (supprimer espaces)
-      const cleanSiret = siret.replace(/\s/g, '')
+      // Nettoyer le SIRET (supprimer espaces, tirets, points)
+      const cleanSiret = siret.replace(/[\s\-\.]/g, '')
       console.log(
         `[CompanyService] 🔍 Enrichissement pour SIRET: ${cleanSiret}`
       )
 
-      if (!this.isValidSiret(cleanSiret)) {
+      // Vérifier le format basique (14 chiffres)
+      if (!/^\d{14}$/.test(cleanSiret)) {
         console.warn(
-          `[CompanyService] ❌ SIRET invalide: ${siret} (après nettoyage: ${cleanSiret})`
+          `[CompanyService] ❌ SIRET invalide (format): ${siret} (après nettoyage: ${cleanSiret})`
         )
         return null
+      }
+
+      // Validation Luhn - WARNING seulement, on continue quand même
+      if (!this.isValidSiret(cleanSiret)) {
+        console.warn(
+          `[CompanyService] ⚠️ SIRET ne passe pas la validation Luhn: ${cleanSiret} - Tentative de récupération quand même`
+        )
+        // On ne retourne PAS null, on continue avec l'API
       }
 
       // 1. Essayer d'abord avec le service Sirene complet (API INSEE)
