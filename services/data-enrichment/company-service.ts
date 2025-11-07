@@ -1,6 +1,6 @@
 /**
  * Service d'enrichissement des données d'entreprise
- * Utilise l'API Sirene (INSEE et data.gouv.fr) et autres sources
+ * Utilise recherche intelligente avec recoupement multi-sources
  */
 
 import { ApiClient } from './api-client'
@@ -11,12 +11,16 @@ import {
 } from '../external-apis/sirene-service'
 import { InfogreffeService } from '../external-apis/infogreffe-service'
 import { AnnuaireEntreprisesService } from '../external-apis/annuaire-entreprises-service'
+import { IntelligentCompanySearch, type EnrichedCompanyProfile } from './intelligent-company-search'
+import { ReviewsAggregator } from '../external-apis/reviews-aggregator'
 
 export class CompanyEnrichmentService {
   private sireneClient: ApiClient
   private sireneService: SireneService
   private infogreffeService: InfogreffeService
   private annuaireService: AnnuaireEntreprisesService
+  private intelligentSearch: IntelligentCompanySearch
+  private reviewsAggregator: ReviewsAggregator
 
   constructor() {
     // API Recherche d'Entreprises (data.gouv.fr) - gratuite, sans clé
@@ -35,6 +39,12 @@ export class CompanyEnrichmentService {
 
     // Service Annuaire Entreprises pour enrichissement complet
     this.annuaireService = new AnnuaireEntreprisesService()
+
+    // Service de recherche intelligente avec recoupement
+    this.intelligentSearch = new IntelligentCompanySearch()
+
+    // Service d'agrégation des avis
+    this.reviewsAggregator = new ReviewsAggregator()
   }
 
   /**
@@ -215,6 +225,78 @@ export class CompanyEnrichmentService {
         error instanceof Error ? error.message : String(error),
         error instanceof Error ? error.stack : undefined
       )
+      return null
+    }
+  }
+
+  /**
+   * Enrichissement complet et intelligent avec recoupement multi-sources
+   * - Recherche intelligente (SIRET, SIREN, nom+adresse)
+   * - Date d'immatriculation extraite
+   * - Avis clients (Google, Trustpilot, Eldo)
+   * - Mots-clés d'activité
+   * - Score de confiance et complétude
+   */
+  async enrichFromSiretComplete(
+    siret: string,
+    additionalInfo?: {
+      name?: string
+      address?: string
+      postalCode?: string
+      city?: string
+    }
+  ): Promise<EnrichedCompanyProfile | null> {
+    try {
+      console.log('[CompanyService] 🚀 Enrichissement complet intelligent')
+
+      // 1. Recherche intelligente avec recoupement
+      const profile = await this.intelligentSearch.search({
+        siret,
+        name: additionalInfo?.name,
+        address: additionalInfo?.address,
+        postalCode: additionalInfo?.postalCode,
+        city: additionalInfo?.city,
+      })
+
+      if (!profile) {
+        console.log('[CompanyService] ❌ Entreprise non trouvée')
+        return null
+      }
+
+      console.log('[CompanyService] ✅ Entreprise trouvée:', {
+        siret: profile.siret,
+        name: profile.name,
+        age: profile.companyAge,
+        sources: profile.dataSources.length,
+        completeness: profile.dataCompleteness,
+      })
+
+      // 2. Enrichir avec les avis clients
+      try {
+        console.log('[CompanyService] 📊 Récupération des avis clients...')
+        const reviews = await this.reviewsAggregator.aggregateReviews(
+          profile.name,
+          profile.siret,
+          profile.address?.city
+        )
+
+        if (reviews) {
+          // Ajouter les avis au profil
+          ;(profile as any).reviews = reviews
+          profile.dataSources.push('Avis Clients')
+          console.log(
+            `[CompanyService] ✅ ${reviews.totalReviews} avis agrégés (note: ${reviews.overallRating.toFixed(1)}/5)`
+          )
+        }
+      } catch (error) {
+        console.warn('[CompanyService] ⚠️ Erreur récupération avis:', error)
+        // Ne pas échouer si les avis échouent
+      }
+
+      console.log('[CompanyService] ✅ Enrichissement complet terminé')
+      return profile
+    } catch (error) {
+      console.error('[CompanyService] ❌ Erreur enrichissement complet:', error)
       return null
     }
   }
