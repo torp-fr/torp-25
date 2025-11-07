@@ -250,13 +250,19 @@ IMPORTANT: Ta réponse doit être UNIQUEMENT du JSON valide, sans texte avant ou
 
 Le JSON doit contenir:
 1. **extractedData**: Toutes les informations extraites du devis
-   - company: nom, SIRET, adresse, téléphone, email de l'entreprise
+   - company: nom, SIRET (14 chiffres obligatoires, sans espaces ni tirets), adresse, téléphone, email de l'entreprise
    - client: nom, adresse, téléphone, email du client
    - project: titre, description, localisation, surface
    - items: liste des lignes du devis (description, quantité, unité, prix unitaire, prix total)
    - totals: sous-total HT, TVA, taux de TVA, total TTC
    - dates: date du devis, date de validité, dates de début/fin prévues
    - legalMentions: présence d'assurance, garanties, conditions de paiement
+
+IMPORTANT pour le SIRET:
+- Un SIRET valide contient EXACTEMENT 14 chiffres
+- Si le SIRET dans le document a des espaces ou tirets (ex: "492 942 000 19"), supprime-les
+- Si le SIRET semble incomplet (moins de 14 chiffres), cherche s'il n'est pas coupé ou mal lisible
+- Si tu ne peux pas trouver 14 chiffres valides, laisse le champ vide plutôt que de mettre un SIRET incomplet
 
 2. **torpscore**: Analyse et notation selon ces 4 critères (80 points au total):
 
@@ -380,11 +386,78 @@ IMPORTANT: Retourne UNIQUEMENT le JSON, pas de texte explicatif avant ou après.
         jsonResponse = JSON.parse(jsonMatch[0])
       }
 
+      // Post-traitement: nettoyer et valider le SIRET
+      if (jsonResponse.extractedData?.company?.siret) {
+        const cleanedSiret = this.cleanAndValidateSiret(
+          jsonResponse.extractedData.company.siret
+        )
+        if (cleanedSiret) {
+          jsonResponse.extractedData.company.siret = cleanedSiret
+          console.log(
+            `[DocumentAnalyzer] ✅ SIRET nettoyé et validé: ${cleanedSiret}`
+          )
+        } else {
+          console.warn(
+            `[DocumentAnalyzer] ⚠️ SIRET invalide après nettoyage: ${jsonResponse.extractedData.company.siret} - Suppression`
+          )
+          jsonResponse.extractedData.company.siret = undefined
+        }
+      }
+
       return jsonResponse
     } catch (error) {
       console.error('Erreur analyse LLM:', error)
       throw error
     }
+  }
+
+  /**
+   * Nettoie et valide un SIRET
+   * Retourne le SIRET nettoyé si valide, undefined sinon
+   */
+  private cleanAndValidateSiret(siret: string): string | undefined {
+    if (!siret) return undefined
+
+    // Nettoyer: supprimer espaces, tirets, points
+    const cleaned = siret.replace(/[\s\-\.]/g, '')
+
+    // Vérifier le format: exactement 14 chiffres
+    if (!/^\d{14}$/.test(cleaned)) {
+      console.warn(
+        `[DocumentAnalyzer] ⚠️ SIRET invalide (pas 14 chiffres): "${siret}" -> "${cleaned}" (${cleaned.length} caractères)`
+      )
+      return undefined
+    }
+
+    // Validation Luhn (algorithme de contrôle SIRET)
+    // Note: On ne bloque plus sur Luhn car certains SIRETs valides peuvent échouer
+    // mais on log un warning
+    if (!this.validateSiretLuhn(cleaned)) {
+      console.warn(
+        `[DocumentAnalyzer] ⚠️ SIRET ne passe pas la validation Luhn: ${cleaned} - Accepté quand même`
+      )
+    }
+
+    return cleaned
+  }
+
+  /**
+   * Validation Luhn pour SIRET
+   * Retourne true si valide selon l'algorithme de Luhn
+   */
+  private validateSiretLuhn(siret: string): boolean {
+    let sum = 0
+    for (let i = 0; i < 14; i++) {
+      let digit = parseInt(siret.charAt(i), 10)
+      if (i % 2 === 0) {
+        digit *= 2
+        if (digit > 9) {
+          digit -= 9
+        }
+      }
+      sum += digit
+    }
+    return sum % 10 === 0
   }
 
   /**
