@@ -18,7 +18,6 @@ import {
   CheckCircle2,
   XCircle,
   MessageSquare,
-  Shield,
   Euro,
   AlertCircle,
   Target,
