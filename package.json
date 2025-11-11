@@ -38,6 +38,11 @@
     "db:migrate": "prisma migrate dev",
     "db:migrate:deploy": "node scripts/pre-migrate-cleanup.js && prisma migrate deploy",
     "db:studio": "prisma studio",
+    "gpt:create-key": "tsx scripts/gpt-api-keys.ts create",
+    "gpt:list-keys": "tsx scripts/gpt-api-keys.ts list",
+    "gpt:deactivate-key": "tsx scripts/gpt-api-keys.ts deactivate",
+    "gpt:activate-key": "tsx scripts/gpt-api-keys.ts activate",
+    "gpt:delete-key": "tsx scripts/gpt-api-keys.ts delete",
     "postinstall": "prisma generate",
     "prepare": "husky install"
   },

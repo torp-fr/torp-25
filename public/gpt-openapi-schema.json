@@ -1,0 +1,525 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "TORP GPT Integration API",
+    "description": "API permettant à un agent GPT d'analyser des devis de travaux de construction et de fournir des scores et recommandations",
+    "version": "1.0.0",
+    "contact": {
+      "name": "TORP Platform",
+      "url": "https://torp.fr"
+    }
+  },
+  "servers": [
+    {
+      "url": "https://votre-domaine.fr",
+      "description": "Production server"
+    }
+  ],
+  "paths": {
+    "/api/gpt/devis/{id}": {
+      "get": {
+        "operationId": "getDevis",
+        "summary": "Récupère les données d'un devis",
+        "description": "Récupère toutes les informations d'un devis pour analyse : données extraites par OCR, données enrichies sur l'entreprise, score TORP existant, etc.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "ID unique du devis",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Données du devis récupérées avec succès",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DevisResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentification échouée",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Devis non trouvé",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKeyAuth": []
+          }
+        ]
+      }
+    },
+    "/api/gpt/analysis": {
+      "post": {
+        "operationId": "submitAnalysis",
+        "summary": "Soumet une analyse GPT d'un devis",
+        "description": "Enregistre les résultats de l'analyse GPT : score, recommandations, alertes, points forts et faibles",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GPTAnalysisRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Analyse enregistrée avec succès",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalysisResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Données invalides",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentification échouée",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Devis non trouvé",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKeyAuth": []
+          }
+        ]
+      },
+      "get": {
+        "operationId": "getAnalyses",
+        "summary": "Récupère les analyses GPT d'un devis",
+        "description": "Récupère toutes les analyses GPT précédentes pour un devis donné",
+        "parameters": [
+          {
+            "name": "devisId",
+            "in": "query",
+            "required": true,
+            "description": "ID du devis",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Analyses récupérées avec succès",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "count": {
+                      "type": "integer"
+                    },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/GPTAnalysis"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Paramètre manquant",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentification échouée",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKeyAuth": []
+          }
+        ]
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "ApiKeyAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "API Key",
+        "description": "Clé API TORP au format: torp_gpt_xxxxx"
+      }
+    },
+    "schemas": {
+      "DevisResponse": {
+        "type": "object",
+        "properties": {
+          "devis": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "createdAt": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "projectType": {
+                "type": "string",
+                "description": "Type de projet (rénovation, construction, etc.)"
+              },
+              "tradeType": {
+                "type": "string",
+                "description": "Corps de métier (plomberie, électricité, etc.)"
+              },
+              "totalAmount": {
+                "type": "number",
+                "description": "Montant total du devis en euros"
+              },
+              "extractedData": {
+                "type": "object",
+                "description": "Données extraites du devis par OCR"
+              },
+              "enrichedData": {
+                "type": "object",
+                "description": "Données enrichies sur l'entreprise (SIRET, certifications, santé financière, etc.)"
+              },
+              "torpScore": {
+                "type": "object",
+                "nullable": true,
+                "description": "Score TORP existant (si disponible)",
+                "properties": {
+                  "scoreValue": {
+                    "type": "number"
+                  },
+                  "scoreGrade": {
+                    "type": "string",
+                    "enum": ["A", "B", "C", "D", "E"]
+                  },
+                  "breakdown": {
+                    "type": "object"
+                  },
+                  "alerts": {
+                    "type": "object"
+                  },
+                  "recommendations": {
+                    "type": "object"
+                  }
+                }
+              }
+            }
+          },
+          "meta": {
+            "type": "object",
+            "properties": {
+              "requestedAt": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "apiVersion": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      },
+      "GPTAnalysisRequest": {
+        "type": "object",
+        "required": ["devisId", "gptScore", "analysis", "recommendations"],
+        "properties": {
+          "devisId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "ID du devis analysé"
+          },
+          "gptScore": {
+            "type": "number",
+            "description": "Score attribué par le GPT (0-100 ou 0-1000)"
+          },
+          "gptGrade": {
+            "type": "string",
+            "enum": ["A", "B", "C", "D", "E"],
+            "description": "Grade attribué (optionnel)"
+          },
+          "confidence": {
+            "type": "number",
+            "description": "Niveau de confiance du score (0-100)",
+            "minimum": 0,
+            "maximum": 100
+          },
+          "analysis": {
+            "type": "object",
+            "required": [],
+            "properties": {
+              "summary": {
+                "type": "string",
+                "description": "Résumé de l'analyse"
+              },
+              "details": {
+                "type": "object",
+                "description": "Détails de l'analyse"
+              },
+              "methodology": {
+                "type": "string",
+                "description": "Méthodologie utilisée"
+              }
+            }
+          },
+          "recommendations": {
+            "type": "array",
+            "description": "Liste des recommandations",
+            "items": {
+              "type": "object",
+              "required": ["type", "priority", "title", "description"],
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "description": "Type de recommandation (prix, qualité, délais, conformité)"
+                },
+                "priority": {
+                  "type": "string",
+                  "enum": ["low", "medium", "high", "critical"]
+                },
+                "title": {
+                  "type": "string"
+                },
+                "description": {
+                  "type": "string"
+                },
+                "action": {
+                  "type": "string",
+                  "description": "Action recommandée"
+                }
+              }
+            }
+          },
+          "alerts": {
+            "type": "array",
+            "description": "Alertes identifiées",
+            "items": {
+              "type": "object",
+              "properties": {
+                "severity": {
+                  "type": "string",
+                  "enum": ["info", "warning", "error", "critical"]
+                },
+                "title": {
+                  "type": "string"
+                },
+                "description": {
+                  "type": "string"
+                },
+                "recommendation": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "strengths": {
+            "type": "array",
+            "description": "Points forts identifiés",
+            "items": {
+              "type": "object",
+              "properties": {
+                "category": {
+                  "type": "string"
+                },
+                "title": {
+                  "type": "string"
+                },
+                "description": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "weaknesses": {
+            "type": "array",
+            "description": "Points faibles identifiés",
+            "items": {
+              "type": "object",
+              "properties": {
+                "category": {
+                  "type": "string"
+                },
+                "title": {
+                  "type": "string"
+                },
+                "description": {
+                  "type": "string"
+                },
+                "impact": {
+                  "type": "string",
+                  "enum": ["low", "medium", "high"]
+                }
+              }
+            }
+          },
+          "processingTime": {
+            "type": "integer",
+            "description": "Temps de traitement en millisecondes"
+          },
+          "gptModel": {
+            "type": "string",
+            "description": "Modèle GPT utilisé (ex: gpt-4, gpt-4-turbo)"
+          },
+          "version": {
+            "type": "string",
+            "description": "Version de l'agent GPT"
+          },
+          "metadata": {
+            "type": "object",
+            "description": "Métadonnées additionnelles"
+          }
+        }
+      },
+      "GPTAnalysis": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "devisId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "gptScore": {
+            "type": "number"
+          },
+          "gptGrade": {
+            "type": "string",
+            "nullable": true
+          },
+          "confidence": {
+            "type": "number"
+          },
+          "analysis": {
+            "type": "object"
+          },
+          "recommendations": {
+            "type": "array"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "AnalysisResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "devisId": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "gptScore": {
+                "type": "number"
+              },
+              "gptGrade": {
+                "type": "string",
+                "nullable": true
+              },
+              "confidence": {
+                "type": "number"
+              },
+              "createdAt": {
+                "type": "string",
+                "format": "date-time"
+              }
+            }
+          }
+        }
+      },
+      "Error": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}

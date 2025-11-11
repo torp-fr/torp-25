@@ -144,6 +144,7 @@ model Devis {
   document                Document                 @relation(fields: [documentId], references: [id], onDelete: Cascade)
   user                    User                     @relation(fields: [userId], references: [id], onDelete: Cascade)
   torpScores              TORPScore[]
+  gptAnalyses             GPTAnalysis[]
   projectCCF              ProjectCCF?
   chatMessages            ChatMessage[]
   complementaryDocuments  ComplementaryDocument[]
@@ -779,3 +780,68 @@ model BuildingDocument {
   @@index([expirationDate])
   @@map("building_documents")
 }
+
+// ============================================================================
+// GPT Integration Models
+// ============================================================================
+
+model GPTApiKey {
+  id          String    @id @default(uuid())
+  name        String // Nom descriptif de la clé (ex: "Production GPT", "Test GPT")
+  apiKey      String    @unique @map("api_key") // La clé API générée
+  isActive    Boolean   @default(true) @map("is_active")
+  lastUsedAt  DateTime? @map("last_used_at")
+  usageCount  Int       @default(0) @map("usage_count")
+  rateLimit   Int       @default(100) @map("rate_limit") // Limite par heure
+  permissions Json      @default("{}") // Permissions spécifiques (lecture, écriture, etc.)
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  expiresAt   DateTime? @map("expires_at") // Date d'expiration optionnelle
+
+  // Relations
+  gptAnalyses GPTAnalysis[]
+
+  @@index([apiKey])
+  @@index([isActive])
+  @@index([createdAt])
+  @@map("gpt_api_keys")
+}
+
+model GPTAnalysis {
+  id          String   @id @default(uuid())
+  devisId     String   @map("devis_id")
+  apiKeyId    String   @map("api_key_id")
+
+  // Score et évaluation du GPT
+  gptScore       Decimal @map("gpt_score") @db.Decimal(5, 2) // Score sur 100 ou 1000
+  gptGrade       String? @map("gpt_grade") // Grade A-E
+  confidence     Decimal @default(0) @db.Decimal(5, 2) // Niveau de confiance 0-100
+
+  // Analyse détaillée
+  analysis       Json // Analyse complète du GPT
+  recommendations Json // Recommandations
+  alerts         Json? // Alertes identifiées
+  strengths      Json? // Points forts identifiés
+  weaknesses     Json? // Points faibles identifiés
+
+  // Métadonnées
+  processingTime Int?     @map("processing_time") // Temps de traitement en ms
+  gptModel       String?  @map("gpt_model") // Modèle GPT utilisé (ex: "gpt-4", "gpt-4-turbo")
+  version        String   @default("1.0.0") // Version de l'agent GPT
+  metadata       Json?    // Métadonnées supplémentaires
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  devis  Devis     @relation(fields: [devisId], references: [id], onDelete: Cascade)
+  apiKey GPTApiKey @relation(fields: [apiKeyId], references: [id], onDelete: Cascade)
+
+  @@index([devisId])
+  @@index([apiKeyId])
+  @@index([createdAt])
+  @@map("gpt_analyses")
+}
+
+// Ajout de la relation dans le modèle Devis
+// Note: Ajouter "gptAnalyses GPTAnalysis[]" dans le modèle Devis
