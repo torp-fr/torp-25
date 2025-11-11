@@ -3,7 +3,7 @@
  * Retourne le schéma OpenAPI pour l'intégration GPT
  */
 
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import fs from 'fs';
 import path from 'path';
 
@@ -11,7 +11,7 @@ import path from 'path';
  * GET /api/gpt/openapi
  * Retourne le schéma OpenAPI au format JSON
  */
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     // Lire le fichier OpenAPI schema
     const schemaPath = path.join(process.cwd(), 'public', 'gpt-openapi-schema.json');
