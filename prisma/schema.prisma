@@ -810,7 +810,7 @@ model GPTApiKey {
 model GPTAnalysis {
   id          String   @id @default(uuid())
   devisId     String   @map("devis_id")
-  apiKeyId    String   @map("api_key_id")
+  apiKeyId    String?  @map("api_key_id") // Optionnel pour les appels système automatiques
 
   // Score et évaluation du GPT
   gptScore       Decimal @map("gpt_score") @db.Decimal(5, 2) // Score sur 100 ou 1000
@@ -834,8 +834,8 @@ model GPTAnalysis {
   updatedAt DateTime @updatedAt @map("updated_at")
 
   // Relations
-  devis  Devis     @relation(fields: [devisId], references: [id], onDelete: Cascade)
-  apiKey GPTApiKey @relation(fields: [apiKeyId], references: [id], onDelete: Cascade)
+  devis  Devis      @relation(fields: [devisId], references: [id], onDelete: Cascade)
+  apiKey GPTApiKey? @relation(fields: [apiKeyId], references: [id], onDelete: SetNull)
 
   @@index([devisId])
   @@index([apiKeyId])
