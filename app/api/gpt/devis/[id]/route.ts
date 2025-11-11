@@ -20,7 +20,7 @@ const prisma = new PrismaClient();
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     // Authentification
@@ -29,7 +29,7 @@ export async function GET(
       return createAuthErrorResponse(auth.error || 'Authentication failed');
     }
 
-    const { id } = params;
+    const { id } = await params;
 
     // Récupérer le devis avec toutes les données
     const devis = await prisma.devis.findUnique({
