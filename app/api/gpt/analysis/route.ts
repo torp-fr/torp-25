@@ -132,19 +132,19 @@ export async function POST(request: NextRequest) {
     const gptAnalysis = await prisma.gPTAnalysis.create({
       data: {
         devisId: body.devisId,
-        apiKeyId: auth.apiKeyId!,
+        apiKeyId: auth.apiKeyId ?? undefined,
         gptScore: body.gptScore,
         gptGrade: body.gptGrade ?? undefined,
         confidence: body.confidence ?? 0,
-        analysis: body.analysis,
-        recommendations: body.recommendations,
-        alerts: body.alerts ?? undefined,
-        strengths: body.strengths ?? undefined,
-        weaknesses: body.weaknesses ?? undefined,
+        analysis: body.analysis as any,
+        recommendations: body.recommendations as any,
+        alerts: body.alerts ? (body.alerts as any) : undefined,
+        strengths: body.strengths ? (body.strengths as any) : undefined,
+        weaknesses: body.weaknesses ? (body.weaknesses as any) : undefined,
         processingTime: body.processingTime ?? undefined,
         gptModel: body.gptModel ?? undefined,
         version: body.version || '1.0.0',
-        metadata: body.metadata ?? undefined,
+        metadata: body.metadata ? (body.metadata as any) : undefined,
       },
     });
 
