@@ -88,12 +88,14 @@ export function validateFileUpload(file: File): ValidationResult {
 
   // Check file extension matches MIME type
   const fileExtension = getFileExtension(file.name)
-  if (!mimeTypeInfo.extensions.includes(fileExtension)) {
+  // Cast to readonly array for TypeScript compatibility
+  const allowedExtensions = mimeTypeInfo.extensions as readonly string[]
+  if (!allowedExtensions.includes(fileExtension)) {
     logger.warn('File extension does not match MIME type', {
       name: file.name,
       extension: fileExtension,
       mimeType: file.type,
-      expectedExtensions: mimeTypeInfo.extensions,
+      expectedExtensions: allowedExtensions,
     })
     return {
       valid: false,
