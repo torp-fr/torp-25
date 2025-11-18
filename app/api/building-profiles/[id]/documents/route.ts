@@ -3,6 +3,7 @@ import { prisma } from '@/lib/db'
 import { documentUploadService } from '@/services/document/upload'
 import { createLogger } from '@/lib/logger'
 import { validateFileUpload } from '@/lib/upload-validator'
+import { BuildingDocumentType } from '@prisma/client'
 
 const logger = createLogger('Building Documents API')
 
@@ -144,9 +145,9 @@ export async function POST(
       'PHOTO',
       'VIDEO',
       'OTHER',
-    ]
+    ] as const
 
-    if (!validDocumentTypes.includes(documentType)) {
+    if (!validDocumentTypes.includes(documentType as any)) {
       return NextResponse.json(
         {
           error: 'Type de document invalide',
@@ -155,6 +156,9 @@ export async function POST(
         { status: 400 }
       )
     }
+
+    // TypeScript now knows documentType is valid after validation
+    const validatedDocumentType = documentType as BuildingDocumentType
 
     // Upload vers S3 via le service existant
     let uploadResult
@@ -189,7 +193,7 @@ export async function POST(
           fileType: file.type,
           fileSize: file.size,
           fileUrl,
-          documentType: documentType, // Validated above
+          documentType: validatedDocumentType, // Validated and cast above
           documentCategory: documentCategory || null,
           description: description || null,
           documentDate: documentDate ? new Date(documentDate) : null,
