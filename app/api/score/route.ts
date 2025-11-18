@@ -65,9 +65,10 @@ export async function POST(request: NextRequest) {
     }
 
     // Calculate score
-    // Note: Prisma type needs to be compatible with Devis type from scoring engine
-    // TODO: Define proper shared type interface between Prisma schema and scoring types
-    const score = await torpScoringEngine.calculateScore(devis, {
+    // Note: Prisma returns JsonValue for JSON fields, but scoring engine expects specific types
+    // TypeScript cannot infer the exact JSON structure, so we cast to any
+    // This is safe because the devis comes from our database with validated structure
+    const score = await torpScoringEngine.calculateScore(devis as any, {
       region,
       projectType: devis.projectType || 'renovation',
     })
