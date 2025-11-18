@@ -30,6 +30,15 @@ export async function GET(request: NextRequest) {
 
     if (siret) {
       const enrichment = await companyService.enrichFromSiret(siret)
+      if (!enrichment) {
+        return NextResponse.json(
+          {
+            error: 'Company not found',
+            message: `No company data found for SIRET: ${siret}`,
+          },
+          { status: 404 }
+        )
+      }
       return NextResponse.json({
         success: true,
         data: enrichment,
@@ -38,6 +47,15 @@ export async function GET(request: NextRequest) {
 
     if (name) {
       const results = await companyService.searchByName(name, 10)
+      if (!results || results.length === 0) {
+        return NextResponse.json(
+          {
+            error: 'No results found',
+            message: `No companies found matching: ${name}`,
+          },
+          { status: 404 }
+        )
+      }
       return NextResponse.json({
         success: true,
         data: results,

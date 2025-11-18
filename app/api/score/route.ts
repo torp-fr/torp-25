@@ -48,8 +48,9 @@ export async function POST(request: NextRequest) {
     }
 
     // Calculate score
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const score = await torpScoringEngine.calculateScore(devis as any, {
+    // Note: Prisma type needs to be compatible with Devis type from scoring engine
+    // TODO: Define proper shared type interface between Prisma schema and scoring types
+    const score = await torpScoringEngine.calculateScore(devis, {
       region,
       projectType: devis.projectType || 'renovation',
     })

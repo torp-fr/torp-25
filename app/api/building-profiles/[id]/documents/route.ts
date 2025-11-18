@@ -111,34 +111,86 @@ export async function POST(
       )
     }
 
+    // Validate documentType against allowed enum values
+    const validDocumentTypes = [
+      'TITLE_DEED',
+      'INSURANCE_HOME',
+      'INSURANCE_LIFE',
+      'PROPERTY_TAX',
+      'NOTARY_ACT',
+      'CONSTRUCTION_PERMIT',
+      'DPE_CERTIFICATE',
+      'TECHNICAL_REPORT',
+      'WARRANTY',
+      'MAINTENANCE_LOG',
+      'INVOICE',
+      'ESTIMATE',
+      'QUOTE',
+      'CONTRACT',
+      'PHOTO',
+      'VIDEO',
+      'OTHER',
+    ]
+
+    if (!validDocumentTypes.includes(documentType)) {
+      return NextResponse.json(
+        {
+          error: 'Type de document invalide',
+          allowedTypes: validDocumentTypes,
+        },
+        { status: 400 }
+      )
+    }
+
     // Upload vers S3 via le service existant
-    const uploadResult = await documentUploadService.upload({
-      userId,
-      file,
-      folder: `building-documents/${id}`,
-    })
+    let uploadResult
+    try {
+      uploadResult = await documentUploadService.upload({
+        userId,
+        file,
+        folder: `building-documents/${id}`,
+      })
+    } catch (uploadError) {
+      console.error('[API Building Documents] S3 upload failed:', uploadError)
+      return NextResponse.json(
+        {
+          error: 'Échec de l\'upload du fichier',
+          details: uploadError instanceof Error ? uploadError.message : 'Unknown error',
+        },
+        { status: 500 }
+      )
+    }
 
     const fileUrl = uploadResult.fileUrl
 
     // Créer l'enregistrement dans la base de données
-    const document = await prisma.buildingDocument.create({
-      data: {
-        buildingProfileId: id,
-        userId,
-        fileName: file.name,
-        fileType: file.type,
-        fileSize: file.size,
-        fileUrl,
-        documentType: documentType as any,
-        documentCategory: documentCategory || null,
-        description: description || null,
-        documentDate: documentDate ? new Date(documentDate) : null,
-        expirationDate: expirationDate ? new Date(expirationDate) : null,
-        ocrStatus: 'PENDING',
-        isValidated: false,
-        tags: [],
-      },
-    })
+    // Si cela échoue, le catch principal gérera l'erreur
+    let document
+    try {
+      document = await prisma.buildingDocument.create({
+        data: {
+          buildingProfileId: id,
+          userId,
+          fileName: file.name,
+          fileType: file.type,
+          fileSize: file.size,
+          fileUrl,
+          documentType: documentType, // Validated above
+          documentCategory: documentCategory || null,
+          description: description || null,
+          documentDate: documentDate ? new Date(documentDate) : null,
+          expirationDate: expirationDate ? new Date(expirationDate) : null,
+          ocrStatus: 'PENDING',
+          isValidated: false,
+          tags: [],
+        },
+      })
+    } catch (dbError) {
+      console.error('[API Building Documents] DB creation failed:', dbError)
+      // TODO: Implémenter la suppression du fichier S3 en compensation
+      // await documentUploadService.delete(fileUrl)
+      throw dbError // Re-throw pour que le catch principal le gère
+    }
 
     // TODO: Lancer l'OCR en arrière-plan si nécessaire
 

@@ -533,7 +533,8 @@ export class TORPScoringEngine {
     const declaredSubtotal = devis.extractedData.totals.subtotal
 
     const difference = Math.abs(calculatedTotal - declaredSubtotal)
-    const tolerance = declaredSubtotal * 0.01 // 1% tolerance
+    // Use 3% tolerance to account for floating-point rounding and legitimate calculation differences
+    const tolerance = declaredSubtotal * 0.03 // 3% tolerance (increased from 1%)
 
     return difference <= tolerance ? 1.0 : 0.5
   }

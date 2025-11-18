@@ -6,12 +6,18 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { ocrService } from '@/services/document/ocr'
+import { createLogger } from '@/lib/logger'
+
+const logger = createLogger('OCR API')
 
 export const dynamic = 'force-dynamic'
 
 export async function POST(request: NextRequest) {
+  let documentId: string | undefined
+
   try {
-    const { documentId } = await request.json()
+    const body = await request.json()
+    documentId = body.documentId
 
     if (!documentId) {
       return NextResponse.json(
@@ -60,19 +66,18 @@ export async function POST(request: NextRequest) {
       },
     })
   } catch (error) {
-    console.error('OCR processing error:', error)
+    logger.error('OCR processing failed', error, { documentId })
 
-    // Try to update document status to failed
-    try {
-      const { documentId } = await request.json()
-      if (documentId) {
+    // Try to update document status to failed (using stored documentId)
+    if (documentId) {
+      try {
         await prisma.document.update({
           where: { id: documentId },
           data: { ocrStatus: 'FAILED' },
         })
+      } catch (updateError) {
+        logger.error('Failed to update document status after OCR failure', updateError, { documentId })
       }
-    } catch {
-      // Ignore update errors
     }
 
     return NextResponse.json(

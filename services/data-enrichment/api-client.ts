@@ -44,17 +44,15 @@ export class ApiClient {
     let lastError: Error | null = null
 
     for (let attempt = 0; attempt <= this.config.retries; attempt++) {
-      try {
-        const controller = new AbortController()
-        const timeoutId = setTimeout(() => controller.abort(), this.config.timeout)
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), this.config.timeout)
 
+      try {
         const response = await fetch(url.toString(), {
           method: 'GET',
           headers,
           signal: controller.signal,
         })
-
-        clearTimeout(timeoutId)
 
         if (!response.ok) {
           throw new Error(`API error: ${response.status} ${response.statusText}`)
@@ -63,7 +61,7 @@ export class ApiClient {
         return await response.json()
       } catch (error) {
         lastError = error instanceof Error ? error : new Error(String(error))
-        
+
         // Ne pas retry sur les erreurs 4xx
         if (error instanceof Error && 'status' in error) {
           const status = (error as any).status
@@ -78,6 +76,8 @@ export class ApiClient {
             setTimeout(resolve, Math.pow(2, attempt) * 1000)
           )
         }
+      } finally {
+        clearTimeout(timeoutId)
       }
     }
 
@@ -104,18 +104,16 @@ export class ApiClient {
     let lastError: Error | null = null
 
     for (let attempt = 0; attempt <= this.config.retries; attempt++) {
-      try {
-        const controller = new AbortController()
-        const timeoutId = setTimeout(() => controller.abort(), this.config.timeout)
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), this.config.timeout)
 
+      try {
         const response = await fetch(url.toString(), {
           method: 'POST',
           headers,
           body: data ? JSON.stringify(data) : undefined,
           signal: controller.signal,
         })
-
-        clearTimeout(timeoutId)
 
         if (!response.ok) {
           throw new Error(`API error: ${response.status} ${response.statusText}`)
@@ -124,7 +122,7 @@ export class ApiClient {
         return await response.json()
       } catch (error) {
         lastError = error instanceof Error ? error : new Error(String(error))
-        
+
         // Ne pas retry sur les erreurs 4xx
         if (error instanceof Error && 'status' in error) {
           const status = (error as any).status
@@ -139,6 +137,8 @@ export class ApiClient {
             setTimeout(resolve, Math.pow(2, attempt) * 1000)
           )
         }
+      } finally {
+        clearTimeout(timeoutId)
       }
     }
 

@@ -430,8 +430,11 @@ IMPORTANT: Retourne UNIQUEMENT le JSON, pas de texte explicatif avant ou après.
         }
       }
 
+      // Use model resolver for consistent model selection
+      const model = await this.modelResolver.findBestModelForPdf()
+
       const message = await this.client.messages.create({
-        model: 'claude-sonnet-4-20250514',
+        model,
         max_tokens: 500,
         messages: [
           {

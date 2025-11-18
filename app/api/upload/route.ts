@@ -6,6 +6,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { documentUploadService, isS3Enabled } from '@/services/document/upload'
+import { createLogger } from '@/lib/logger'
+
+const logger = createLogger('Upload API')
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
@@ -17,17 +20,25 @@ export async function POST(request: NextRequest) {
   try {
     // Auth0 désactivé - utilisateur demo par défaut
     const userId = DEMO_USER_ID
-    
+
     // S'assurer que l'utilisateur demo existe en DB
-    await prisma.user.upsert({
-      where: { id: DEMO_USER_ID },
-      update: {},
-      create: {
-        id: DEMO_USER_ID,
-        email: 'demo@torp.fr',
-        role: 'CONSUMER',
-      },
-    })
+    try {
+      await prisma.user.upsert({
+        where: { id: DEMO_USER_ID },
+        update: {},
+        create: {
+          id: DEMO_USER_ID,
+          email: 'demo@torp.fr',
+          role: 'CONSUMER',
+        },
+      })
+    } catch (userError) {
+      console.error('Failed to create/update demo user:', userError)
+      return NextResponse.json(
+        { error: 'Failed to initialize user session' },
+        { status: 500 }
+      )
+    }
 
     const formData = await request.formData()
     const file = formData.get('file') as File
@@ -75,7 +86,7 @@ export async function POST(request: NextRequest) {
       },
     })
   } catch (error) {
-    console.error('Upload error:', error)
+    logger.error('File upload failed', error)
     return NextResponse.json(
       {
         error: 'Failed to upload file',
