@@ -6,7 +6,7 @@
 
 import { CompanyEnrichmentService } from '@/services/data-enrichment/company-service'
 import { AdvancedEnrichmentService } from '@/services/data-enrichment/advanced-enrichment-service'
-import { EnrichmentService } from '@/services/data-enrichment/enrichment-service'
+import { DataEnrichmentService } from '@/services/data-enrichment/enrichment-service'
 import { BuildingProfileService } from '@/services/building-profile-service'
 import { BuildingProfileEnrichmentService } from '@/services/building-profile-enrichment-service'
 import { BuildingRecommendationsService } from '@/services/building-recommendations-service'
@@ -57,12 +57,12 @@ class ServiceFactory {
   }
 
   /**
-   * Get or create EnrichmentService instance
+   * Get or create DataEnrichmentService instance
    */
-  getEnrichmentService(): EnrichmentService {
-    const key = 'EnrichmentService'
+  getDataEnrichmentService(): DataEnrichmentService {
+    const key = 'DataEnrichmentService'
     if (!this.services.has(key)) {
-      this.services.set(key, new EnrichmentService())
+      this.services.set(key, new DataEnrichmentService())
     }
     return this.services.get(key)
   }
@@ -125,8 +125,8 @@ export const getCompanyEnrichmentService = () =>
 export const getAdvancedEnrichmentService = () =>
   getServiceFactory().getAdvancedEnrichmentService()
 
-export const getEnrichmentService = () =>
-  getServiceFactory().getEnrichmentService()
+export const getDataEnrichmentService = () =>
+  getServiceFactory().getDataEnrichmentService()
 
 export const getBuildingProfileService = () =>
   getServiceFactory().getBuildingProfileService()
