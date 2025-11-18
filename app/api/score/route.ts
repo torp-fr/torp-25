@@ -7,11 +7,28 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { torpScoringEngine } from '@/services/scoring/torp-score'
 import { z } from 'zod'
+import { checkRateLimit, RATE_LIMITS } from '@/lib/rate-limiter'
+import { createLogger } from '@/lib/logger'
+
+const logger = createLogger('Score API')
 
 export const dynamic = 'force-dynamic'
 
 // POST calculate new score
 export async function POST(request: NextRequest) {
+  // Rate limiting check
+  const rateLimitResult = checkRateLimit(request, RATE_LIMITS.DEFAULT)
+  if (!rateLimitResult.allowed) {
+    return NextResponse.json(
+      {
+        error: 'Rate limit exceeded',
+        message: rateLimitResult.message,
+        resetTime: new Date(rateLimitResult.resetTime).toISOString(),
+      },
+      { status: 429 }
+    )
+  }
+
   try {
     // Auth0 désactivé - accès libre
     const body = await request.json()
@@ -76,7 +93,7 @@ export async function POST(request: NextRequest) {
       data: savedScore,
     })
   } catch (error) {
-    console.error('Score calculation error:', error)
+    logger.error('Score calculation error', error)
     return NextResponse.json(
       { error: 'Failed to calculate score' },
       { status: 500 }
@@ -129,7 +146,7 @@ export async function GET(request: NextRequest) {
       data: score,
     })
   } catch (error) {
-    console.error('Score fetch error:', error)
+    logger.error('Score fetch error', error)
     return NextResponse.json(
       { error: 'Failed to fetch score' },
       { status: 500 }

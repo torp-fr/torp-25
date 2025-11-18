@@ -6,33 +6,57 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { createDevisSchema } from '@/lib/validations/devis'
+import {
+  parsePaginationParams,
+  getPrismaSkipTake,
+  buildPaginationResult,
+  buildPrismaOrderBy,
+} from '@/lib/pagination'
+import { createLogger } from '@/lib/logger'
+
+const logger = createLogger('Devis API')
 
 export const dynamic = 'force-dynamic'
 
 // Auth0 temporairement désactivé - utilise un userId demo
 const DEMO_USER_ID = 'demo-user-id'
 
-// GET all devis for a user
-export async function GET(_request: NextRequest) {
+// GET all devis for a user (with pagination)
+export async function GET(request: NextRequest) {
   try {
     // Auth0 désactivé - utilisateur demo par défaut
     const userId = DEMO_USER_ID
 
+    // Parse pagination parameters
+    const { page, limit, sortBy, sortOrder } = parsePaginationParams(
+      request.nextUrl.searchParams
+    )
+
+    // Get total count
+    const total = await prisma.devis.count({
+      where: { userId },
+    })
+
+    // Get paginated data
     const devisList = await prisma.devis.findMany({
       where: { userId },
       include: {
         document: true,
         torpScores: true,
       },
-      orderBy: { createdAt: 'desc' },
+      orderBy: buildPrismaOrderBy(sortBy, sortOrder),
+      ...getPrismaSkipTake(page, limit),
     })
+
+    // Build paginated response
+    const result = buildPaginationResult(devisList, total, page, limit)
 
     return NextResponse.json({
       success: true,
-      data: devisList,
+      ...result,
     })
   } catch (error) {
-    console.error('Devis fetch error:', error)
+    logger.error('Devis fetch error', error)
     return NextResponse.json(
       { error: 'Failed to fetch devis' },
       { status: 500 }
@@ -84,7 +108,7 @@ export async function POST(request: NextRequest) {
       data: devis,
     })
   } catch (error) {
-    console.error('Devis creation error:', error)
+    logger.error('Devis creation error', error)
     return NextResponse.json(
       { error: 'Failed to create devis' },
       { status: 500 }

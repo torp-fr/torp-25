@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { documentUploadService } from '@/services/document/upload'
+import { createLogger } from '@/lib/logger'
+import { validateFileUpload } from '@/lib/upload-validator'
+
+const logger = createLogger('Building Documents API')
 
 export const dynamic = 'force-dynamic'
 
@@ -100,6 +104,16 @@ export async function POST(
     if (!file) {
       return NextResponse.json(
         { error: 'Fichier manquant' },
+        { status: 400 }
+      )
+    }
+
+    // Validate file upload
+    const validation = validateFileUpload(file)
+    if (!validation.valid) {
+      logger.warn('File validation failed', { error: validation.error, fileName: file.name })
+      return NextResponse.json(
+        { error: 'Validation du fichier échouée', message: validation.error },
         { status: 400 }
       )
     }

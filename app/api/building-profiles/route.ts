@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { BuildingProfileService } from '@/services/building-profile-service'
+import { getBuildingProfileService } from '@/lib/service-factory'
+import { createLogger } from '@/lib/logger'
+
+const logger = createLogger('Building Profiles API')
 
 export const dynamic = 'force-dynamic'
 
@@ -24,7 +27,8 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    const service = new BuildingProfileService()
+    // Use singleton service instance
+    const service = getBuildingProfileService()
     const profiles = await service.getUserProfiles(userId)
 
     return NextResponse.json({
@@ -33,7 +37,7 @@ export async function GET(request: NextRequest) {
       data: profiles,
     })
   } catch (error) {
-    console.error('[API Building Profiles GET] Erreur:', error)
+    logger.error('Building profiles fetch failed', error)
     return NextResponse.json(
       {
         error: 'Erreur lors de la récupération des profils',
@@ -64,7 +68,8 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const service = new BuildingProfileService()
+    // Use singleton service instance
+    const service = getBuildingProfileService()
     const profile = await service.createProfile({
       userId,
       name,

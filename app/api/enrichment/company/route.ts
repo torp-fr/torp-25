@@ -5,7 +5,10 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { CompanyEnrichmentService } from '@/services/data-enrichment/company-service'
+import { getCompanyEnrichmentService } from '@/lib/service-factory'
+import { createLogger } from '@/lib/logger'
+
+const logger = createLogger('Company Enrichment API')
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
@@ -26,7 +29,8 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    const companyService = new CompanyEnrichmentService()
+    // Use singleton service instance to prevent memory leaks
+    const companyService = getCompanyEnrichmentService()
 
     if (siret) {
       const enrichment = await companyService.enrichFromSiret(siret)
@@ -69,7 +73,7 @@ export async function GET(request: NextRequest) {
       { status: 400 }
     )
   } catch (error) {
-    console.error('[API Company Enrichment] Erreur:', error)
+    logger.error('Company enrichment failed', error)
     return NextResponse.json(
       {
         error: 'Failed to enrich company data',

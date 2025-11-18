@@ -7,6 +7,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { documentUploadService, isS3Enabled } from '@/services/document/upload'
 import { createLogger } from '@/lib/logger'
+import { validateFileUpload } from '@/lib/upload-validator'
 
 const logger = createLogger('Upload API')
 
@@ -49,6 +50,18 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       )
     }
+
+    // Validate file upload
+    const validation = validateFileUpload(file)
+    if (!validation.valid) {
+      logger.warn('File validation failed', { error: validation.error, fileName: file.name })
+      return NextResponse.json(
+        { error: 'File validation failed', message: validation.error },
+        { status: 400 }
+      )
+    }
+
+    logger.info('File validation successful', validation.file)
 
     // In production, require S3 to be configured
     if (process.env.NODE_ENV === 'production' && !isS3Enabled) {
